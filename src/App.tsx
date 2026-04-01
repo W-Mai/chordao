@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
+import { ShapeGrid } from './ShapeGrid';
 import './App.css';
 
 function App() {
@@ -42,6 +43,10 @@ function App() {
           </button>
         ))}
       </div>
+
+      {/* Shape grid (simplified 2-row view) */}
+      <h2 style={{ fontSize: 18, marginBottom: 12, color: '#444' }}>Shape Grid</h2>
+      <ShapeGrid voicings={voicings} optimal={optimal} />
 
       {/* Full fretboard view */}
       <h2 style={{ fontSize: 18, marginBottom: 12, color: '#444' }}>Fretboard Overview</h2>
