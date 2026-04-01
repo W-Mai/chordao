@@ -53,7 +53,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
   const nutColor = light ? '#d4cfc2' : '#e0d6c2';
   const stringColors = light ? ['#999', '#777'] : ['#999', '#bbb'];
   const txt = light ? '#64748b' : '#5a7a9a';
-  const dotMarker = light ? '#d8d0c0' : '#2a2010';
+  const dotMarker = light ? '#c4b89c' : '#4a3c20';
 
   const singleDots = [3, 5, 7, 9];
   const doubleDot = 12;
@@ -81,11 +81,11 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
 
         {/* Inlay dots between strings */}
         {singleDots.filter(f => f <= totalFrets).map(f => (
-          <circle key={f} cx={boardX + (f - 1) * fretW + fretW / 2} cy={padY + stringGap / 2} r={3.5} fill={dotMarker} opacity={0.5} />
+          <circle key={f} cx={boardX + (f - 1) * fretW + fretW / 2} cy={padY + stringGap / 2} r={3.5} fill={dotMarker} />
         ))}
         {doubleDot <= totalFrets && <>
-          <circle cx={boardX + (doubleDot - 1) * fretW + fretW / 2} cy={padY + stringGap / 2 - 10} r={3.5} fill={dotMarker} opacity={0.5} />
-          <circle cx={boardX + (doubleDot - 1) * fretW + fretW / 2} cy={padY + stringGap / 2 + 10} r={3.5} fill={dotMarker} opacity={0.5} />
+          <circle cx={boardX + (doubleDot - 1) * fretW + fretW / 2} cy={padY + stringGap / 2 - 10} r={3.5} fill={dotMarker} />
+          <circle cx={boardX + (doubleDot - 1) * fretW + fretW / 2} cy={padY + stringGap / 2 + 10} r={3.5} fill={dotMarker} />
         </>}
 
         {/* Strings */}

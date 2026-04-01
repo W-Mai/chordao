@@ -29,7 +29,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
   const boardBg = light ? '#f0ece4' : '#1a1408';
   const nutColor = light ? '#d4cfc2' : '#e0d6c2';
   const fretLine = light ? '#c0c8d4' : '#2a4a6a';
-  const dotMarker = light ? '#d8d0c0' : '#2a2010';
+  const dotMarker = light ? '#c4b89c' : '#4a3c20';
   const txt = light ? '#64748b' : '#5a7a9a';
 
   return (
@@ -60,11 +60,11 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
 
           {/* Inlay dots */}
           {SINGLE_DOTS.filter(f => f <= totalFrets).map(f => (
-            <circle key={f} cx={nutW + (f - 0.5) * fw} cy={bh + 30} r={3.5} fill={dotMarker} opacity={0.5} />
+            <circle key={f} cx={nutW + (f - 0.5) * fw} cy={bh + 30} r={3.5} fill={dotMarker} />
           ))}
           {DOUBLE_DOT <= totalFrets && <>
-            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh + 25} r={3.5} fill={dotMarker} opacity={0.5} />
-            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh + 35} r={3.5} fill={dotMarker} opacity={0.5} />
+            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh + 25} r={3.5} fill={dotMarker} />
+            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh + 35} r={3.5} fill={dotMarker} />
           </>}
 
           {/* Strings */}
