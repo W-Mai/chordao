@@ -1,9 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing } from './chordData';
+import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
 import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
+
+import { Roller } from './Roller';
 
 const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
 const THEMES = ['dark', 'light', 'cyber'] as const;
@@ -73,8 +75,28 @@ function App() {
 
   const [activeDegree, setActiveDegree] = useState<number | null>(null);
   const toggleDegree = useCallback((d: number) => setActiveDegree(v => v === d ? null : d), []);
-  const filteredVoicings = useMemo(() => activeDegree ? voicings.filter(v => v.degree === activeDegree) : voicings, [voicings, activeDegree]);
-  const filteredOptimal = useMemo(() => activeDegree ? optimal.filter(v => v.degree === activeDegree) : optimal, [optimal, activeDegree]);
+
+  const [activeProg, setActiveProg] = useState<string | null>(null);
+  const toggleProg = useCallback((name: string) => {
+    setActiveProg(v => v === name ? null : name);
+    setActiveDegree(null);
+  }, []);
+
+  const activeProgDegrees = useMemo(() => {
+    if (!activeProg) return null;
+    return new Set(PROGRESSIONS.find(p => p.name === activeProg)?.degrees);
+  }, [activeProg]);
+
+  const filteredVoicings = useMemo(() => {
+    if (activeDegree) return voicings.filter(v => v.degree === activeDegree);
+    if (activeProgDegrees) return voicings.filter(v => activeProgDegrees.has(v.degree));
+    return voicings;
+  }, [voicings, activeDegree, activeProgDegrees]);
+  const filteredOptimal = useMemo(() => {
+    if (activeDegree) return optimal.filter(v => v.degree === activeDegree);
+    if (activeProgDegrees) return optimal.filter(v => activeProgDegrees.has(v.degree));
+    return optimal;
+  }, [optimal, activeDegree, activeProgDegrees]);
 
   const [hoveredChord, setHoveredChord] = useState<string | null>(null);
 
@@ -166,6 +188,35 @@ function App() {
                 >{label}</button>
               );
             })}
+          </div>
+
+          {/* Progressions */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block">Progressions</span>
+            {/* Desktop: vertical list */}
+            <div className="hidden md:flex md:flex-col gap-1">
+              {PROGRESSIONS.map(p => {
+                const isActive = activeProg === p.name;
+                return (
+                  <button key={p.name} onClick={() => toggleProg(p.name)}
+                    className={`text-left text-[11px] px-2 py-1 rounded cursor-pointer whitespace-nowrap ${
+                      isActive ? 'bg-blue/15 text-blue' : 'text-subtext0 hover:text-txt hover:bg-surface0/30'
+                    }`}
+                    style={{ transition: 'all var(--transition)' }}
+                  >{p.name} <span className="text-overlay0">{p.degrees.join('-')}</span></button>
+                );
+              })}
+            </div>
+            {/* Mobile: vertical roller */}
+            <div className="md:hidden">
+              <Roller
+                items={[{ name: '', degrees: [] as number[] }, ...PROGRESSIONS]}
+                activeKey={activeProg ?? ''}
+                getKey={p => p.name}
+                getLabel={p => p.name ? `${p.name} ${p.degrees.join('-')}` : 'None'}
+                onSelect={name => setActiveProg(name || null)}
+              />
+            </div>
           </div>
 
           <div className="hidden md:block mt-auto" />

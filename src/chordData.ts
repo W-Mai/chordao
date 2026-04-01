@@ -147,3 +147,15 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>): Ch
 }
 
 export { NOTES, type NoteName };
+
+// Common chord progressions (degree-based)
+export const PROGRESSIONS = [
+  { name: 'Pop Canon', degrees: [1, 5, 6, 4] },
+  { name: 'Classic 50s', degrees: [1, 6, 4, 5] },
+  { name: 'Blues', degrees: [1, 1, 4, 4, 1, 1, 5, 4, 1] },
+  { name: 'Axis', degrees: [1, 5, 6, 3] },
+  { name: 'Andalusian', degrees: [6, 5, 4, 3] },
+  { name: 'Country', degrees: [1, 4, 5, 1] },
+  { name: 'Jazz ii-V-I', degrees: [2, 5, 1] },
+  { name: 'Sad', degrees: [6, 4, 1, 5] },
+];
