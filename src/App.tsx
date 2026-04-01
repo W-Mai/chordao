@@ -116,6 +116,11 @@ function App() {
           <div className="text-[10px] text-bp-muted [body.light_&]:text-lt-muted">
             E/Em/A/Am shape derivation
           </div>
+          <a href="https://github.com/W-Mai/chordao" target="_blank" rel="noopener"
+            className="text-[10px] text-bp-muted hover:text-bp-accent [body.light_&]:text-lt-muted">
+            GitHub
+          </a>
+          <span className="text-[10px] text-bp-muted [body.light_&]:text-lt-muted"> · MIT</span>
         </div>
       </aside>
 
