@@ -77,11 +77,22 @@ function App() {
                         [body.light_&]:bg-lt-surface [body.light_&]:border-lt-line">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold tracking-wide">🎸 Chordao</h1>
-          <button
-            onClick={toggleTheme}
-            className="text-xs px-2 py-1 rounded border border-bp-line text-bp-muted hover:text-bp-accent cursor-pointer transition-colors
-                       [body.light_&]:border-lt-line [body.light_&]:text-lt-muted"
-          >{light ? '🌙' : '☀️'}</button>
+          <div className="flex gap-1">
+            <button
+              onClick={toggleBarre}
+              className={`text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${
+                showBarre
+                  ? 'border-bp-accent text-bp-accent [body.light_&]:border-lt-accent [body.light_&]:text-lt-accent'
+                  : 'border-bp-line text-bp-muted [body.light_&]:border-lt-line [body.light_&]:text-lt-muted'
+              }`}
+              title="Toggle barre lines"
+            >B</button>
+            <button
+              onClick={toggleTheme}
+              className="text-xs px-2 py-1 rounded border border-bp-line text-bp-muted hover:text-bp-accent cursor-pointer transition-colors
+                         [body.light_&]:border-lt-line [body.light_&]:text-lt-muted"
+            >{light ? '🌙' : '☀️'}</button>
+          </div>
         </div>
 
         <div className="grid grid-cols-6 md:grid-cols-4 gap-1">
@@ -119,15 +130,6 @@ function App() {
           })}
         </div>
 
-        <button
-          onClick={toggleBarre}
-          className="flex items-center gap-2 text-[11px] text-bp-muted cursor-pointer [body.light_&]:text-lt-muted"
-        >
-          <span className={`relative inline-block w-7 h-4 rounded-full transition-colors ${showBarre ? 'bg-bp-accent' : 'bg-bp-line [body.light_&]:bg-lt-line'}`}>
-            <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${showBarre ? 'translate-x-3' : ''}`} />
-          </span>
-          Barre
-        </button>
 
         <div className="hidden md:block mt-auto">
           <div className="text-[10px] text-bp-muted [body.light_&]:text-lt-muted">
