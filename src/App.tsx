@@ -45,6 +45,11 @@ function App() {
   const optimal = useMemo(() => findOptimalCombination(grouped), [grouped]);
   const optimalSet = useMemo(() => new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`)), [optimal]);
 
+  const [activeDegree, setActiveDegree] = useState<number | null>(null);
+  const toggleDegree = useCallback((d: number) => setActiveDegree(v => v === d ? null : d), []);
+  const filteredVoicings = useMemo(() => activeDegree ? voicings.filter(v => v.degree === activeDegree) : voicings, [voicings, activeDegree]);
+  const filteredOptimal = useMemo(() => activeDegree ? optimal.filter(v => v.degree === activeDegree) : optimal, [optimal, activeDegree]);
+
   const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();
   const [fretFS, openFret, closeFret] = useOverlayFullscreen();
   const [chordFS, openChord, closeChord] = useOverlayFullscreen();
@@ -94,12 +99,20 @@ function App() {
         </div>
 
         <div className="flex md:flex-col gap-2 md:gap-1 flex-wrap">
-          {DEGREE_LABELS.slice(1).map((label, i) => (
-            <div key={label} className="flex items-center gap-1.5 text-xs">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: `var(--color-deg-${i + 1})` }} />
-              <span className="text-bp-text [body.light_&]:text-lt-text">{label}</span>
-            </div>
-          ))}
+          {DEGREE_LABELS.slice(1).map((label, i) => {
+            const deg = i + 1;
+            const isActive = activeDegree === deg;
+            return (
+              <button
+                key={label}
+                onClick={() => toggleDegree(deg)}
+                className={`flex items-center gap-1.5 text-xs cursor-pointer transition-opacity ${isActive ? '' : activeDegree !== null ? 'opacity-30' : ''}`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: `var(--color-deg-${deg})` }} />
+                <span className="text-bp-text [body.light_&]:text-lt-text">{label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <button
@@ -131,7 +144,7 @@ function App() {
             <h2 className={sectionTitle}>Shape Grid</h2>
             <ExpandBtn onClick={openGrid} />
           </div>
-          <ShapeGrid voicings={voicings} optimal={optimal} light={light} />
+          <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
         </section>
 
         <section className={sectionCard}>
@@ -139,7 +152,7 @@ function App() {
             <h2 className={sectionTitle}>Fretboard Overview</h2>
             <ExpandBtn onClick={openFret} />
           </div>
-          <Fretboard voicings={voicings} optimal={optimal} light={light} />
+          <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
         </section>
 
         <section className={sectionCard}>
@@ -164,11 +177,11 @@ function App() {
 
       {/* Fullscreen overlays */}
       <FullscreenOverlay active={gridFS} onClose={closeGrid}>
-        <ShapeGrid voicings={voicings} optimal={optimal} light={light} />
+        <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
       </FullscreenOverlay>
 
       <FullscreenOverlay active={fretFS} onClose={closeFret}>
-        <Fretboard voicings={voicings} optimal={optimal} light={light} />
+        <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
       </FullscreenOverlay>
 
       <FullscreenOverlay active={chordFS} onClose={handleCloseChord}>
