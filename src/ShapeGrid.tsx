@@ -126,21 +126,21 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
             const dimmed = hoveredChord !== null && !isHov;
 
             return (
-              <g key={`${ri}-${fret}`}
+              <g key={`${cell.degree}-${ri}`}
                 opacity={dimmed ? 0.15 : 1}
-                style={{ transition: 'opacity 0.2s', cursor: 'pointer' }}
+                style={{ transform: `translate(${x}px, ${y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s', cursor: 'pointer' }}
                 onPointerEnter={() => onHoverChord?.(chordKey)}
                 onPointerLeave={() => onHoverChord?.(null)}
               >
                 <circle
-                  cx={x} cy={y} r={r}
+                  cx={0} cy={0} r={r}
                   fill={isOpt || isHov ? color : boardBg}
                   stroke={color}
                   strokeWidth={isOpt || isHov ? 0 : 2}
                   opacity={isOpt || isHov ? 0.9 : 0.7}
                 />
                 <text
-                  x={x} y={y - 3}
+                  x={0} y={-3}
                   textAnchor="middle" dominantBaseline="middle"
                   fontSize={10} fontWeight="bold"
                   fill={isOpt || isHov ? '#fff' : color}
@@ -149,7 +149,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
                   {DEGREE_LABELS[cell.degree]}
                 </text>
                 <text
-                  x={x} y={y + 7}
+                  x={0} y={7}
                   textAnchor="middle" dominantBaseline="middle"
                   fontSize={6.5} fontWeight="bold"
                   fill={isOpt || isHov ? 'rgba(255,255,255,0.8)' : color}

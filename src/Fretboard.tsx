@@ -108,7 +108,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, h
 
             return (
               <g
-                key={key}
+                key={`${v.degree}-${v.shapeOrigin}`}
                 opacity={dimmed ? 0.12 : 1}
                 style={{ transition: 'opacity 0.2s' }}
                 onPointerEnter={() => handleEnter(key)}
@@ -153,9 +153,9 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, h
                       const y1 = Math.min(first.y, last.y);
                       const y2 = Math.max(first.y, last.y);
                       elements.push(
-                        <g key={`bar-${i}`}>
+                        <g key={`bar-${i}`} style={{ transform: `translate(${barX}px, ${y1}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
                           <rect
-                            x={barX - r} y={y1 - r}
+                            x={-r} y={-r}
                             width={r * 2} height={y2 - y1 + r * 2}
                             rx={r}
                             fill={active ? color : boardBg}
@@ -163,7 +163,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, h
                             opacity={active ? 0.9 : 0.5}
                           />
                           {active && (
-                            <text x={barX} y={(y1 + y2) / 2 + 0.5} textAnchor="middle" dominantBaseline="middle"
+                            <text x={0} y={(y2 - y1) / 2 + 0.5} textAnchor="middle" dominantBaseline="middle"
                               fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
                             >{DEGREE_LABELS[v.degree]}</text>
                           )}
@@ -175,22 +175,22 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, h
                       const d = dots[i];
                       rendered.add(i);
                       elements.push(
-                        <g key={`dot-${i}`}>
+                        <g key={`dot-${i}`} style={{ transform: `translate(${d.x}px, ${d.y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
                           {isEShape ? (
-                            <circle cx={d.x} cy={d.y} r={r}
+                            <circle cx={0} cy={0} r={r}
                               fill={active ? color : boardBg}
                               stroke={color} strokeWidth={active ? 0 : 1.5}
                               opacity={active ? 0.9 : 0.5}
                             />
                           ) : (
-                            <rect x={d.x - r} y={d.y - r} width={r * 2} height={r * 2} rx={2.5}
+                            <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5}
                               fill={active ? color : boardBg}
                               stroke={color} strokeWidth={active ? 0 : 1.5}
                               opacity={active ? 0.9 : 0.5}
                             />
                           )}
                           {active && (
-                            <text x={d.x} y={d.y + 0.5} textAnchor="middle" dominantBaseline="middle"
+                            <text x={0} y={0.5} textAnchor="middle" dominantBaseline="middle"
                               fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
                             >{DEGREE_LABELS[v.degree]}</text>
                           )}
