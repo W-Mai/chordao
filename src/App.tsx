@@ -18,7 +18,7 @@ function App() {
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 20, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 4 }}>🎸 Guitar Chord Visualizer</h1>
+      <h1 style={{ fontSize: 24, marginBottom: 4 }}>🎸 Chordao</h1>
       <p style={{ color: '#666', marginBottom: 20 }}>
         Based on E/Em/A/Am shapes · Highlighted = optimal movement path
       </p>
