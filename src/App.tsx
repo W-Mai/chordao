@@ -72,12 +72,18 @@ function App() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Sidebar */}
-      <aside className="w-full md:w-48 shrink-0 border-b md:border-b-0 md:border-r border-bp-line bg-bp-surface p-3 md:p-4
+      <aside className="w-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-bp-line bg-bp-surface p-3 md:p-4
                         flex flex-col gap-3 md:gap-4 transition-colors
                         [body.light_&]:bg-lt-surface [body.light_&]:border-lt-line">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold tracking-wide">🎸 Chordao</h1>
-          <div className="flex gap-1">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-bp-accent/20 [body.light_&]:bg-lt-accent/20 flex items-center justify-center shrink-0">
+            <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-sm font-bold tracking-wide leading-tight">Chordao</h1>
+            <p className="text-[9px] text-bp-muted [body.light_&]:text-lt-muted leading-tight">Chord Visualizer</p>
+          </div>
+          <div className="flex gap-1 shrink-0">
             <button
               onClick={toggleBarre}
               className={`text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${
