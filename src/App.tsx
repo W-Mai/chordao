@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
+import { Fretboard } from './Fretboard';
 import './App.css';
 
 function App() {
@@ -41,6 +42,10 @@ function App() {
           </button>
         ))}
       </div>
+
+      {/* Full fretboard view */}
+      <h2 style={{ fontSize: 18, marginBottom: 12, color: '#444' }}>Fretboard Overview</h2>
+      <Fretboard voicings={voicings} optimal={optimal} />
 
       {/* Chord grid by degree */}
       {[1, 2, 3, 4, 5, 6].map(degree => {
