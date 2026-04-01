@@ -48,7 +48,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
           <tr>
             <th style={{ padding: '4px 8px', textAlign: 'right', color: labelColor, fontSize: 10 }}>Shape</th>
             {Array.from({ length: totalFrets + 1 }, (_, f) => (
-              <th key={f} style={{ width: 52, minWidth: 52, textAlign: 'center', color: labelColor, fontSize: 10, padding: 3 }}>
+              <th key={f} style={{ minWidth: 44, textAlign: 'center', color: labelColor, fontSize: 10, padding: 3 }}>
                 {f === 0 ? 'open' : f}
               </th>
             ))}
@@ -62,7 +62,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
               </td>
               {grid[ri].map((cell, fret) => (
                 <td key={fret} style={{
-                  width: 52, height: 38, textAlign: 'center', verticalAlign: 'middle',
+                  minWidth: 44, height: 38, textAlign: 'center', verticalAlign: 'middle',
                   border: `1px solid ${border}`,
                   background: cell?.isOptimal ? `color-mix(in srgb, ${DEGREE_COLORS[cell.degree]} 15%, ${cellBg})` : cellBg,
                   transition: 'background 0.2s',
