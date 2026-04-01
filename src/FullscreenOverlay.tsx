@@ -59,7 +59,7 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
     >
       <div
         ref={contentRef}
-        className="p-4 overflow-auto"
+        className="p-4 overflow-auto w-full"
         style={{
           maxWidth: rotated ? 'calc(100vh - 2rem)' : 'calc(100vw - 2rem)',
           maxHeight: rotated ? 'calc(100vw - 2rem)' : 'calc(100vh - 2rem)',
