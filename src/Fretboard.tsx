@@ -14,13 +14,19 @@ interface FretboardProps {
   optimal: ChordVoicing[];
   light?: boolean;
   totalFrets?: number;
+  hoveredChord?: string | null;
+  onHoverChord?: (key: string | null) => void;
 }
 
-export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }: FretboardProps) {
+export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, hoveredChord, onHoverChord }: FretboardProps) {
   const optimalSet = new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`));
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [localHover, setLocalHover] = useState<string | null>(null);
+  const hovered = hoveredChord ?? localHover;
 
   const vKey = (v: ChordVoicing) => `${v.name}-${v.shapeOrigin}`;
+
+  const handleEnter = useCallback((key: string) => { setLocalHover(key); onHoverChord?.(key); }, [onHoverChord]);
+  const handleLeave = useCallback(() => { setLocalHover(null); onHoverChord?.(null); }, [onHoverChord]);
 
   const pad = { top: 28, left: 28, right: 16, bottom: 44 };
   const nutW = 5;
@@ -37,9 +43,6 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
   const fretLine = light ? '#b0b8c4' : '#2a3a5a';
   const dotMarker = light ? '#b0a488' : '#4a3c20';
   const txt = light ? '#6c6f85' : '#7f849c';
-
-  const handleEnter = useCallback((key: string) => setHovered(key), []);
-  const handleLeave = useCallback(() => setHovered(null), []);
 
   // Compute dot positions per voicing for outline lines
   function getPoints(v: ChordVoicing): { x: number; y: number }[] {

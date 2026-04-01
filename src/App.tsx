@@ -76,6 +76,22 @@ function App() {
   const filteredVoicings = useMemo(() => activeDegree ? voicings.filter(v => v.degree === activeDegree) : voicings, [voicings, activeDegree]);
   const filteredOptimal = useMemo(() => activeDegree ? optimal.filter(v => v.degree === activeDegree) : optimal, [optimal, activeDegree]);
 
+  const [hoveredChord, setHoveredChord] = useState<string | null>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const idx = NOTES.indexOf(selectedKey);
+      if (e.key === 'ArrowLeft') setSelectedKey(NOTES[(idx - 1 + 12) % 12]);
+      else if (e.key === 'ArrowRight') setSelectedKey(NOTES[(idx + 1) % 12]);
+      else if (e.key >= '1' && e.key <= '6') toggleDegree(Number(e.key));
+      else if (e.key === '0' || e.key === 'Escape') setActiveDegree(null);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [selectedKey, toggleDegree]);
+
   const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();
   const [fretFS, openFret, closeFret] = useOverlayFullscreen();
   const [chordFS, openChord, closeChord] = useOverlayFullscreen();
@@ -164,7 +180,7 @@ function App() {
               <ExpandBtn onClick={openGrid} />
             </div>
             <div className="panel-body">
-              <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
+              <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
             </div>
           </section>
 
@@ -174,7 +190,7 @@ function App() {
               <ExpandBtn onClick={openFret} />
             </div>
             <div className="panel-body">
-              <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
+              <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
             </div>
           </section>
 
@@ -218,10 +234,10 @@ function App() {
 
       {/* Fullscreen overlays */}
       <FullscreenOverlay active={gridFS} onClose={closeGrid}>
-        <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
+        <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
       </FullscreenOverlay>
       <FullscreenOverlay active={fretFS} onClose={closeFret}>
-        <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} />
+        <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
       </FullscreenOverlay>
       <FullscreenOverlay active={chordFS} onClose={handleCloseChord}>
         {activeChord && (

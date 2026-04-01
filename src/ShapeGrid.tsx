@@ -11,9 +11,11 @@ interface ShapeGridProps {
   optimal: ChordVoicing[];
   light?: boolean;
   totalFrets?: number;
+  hoveredChord?: string | null;
+  onHoverChord?: (key: string | null) => void;
 }
 
-export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }: ShapeGridProps) {
+export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, hoveredChord, onHoverChord }: ShapeGridProps) {
   const optimalSet = new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`));
 
   const rows = [
@@ -110,7 +112,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
         ))}
 
         {/* Chord markers */}
-        {rows.map((_, ri) =>
+        {rows.map((_row, ri) =>
           grid[ri].map((cell, fret) => {
             if (!cell) return null;
             const x = cellX(fret);
@@ -118,23 +120,30 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
             const color = DEGREE_COLORS[cell.degree];
             const isOpt = cell.isOptimal;
             const r = dotR;
+            const vKey = voicings.find(v => v.degree === cell.degree && rows[ri].shapes.includes(v.shapeOrigin));
+            const chordKey = vKey ? `${vKey.name}-${vKey.shapeOrigin}` : '';
+            const isHov = hoveredChord === chordKey;
+            const dimmed = hoveredChord !== null && !isHov;
 
             return (
-              <g key={`${ri}-${fret}`}>
-                {/* Background circle: solid for optimal, semi-transparent fill for non-optimal */}
+              <g key={`${ri}-${fret}`}
+                opacity={dimmed ? 0.15 : 1}
+                style={{ transition: 'opacity 0.2s', cursor: 'pointer' }}
+                onPointerEnter={() => onHoverChord?.(chordKey)}
+                onPointerLeave={() => onHoverChord?.(null)}
+              >
                 <circle
                   cx={x} cy={y} r={r}
-                  fill={isOpt ? color : boardBg}
+                  fill={isOpt || isHov ? color : boardBg}
                   stroke={color}
-                  strokeWidth={isOpt ? 0 : 2}
-                  opacity={isOpt ? 0.9 : 0.7}
+                  strokeWidth={isOpt || isHov ? 0 : 2}
+                  opacity={isOpt || isHov ? 0.9 : 0.7}
                 />
-                {/* Degree + chord name stacked inside circle */}
                 <text
                   x={x} y={y - 3}
                   textAnchor="middle" dominantBaseline="middle"
                   fontSize={10} fontWeight="bold"
-                  fill={isOpt ? '#fff' : color}
+                  fill={isOpt || isHov ? '#fff' : color}
                   fontFamily="monospace"
                 >
                   {DEGREE_LABELS[cell.degree]}
@@ -143,8 +152,8 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
                   x={x} y={y + 7}
                   textAnchor="middle" dominantBaseline="middle"
                   fontSize={6.5} fontWeight="bold"
-                  fill={isOpt ? 'rgba(255,255,255,0.8)' : color}
-                  opacity={isOpt ? 1 : 0.7}
+                  fill={isOpt || isHov ? 'rgba(255,255,255,0.8)' : color}
+                  opacity={isOpt || isHov ? 1 : 0.7}
                 >
                   {cell.name}
                 </text>
