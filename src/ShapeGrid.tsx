@@ -36,55 +36,77 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
     }
   }
 
-  const border = light ? '#e2e8f0' : '#1e3a5f';
-  const cellBg = light ? '#f8fafc' : '#0a1628';
-  const labelColor = light ? '#64748b' : '#5a7a9a';
-  const subColor = light ? '#94a3b8' : '#4a6a8a';
+  const cols = totalFrets + 1;
+  const cellW = 56;
+  const cellH = 48;
+  const labelW = 60;
+  const headerH = 20;
+  const gap = 3;
+  const svgW = labelW + cols * (cellW + gap);
+  const svgH = headerH + 2 * (cellH + gap);
+
+  const line = light ? '#e2e8f0' : '#1e3a5f';
+  const cellBg = light ? '#f8fafc' : '#0d1f38';
+  const txt = light ? '#64748b' : '#5a7a9a';
+  const sub = light ? '#94a3b8' : '#4a6a8a';
 
   return (
     <div className="overflow-x-auto">
-      <table style={{ borderCollapse: 'collapse', fontSize: 12, fontFamily: 'monospace', width: '100%' }}>
-        <thead>
-          <tr>
-            <th style={{ padding: '4px 8px', textAlign: 'right', color: labelColor, fontSize: 10 }}>Shape</th>
-            {Array.from({ length: totalFrets + 1 }, (_, f) => (
-              <th key={f} style={{ minWidth: 44, textAlign: 'center', color: labelColor, fontSize: 10, padding: 3 }}>
-                {f === 0 ? 'open' : f}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, ri) => (
-            <tr key={row.label}>
-              <td style={{ padding: '4px 8px', textAlign: 'right', fontWeight: 'bold', color: labelColor, whiteSpace: 'nowrap', fontSize: 11 }}>
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" style={{ minWidth: 600 }}>
+        {/* Column headers */}
+        {Array.from({ length: cols }, (_, f) => {
+          const x = labelW + f * (cellW + gap);
+          return (
+            <text key={f} x={x + cellW / 2} y={headerH - 5} textAnchor="middle" fontSize={9} fill={txt} fontFamily="monospace">
+              {f === 0 ? 'open' : f}
+            </text>
+          );
+        })}
+
+        {/* Rows */}
+        {rows.map((row, ri) => {
+          const y = headerH + ri * (cellH + gap);
+          return (
+            <g key={row.label}>
+              {/* Row label */}
+              <text x={labelW - 6} y={y + cellH / 2 + 4} textAnchor="end" fontSize={10} fontWeight="bold" fill={txt} fontFamily="monospace">
                 {row.label}
-              </td>
-              {grid[ri].map((cell, fret) => (
-                <td key={fret} style={{
-                  minWidth: 44, height: 38, textAlign: 'center', verticalAlign: 'middle',
-                  border: `1px solid ${border}`,
-                  background: cell?.isOptimal ? `color-mix(in srgb, ${DEGREE_COLORS[cell.degree]} 15%, ${cellBg})` : cellBg,
-                  transition: 'background 0.2s',
-                }}>
-                  {cell && (
-                    <div style={{
-                      fontWeight: cell.isOptimal ? 'bold' : 'normal',
-                      color: DEGREE_COLORS[cell.degree],
-                      opacity: cell.isOptimal ? 1 : 0.45,
-                      lineHeight: 1.2,
-                      transition: 'opacity 0.2s',
-                    }}>
-                      <div style={{ fontSize: 13 }}>{DEGREE_LABELS[cell.degree]}</div>
-                      <div style={{ fontSize: 9, color: subColor }}>{cell.name}</div>
-                    </div>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </text>
+
+              {/* Cells */}
+              {grid[ri].map((cell, fret) => {
+                const x = labelW + fret * (cellW + gap);
+                const isOpt = cell?.isOptimal ?? false;
+                const color = cell ? DEGREE_COLORS[cell.degree] : '';
+                const bg = isOpt ? `color-mix(in srgb, ${color} 18%, ${cellBg})` : cellBg;
+
+                return (
+                  <g key={fret}>
+                    <rect x={x} y={y} width={cellW} height={cellH} rx={6} fill={bg} stroke={line} strokeWidth={0.8} />
+                    {cell && (
+                      <>
+                        <text
+                          x={x + cellW / 2} y={y + cellH / 2 - 2}
+                          textAnchor="middle" fontSize={14} fontWeight={isOpt ? 'bold' : 'normal'}
+                          fill={color} opacity={isOpt ? 1 : 0.45} fontFamily="monospace"
+                        >
+                          {DEGREE_LABELS[cell.degree]}
+                        </text>
+                        <text
+                          x={x + cellW / 2} y={y + cellH / 2 + 12}
+                          textAnchor="middle" fontSize={9} fill={sub} opacity={isOpt ? 0.8 : 0.4}
+                        >
+                          {cell.name}
+                        </text>
+                      </>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
