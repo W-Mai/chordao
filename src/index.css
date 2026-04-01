@@ -38,3 +38,11 @@ body.light {
   background: var(--color-lt-bg);
   color: var(--color-lt-text);
 }
+
+/* Hide scrollbars but keep scrolling */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
