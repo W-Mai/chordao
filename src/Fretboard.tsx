@@ -121,38 +121,82 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
                   />
                 )}
 
-                {/* Dots: circle for E shape, rounded rect for A shape */}
-                {v.frets.map((fret, si) => {
-                  if (fret <= 0) return null;
-                  const x = nutW + (fret - 0.5) * fw;
-                  const y = (STRINGS - 1 - si) * ss;
+                {/* Dots: circle for E shape, rounded rect for A shape, barre bar for consecutive same-fret */}
+                {(() => {
+                  // Group consecutive strings on the same fret into barre segments
+                  type Dot = { fret: number; si: number; x: number; y: number };
+                  const dots: Dot[] = [];
+                  v.frets.forEach((fret, si) => {
+                    if (fret <= 0) return;
+                    dots.push({ fret, si, x: nutW + (fret - 0.5) * fw, y: (STRINGS - 1 - si) * ss });
+                  });
 
-                  return (
-                    <g key={`${key}-${si}`}>
-                      {isEShape ? (
-                        <circle cx={x} cy={y} r={r}
-                          fill={active ? color : boardBg}
-                          stroke={color} strokeWidth={active ? 0 : 1.5}
-                          opacity={active ? 0.9 : 0.5}
-                        />
-                      ) : (
-                        <rect x={x - r} y={y - r} width={r * 2} height={r * 2} rx={2.5}
-                          fill={active ? color : boardBg}
-                          stroke={color} strokeWidth={active ? 0 : 1.5}
-                          opacity={active ? 0.9 : 0.5}
-                        />
-                      )}
-                      {/* Degree label inside dot */}
-                      {active && (
-                        <text x={x} y={y + 0.5} textAnchor="middle" dominantBaseline="middle"
-                          fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
-                        >
-                          {DEGREE_LABELS[v.degree]}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
+                  // Find barre groups: consecutive string indices with same fret
+                  const rendered = new Set<number>();
+                  const elements: React.ReactNode[] = [];
+
+                  for (let i = 0; i < dots.length; i++) {
+                    if (rendered.has(i)) continue;
+                    let j = i + 1;
+                    while (j < dots.length && dots[j].fret === dots[i].fret && dots[j].si === dots[j - 1].si + 1) {
+                      j++;
+                    }
+                    const span = j - i;
+                    if (span >= 2) {
+                      // Barre bar
+                      const first = dots[i];
+                      const last = dots[j - 1];
+                      const barX = first.x;
+                      const y1 = Math.min(first.y, last.y);
+                      const y2 = Math.max(first.y, last.y);
+                      elements.push(
+                        <g key={`bar-${i}`}>
+                          <rect
+                            x={barX - r} y={y1 - r}
+                            width={r * 2} height={y2 - y1 + r * 2}
+                            rx={r}
+                            fill={active ? color : boardBg}
+                            stroke={color} strokeWidth={active ? 0 : 1.5}
+                            opacity={active ? 0.9 : 0.5}
+                          />
+                          {active && (
+                            <text x={barX} y={(y1 + y2) / 2 + 0.5} textAnchor="middle" dominantBaseline="middle"
+                              fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
+                            >{DEGREE_LABELS[v.degree]}</text>
+                          )}
+                        </g>
+                      );
+                      for (let k = i; k < j; k++) rendered.add(k);
+                    } else {
+                      // Single dot
+                      const d = dots[i];
+                      rendered.add(i);
+                      elements.push(
+                        <g key={`dot-${i}`}>
+                          {isEShape ? (
+                            <circle cx={d.x} cy={d.y} r={r}
+                              fill={active ? color : boardBg}
+                              stroke={color} strokeWidth={active ? 0 : 1.5}
+                              opacity={active ? 0.9 : 0.5}
+                            />
+                          ) : (
+                            <rect x={d.x - r} y={d.y - r} width={r * 2} height={r * 2} rx={2.5}
+                              fill={active ? color : boardBg}
+                              stroke={color} strokeWidth={active ? 0 : 1.5}
+                              opacity={active ? 0.9 : 0.5}
+                            />
+                          )}
+                          {active && (
+                            <text x={d.x} y={d.y + 0.5} textAnchor="middle" dominantBaseline="middle"
+                              fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
+                            >{DEGREE_LABELS[v.degree]}</text>
+                          )}
+                        </g>
+                      );
+                    }
+                  }
+                  return elements;
+                })()}
               </g>
             );
           })}
