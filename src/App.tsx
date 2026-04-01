@@ -98,18 +98,22 @@ function App() {
           ))}
         </div>
 
-        <div className="flex md:flex-col gap-2 md:gap-1 flex-wrap">
+        <div className="grid grid-cols-6 md:grid-cols-3 gap-1.5">
           {DEGREE_LABELS.slice(1).map((label, i) => {
             const deg = i + 1;
             const isActive = activeDegree === deg;
+            const dimmed = activeDegree !== null && !isActive;
             return (
               <button
                 key={label}
                 onClick={() => toggleDegree(deg)}
-                className={`flex items-center gap-1.5 text-xs cursor-pointer transition-opacity ${isActive ? '' : activeDegree !== null ? 'opacity-30' : ''}`}
+                className={`px-2 py-1 rounded-full text-xs font-bold text-white cursor-pointer transition-all duration-200 ${dimmed ? 'opacity-25' : ''} ${isActive ? 'ring-2 ring-white/40 scale-105' : ''}`}
+                style={{
+                  background: `var(--color-deg-${deg})`,
+                  boxShadow: isActive ? `0 0 10px var(--color-deg-${deg})` : 'none',
+                }}
               >
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: `var(--color-deg-${deg})` }} />
-                <span className="text-bp-text [body.light_&]:text-lt-text">{label}</span>
+                {label}
               </button>
             );
           })}
