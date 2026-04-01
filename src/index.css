@@ -1,1 +1,40 @@
 @import "tailwindcss";
+
+@theme {
+  /* Blueprint palette */
+  --color-bp-bg: #0a1628;
+  --color-bp-surface: #0f2040;
+  --color-bp-line: #1e3a5f;
+  --color-bp-grid: #1a3050;
+  --color-bp-text: #c8daf0;
+  --color-bp-muted: #5a7a9a;
+  --color-bp-accent: #4a9eff;
+  --color-bp-highlight: #4a9eff22;
+
+  /* Light mode overrides */
+  --color-lt-bg: #f5f7fa;
+  --color-lt-surface: #ffffff;
+  --color-lt-line: #e2e8f0;
+  --color-lt-text: #1e293b;
+  --color-lt-muted: #94a3b8;
+  --color-lt-accent: #3b82f6;
+
+  /* Degree colors */
+  --color-deg-1: #ef4444;
+  --color-deg-2: #f97316;
+  --color-deg-3: #eab308;
+  --color-deg-4: #22c55e;
+  --color-deg-5: #3b82f6;
+  --color-deg-6: #a855f7;
+}
+
+body {
+  background: var(--color-bp-bg);
+  color: var(--color-bp-text);
+  transition: background 0.3s, color 0.3s;
+}
+
+body.light {
+  background: var(--color-lt-bg);
+  color: var(--color-lt-text);
+}
