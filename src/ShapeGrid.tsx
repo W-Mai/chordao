@@ -36,76 +36,126 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
     }
   }
 
-  const cols = totalFrets + 1;
-  const cellW = 56;
-  const cellH = 48;
-  const labelW = 60;
-  const headerH = 20;
-  const gap = 3;
-  const svgW = labelW + cols * (cellW + gap);
-  const svgH = headerH + 2 * (cellH + gap);
+  const labelW = 56;
+  const nutW = 4;
+  const fretW = 52;
+  const padX = 8;
+  const stringGap = 40;
+  const padY = 24;
+  const boardW = totalFrets * fretW;
+  const svgW = labelW + nutW + boardW + padX;
+  const svgH = padY + stringGap + padY;
+  const stringY = [padY, padY + stringGap];
 
-  const line = light ? '#e2e8f0' : '#1e3a5f';
-  const cellBg = light ? '#f8fafc' : '#0d1f38';
+  const fretLine = light ? '#c0c8d4' : '#2a4a6a';
+  const boardBg = light ? '#f0ece4' : '#1a1408';
+  const nutColor = light ? '#d4cfc2' : '#e0d6c2';
+  const stringColor = light ? '#888' : '#aaa';
   const txt = light ? '#64748b' : '#5a7a9a';
-  const sub = light ? '#94a3b8' : '#4a6a8a';
+  const dotMarker = light ? '#d8d0c0' : '#2a2010';
+
+  // Inlay frets (relative to board)
+  const singleDots = [3, 5, 7, 9];
+  const doubleDot = 12;
 
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" style={{ minWidth: 600 }}>
-        {/* Column headers */}
-        {Array.from({ length: cols }, (_, f) => {
-          const x = labelW + f * (cellW + gap);
+        {/* Fretboard background */}
+        <rect x={labelW} y={padY - 16} width={nutW + boardW} height={stringGap + 32} rx={4} fill={boardBg} />
+
+        {/* Nut */}
+        <rect x={labelW} y={padY - 16} width={nutW} height={stringGap + 32} rx={2} fill={nutColor} />
+
+        {/* Fret wires */}
+        {Array.from({ length: totalFrets }, (_, f) => {
+          const x = labelW + nutW + (f + 1) * fretW;
+          return <line key={f} x1={x} y1={padY - 16} x2={x} y2={padY + stringGap + 16} stroke={fretLine} strokeWidth={1.5} />;
+        })}
+
+        {/* Fret numbers */}
+        {Array.from({ length: totalFrets }, (_, f) => {
+          const x = labelW + nutW + f * fretW + fretW / 2;
           return (
-            <text key={f} x={x + cellW / 2} y={headerH - 5} textAnchor="middle" fontSize={9} fill={txt} fontFamily="monospace">
-              {f === 0 ? 'open' : f}
+            <text key={f} x={x} y={svgH - 2} textAnchor="middle" fontSize={8} fill={txt} fontFamily="monospace">
+              {f + 1}
             </text>
           );
         })}
 
-        {/* Rows */}
-        {rows.map((row, ri) => {
-          const y = headerH + ri * (cellH + gap);
-          return (
-            <g key={row.label}>
-              {/* Row label */}
-              <text x={labelW - 6} y={y + cellH / 2 + 4} textAnchor="end" fontSize={10} fontWeight="bold" fill={txt} fontFamily="monospace">
-                {row.label}
-              </text>
-
-              {/* Cells */}
-              {grid[ri].map((cell, fret) => {
-                const x = labelW + fret * (cellW + gap);
-                const isOpt = cell?.isOptimal ?? false;
-                const color = cell ? DEGREE_COLORS[cell.degree] : '';
-                const bg = isOpt ? `color-mix(in srgb, ${color} 18%, ${cellBg})` : cellBg;
-
-                return (
-                  <g key={fret}>
-                    <rect x={x} y={y} width={cellW} height={cellH} rx={6} fill={bg} stroke={line} strokeWidth={0.8} />
-                    {cell && (
-                      <>
-                        <text
-                          x={x + cellW / 2} y={y + cellH / 2 - 2}
-                          textAnchor="middle" fontSize={14} fontWeight={isOpt ? 'bold' : 'normal'}
-                          fill={color} opacity={isOpt ? 1 : 0.45} fontFamily="monospace"
-                        >
-                          {DEGREE_LABELS[cell.degree]}
-                        </text>
-                        <text
-                          x={x + cellW / 2} y={y + cellH / 2 + 12}
-                          textAnchor="middle" fontSize={9} fill={sub} opacity={isOpt ? 0.8 : 0.4}
-                        >
-                          {cell.name}
-                        </text>
-                      </>
-                    )}
-                  </g>
-                );
-              })}
-            </g>
-          );
+        {/* Inlay dots */}
+        {singleDots.filter(f => f <= totalFrets).map(f => {
+          const x = labelW + nutW + (f - 1) * fretW + fretW / 2;
+          return <circle key={f} cx={x} cy={padY + stringGap / 2} r={4} fill={dotMarker} opacity={0.5} />;
         })}
+        {doubleDot <= totalFrets && <>
+          <circle cx={labelW + nutW + (doubleDot - 1) * fretW + fretW / 2} cy={padY + stringGap / 2 - 10} r={4} fill={dotMarker} opacity={0.5} />
+          <circle cx={labelW + nutW + (doubleDot - 1) * fretW + fretW / 2} cy={padY + stringGap / 2 + 10} r={4} fill={dotMarker} opacity={0.5} />
+        </>}
+
+        {/* Strings */}
+        {rows.map((row, ri) => (
+          <g key={row.label}>
+            {/* String label */}
+            <text x={labelW - 6} y={stringY[ri] + 4} textAnchor="end" fontSize={10} fontWeight="bold" fill={txt} fontFamily="monospace">
+              {row.label}
+            </text>
+            {/* String wire */}
+            <line
+              x1={labelW + nutW} y1={stringY[ri]}
+              x2={labelW + nutW + boardW} y2={stringY[ri]}
+              stroke={stringColor} strokeWidth={ri === 1 ? 2 : 1.2}
+            />
+          </g>
+        ))}
+
+        {/* Chord markers on strings */}
+        {rows.map((_, ri) =>
+          grid[ri].map((cell, fret) => {
+            if (!cell) return null;
+            // Position: center of the fret space, on the string
+            const x = fret === 0
+              ? labelW + nutW / 2
+              : labelW + nutW + (fret - 1) * fretW + fretW / 2;
+            const y = stringY[ri];
+            const color = DEGREE_COLORS[cell.degree];
+            const isOpt = cell.isOptimal;
+
+            return (
+              <g key={`${ri}-${fret}`}>
+                {/* Dot */}
+                <circle
+                  cx={x} cy={y} r={isOpt ? 14 : 11}
+                  fill={isOpt ? color : 'transparent'}
+                  stroke={color}
+                  strokeWidth={isOpt ? 0 : 2}
+                  opacity={isOpt ? 0.9 : 0.4}
+                />
+                {/* Degree label */}
+                <text
+                  x={x} y={y - 2}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fontSize={isOpt ? 11 : 9} fontWeight={isOpt ? 'bold' : 'normal'}
+                  fill={isOpt ? '#fff' : color}
+                  opacity={isOpt ? 1 : 0.6}
+                  fontFamily="monospace"
+                >
+                  {DEGREE_LABELS[cell.degree]}
+                </text>
+                {/* Chord name */}
+                <text
+                  x={x} y={y + 10}
+                  textAnchor="middle" dominantBaseline="middle"
+                  fontSize={7}
+                  fill={isOpt ? '#fff' : txt}
+                  opacity={isOpt ? 0.85 : 0.4}
+                >
+                  {cell.name}
+                </text>
+              </g>
+            );
+          })
+        )}
       </svg>
     </div>
   );
