@@ -1,0 +1,12 @@
+{
+  "name": "Chordao",
+  "short_name": "Chordao",
+  "description": "Guitar chord visualizer based on E/Em/A/Am shape derivation",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#11111b",
+  "theme_color": "#00e5ff",
+  "icons": [
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
