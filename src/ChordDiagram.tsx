@@ -45,9 +45,10 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, onDo
   let barreInfo: { fret: number; fromStr: number; toStr: number } | null = null;
   if (showBarre && played.length > 0) {
     const barreFret = Math.min(...played);
+    // Only strings exactly on the barre fret count
     const stringsOnBarre = voicing.frets
       .map((f, i) => ({ f, i }))
-      .filter(({ f }) => f >= barreFret && f !== -1);
+      .filter(({ f }) => f === barreFret);
     if (stringsOnBarre.length >= 2) {
       barreInfo = {
         fret: barreFret,
