@@ -3,7 +3,8 @@ import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type No
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
-import './App.css';
+
+const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
 
 function App() {
   const [selectedKey, setSelectedKey] = useState<NoteName>('C');
@@ -11,57 +12,50 @@ function App() {
   const voicings = useMemo(() => generateVoicings(selectedKey), [selectedKey]);
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
   const optimal = useMemo(() => findOptimalCombination(grouped), [grouped]);
-
   const optimalSet = useMemo(() => new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`)), [optimal]);
 
-  const degreeLabels = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
-
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: 20, fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 4 }}>🎸 Chordao</h1>
-      <p style={{ color: '#666', marginBottom: 20 }}>
+    <div className="max-w-4xl mx-auto p-5 font-sans">
+      <h1 className="text-2xl mb-1">🎸 Chordao</h1>
+      <p className="text-gray-500 mb-5 text-sm">
         Based on E/Em/A/Am shapes · Highlighted = optimal movement path
       </p>
 
       {/* Key selector */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 24 }}>
+      <div className="flex gap-1.5 flex-wrap mb-6">
         {NOTES.map(note => (
           <button
             key={note}
             onClick={() => setSelectedKey(note)}
-            style={{
-              padding: '6px 14px',
-              border: selectedKey === note ? '2px solid #4a9eff' : '1px solid #ccc',
-              borderRadius: 6,
-              background: selectedKey === note ? '#e8f2ff' : '#fff',
-              fontWeight: selectedKey === note ? 'bold' : 'normal',
-              cursor: 'pointer',
-              fontSize: 14,
-            }}
+            className={`px-3.5 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
+              selectedKey === note
+                ? 'border-2 border-blue-400 bg-blue-50 font-bold'
+                : 'border border-gray-300 bg-white hover:bg-gray-50'
+            }`}
           >
             {note}
           </button>
         ))}
       </div>
 
-      {/* Shape grid (simplified 2-row view) */}
-      <h2 style={{ fontSize: 18, marginBottom: 12, color: '#444' }}>Shape Grid</h2>
+      {/* Shape grid */}
+      <h2 className="text-lg mb-3 text-gray-600">Shape Grid</h2>
       <ShapeGrid voicings={voicings} optimal={optimal} />
 
-      {/* Full fretboard view */}
-      <h2 style={{ fontSize: 18, marginBottom: 12, color: '#444' }}>Fretboard Overview</h2>
+      {/* Fretboard */}
+      <h2 className="text-lg mb-3 text-gray-600">Fretboard Overview</h2>
       <Fretboard voicings={voicings} optimal={optimal} />
 
-      {/* Chord grid by degree */}
+      {/* Chord diagrams by degree */}
       {[1, 2, 3, 4, 5, 6].map(degree => {
-        const degreVoicings = grouped.get(degree) ?? [];
+        const dv = grouped.get(degree) ?? [];
         return (
-          <div key={degree} style={{ marginBottom: 20 }}>
-            <h3 style={{ fontSize: 16, color: '#555', marginBottom: 8 }}>
-              {degreeLabels[degree]} — {degreVoicings[0]?.name}
+          <div key={degree} className="mb-5">
+            <h3 className="text-base text-gray-500 mb-2">
+              {DEGREE_LABELS[degree]} — {dv[0]?.name}
             </h3>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {degreVoicings.map(v => (
+            <div className="flex gap-3 flex-wrap">
+              {dv.map(v => (
                 <ChordDiagram
                   key={`${v.name}-${v.shapeOrigin}`}
                   voicing={v}
