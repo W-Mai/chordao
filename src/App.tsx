@@ -102,11 +102,17 @@ function App() {
           ))}
         </div>
 
+        <button
+          onClick={toggleBarre}
+          className="flex items-center gap-2 text-[11px] text-bp-muted cursor-pointer [body.light_&]:text-lt-muted"
+        >
+          <span className={`relative inline-block w-7 h-4 rounded-full transition-colors ${showBarre ? 'bg-bp-accent' : 'bg-bp-line [body.light_&]:bg-lt-line'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${showBarre ? 'translate-x-3' : ''}`} />
+          </span>
+          Barre
+        </button>
+
         <div className="hidden md:block mt-auto">
-          <label className="flex items-center gap-2 text-[11px] text-bp-muted cursor-pointer [body.light_&]:text-lt-muted mb-2">
-            <input type="checkbox" checked={showBarre} onChange={toggleBarre} className="accent-bp-accent" />
-            Barre lines
-          </label>
           <div className="text-[10px] text-bp-muted [body.light_&]:text-lt-muted">
             E/Em/A/Am shape derivation
           </div>
