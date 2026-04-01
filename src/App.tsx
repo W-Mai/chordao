@@ -70,10 +70,11 @@ function App() {
   const sectionTitle = `text-sm font-semibold text-bp-muted tracking-wider uppercase [body.light_&]:text-lt-muted`;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen">
+    <div className="flex flex-col h-screen">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0">
       {/* Sidebar */}
       <aside className="w-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-bp-line bg-bp-surface p-3 md:p-4
-                        flex flex-col gap-3 md:gap-4 transition-colors
+                        flex flex-col gap-3 md:gap-4 transition-colors md:overflow-y-auto md:min-h-0
                         [body.light_&]:bg-lt-surface [body.light_&]:border-lt-line">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-bp-accent/20 [body.light_&]:bg-lt-accent/20 flex items-center justify-center shrink-0">
@@ -141,7 +142,7 @@ function App() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 p-3 md:p-6 overflow-auto">
+      <main className="flex-1 min-h-0 p-3 md:p-6 overflow-y-auto">
         <section className={sectionCard}>
           <div className="flex items-center justify-between mb-3">
             <h2 className={sectionTitle}>Shape Grid</h2>
@@ -176,21 +177,24 @@ function App() {
             })}
           </div>
         </section>
-        {/* Footer */}
-        <footer className="mt-6 pt-4 border-t border-bp-line [body.light_&]:border-lt-line text-[11px] text-bp-muted [body.light_&]:text-lt-muted">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
-            <span>Chordao · E/Em/A/Am shape derivation</span>
-            <div className="flex items-center gap-2">
-              <a href="https://github.com/W-Mai/chordao" target="_blank" rel="noopener"
-                className="hover:text-bp-accent [body.light_&]:hover:text-lt-accent transition-colors">GitHub</a>
-              <span>·</span>
-              <span>MIT</span>
-              <span>·</span>
-              <span>© 2026 W-Mai</span>
-            </div>
-          </div>
-        </footer>
+        {/* Footer removed from here, now at page bottom */}
       </main>
+      </div>
+
+      {/* Footer */}
+      <footer className="shrink-0 relative border-t border-bp-line [body.light_&]:border-lt-line">
+        <div className="h-px bg-gradient-to-r from-transparent via-bp-accent/40 to-transparent [body.light_&]:via-lt-accent/40" />
+        <div className="py-3 flex items-center justify-center gap-2 text-[11px] text-bp-muted [body.light_&]:text-lt-muted flex-wrap">
+          <span>Chordao</span>
+          <span>·</span>
+          <span>E/Em/A/Am shape derivation</span>
+          <span>·</span>
+          <a href="https://github.com/W-Mai/chordao" target="_blank" rel="noopener"
+            className="text-bp-accent [body.light_&]:text-lt-accent hover:underline">GitHub</a>
+          <span>·</span>
+          <span>MIT</span>
+        </div>
+      </footer>
 
       {/* Fullscreen overlays */}
       <FullscreenOverlay active={gridFS} onClose={closeGrid}>
