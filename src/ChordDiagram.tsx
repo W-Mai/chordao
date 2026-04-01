@@ -12,7 +12,6 @@ interface ChordDiagramProps {
   className?: string;
 }
 
-// viewBox is fixed; actual size controlled by parent via className
 const VB_W = 140;
 const VB_H = 154;
 
@@ -33,12 +32,18 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, onDo
   const txt = light ? '#334155' : '#c8daf0';
   const muted = light ? '#94a3b8' : '#5a7a9a';
   const bg = highlighted ? (light ? '#f0f4ff' : '#0f2040') : (light ? '#ffffff' : '#0a1628');
-  const border = highlighted ? accent : line;
+
+  const borderStyle = highlighted
+    ? `2px solid ${accent}`
+    : `1px solid ${light ? '#e2e8f0' : '#1e3a5f'}`;
 
   return (
-    <div onDoubleClick={onDoubleClick} className={`cursor-pointer ${className}`}>
-      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full h-auto">
-        <rect x={0} y={0} width={VB_W} height={VB_H} rx={10} fill={bg} stroke={border} strokeWidth={highlighted ? 2 : 1} />
+    <div
+      onDoubleClick={onDoubleClick}
+      className={`cursor-pointer rounded-lg overflow-hidden ${className}`}
+      style={{ border: borderStyle, background: bg }}
+    >
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full h-auto block">
         <text x={VB_W / 2} y={14} textAnchor="middle" fontSize={12} fontWeight="bold" fill={txt}>{voicing.name}</text>
         <text x={VB_W / 2} y={26} textAnchor="middle" fontSize={9} fill={muted}>
           {DEGREE_LABELS[voicing.degree]} · {voicing.shapeOrigin}
