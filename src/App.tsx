@@ -137,16 +137,7 @@ function App() {
         </div>
 
 
-        <div className="hidden md:block mt-auto">
-          <div className="text-[10px] text-bp-muted [body.light_&]:text-lt-muted">
-            E/Em/A/Am shape derivation
-          </div>
-          <a href="https://github.com/W-Mai/chordao" target="_blank" rel="noopener"
-            className="text-[10px] text-bp-muted hover:text-bp-accent [body.light_&]:text-lt-muted">
-            GitHub
-          </a>
-          <span className="text-[10px] text-bp-muted [body.light_&]:text-lt-muted"> · MIT</span>
-        </div>
+        <div className="hidden md:block mt-auto" />
       </aside>
 
       {/* Main */}
@@ -185,6 +176,20 @@ function App() {
             })}
           </div>
         </section>
+        {/* Footer */}
+        <footer className="mt-6 pt-4 border-t border-bp-line [body.light_&]:border-lt-line text-[11px] text-bp-muted [body.light_&]:text-lt-muted">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+            <span>Chordao · E/Em/A/Am shape derivation</span>
+            <div className="flex items-center gap-2">
+              <a href="https://github.com/W-Mai/chordao" target="_blank" rel="noopener"
+                className="hover:text-bp-accent [body.light_&]:hover:text-lt-accent transition-colors">GitHub</a>
+              <span>·</span>
+              <span>MIT</span>
+              <span>·</span>
+              <span>© 2026 W-Mai</span>
+            </div>
+          </div>
+        </footer>
       </main>
 
       {/* Fullscreen overlays */}
