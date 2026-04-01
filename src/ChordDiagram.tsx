@@ -40,7 +40,7 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, onDo
   return (
     <div
       onDoubleClick={onDoubleClick}
-      className={`cursor-pointer rounded-lg overflow-hidden ${className}`}
+      className={`cursor-pointer rounded-[8%] overflow-hidden ${className}`}
       style={{ border: borderStyle, background: bg }}
     >
       <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full h-auto block">
