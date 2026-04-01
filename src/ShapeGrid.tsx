@@ -48,12 +48,12 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
   const stringY = [padY, padY + stringGap];
   const boardX = labelW + openW + nutW;
 
-  const fretLine = light ? '#c0c8d4' : '#2a4a6a';
-  const boardBg = light ? '#f0ece4' : '#1a1408';
-  const nutColor = light ? '#d4cfc2' : '#e0d6c2';
+  const fretLine = light ? '#b0b8c4' : '#2a3a5a';
+  const boardBg = light ? '#e6e1d6' : '#1a1408';
+  const nutColor = light ? '#c8c0b0' : '#e0d6c2';
   const stringColors = light ? ['#999', '#777'] : ['#999', '#bbb'];
-  const txt = light ? '#64748b' : '#5a7a9a';
-  const dotMarker = light ? '#c4b89c' : '#4a3c20';
+  const txt = light ? '#6c6f85' : '#7f849c';
+  const dotMarker = light ? '#b0a488' : '#4a3c20';
 
   const singleDots = [3, 5, 7, 9];
   const doubleDot = 12;

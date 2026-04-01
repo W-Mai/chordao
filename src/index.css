@@ -1,52 +1,143 @@
 @import "tailwindcss";
 
+/* ── Theme variable bridge ── */
 @theme {
-  /* Blueprint palette */
-  --color-bp-bg: #0a1628;
-  --color-bp-surface: #0f2040;
-  --color-bp-line: #1e3a5f;
-  --color-bp-grid: #1a3050;
-  --color-bp-text: #c8daf0;
-  --color-bp-muted: #5a7a9a;
-  --color-bp-accent: #4a9eff;
-  --color-bp-highlight: #4a9eff22;
+  --color-crust: var(--crust);
+  --color-mantle: var(--mantle);
+  --color-base: var(--base);
+  --color-surface0: var(--surface0);
+  --color-surface1: var(--surface1);
+  --color-overlay0: var(--overlay0);
+  --color-overlay1: var(--overlay1);
+  --color-txt: var(--text);
+  --color-subtext0: var(--subtext0);
+  --color-subtext1: var(--subtext1);
+  --color-blue: var(--blue);
+  --color-sapphire: var(--sapphire);
+  --color-lavender: var(--lavender);
+  --color-green: var(--green);
+  --color-yellow: var(--yellow);
+  --color-peach: var(--peach);
+  --color-red: var(--red);
+  --color-mauve: var(--mauve);
+  --color-teal: var(--teal);
 
-  /* Light mode overrides */
-  --color-lt-bg: #f5f7fa;
-  --color-lt-surface: #ffffff;
-  --color-lt-line: #e2e8f0;
-  --color-lt-text: #1e293b;
-  --color-lt-muted: #94a3b8;
-  --color-lt-accent: #3b82f6;
+  --color-panel-bg: var(--panel-bg);
+  --color-panel-border: var(--panel-border);
+  --color-glow-blue: var(--glow-blue);
 
-  /* Degree colors */
-  --color-deg-1: #ef4444;
-  --color-deg-2: #f97316;
-  --color-deg-3: #eab308;
-  --color-deg-4: #22c55e;
-  --color-deg-5: #3b82f6;
-  --color-deg-6: #a855f7;
+  --radius-panel: var(--ui-radius);
+
+  /* Degree colors (kept) */
+  --color-deg-1: var(--red);
+  --color-deg-2: var(--peach);
+  --color-deg-3: var(--yellow);
+  --color-deg-4: var(--green);
+  --color-deg-5: var(--blue);
+  --color-deg-6: var(--mauve);
 }
 
-html, body {
-  overflow-x: hidden;
+/* ── Dark theme (Catppuccin Mocha) — default ── */
+:root {
+  --crust: #11111b; --mantle: #181825; --base: #1e1e2e;
+  --surface0: #313244; --surface1: #45475a;
+  --overlay0: #6c7086; --overlay1: #7f849c;
+  --text: #cdd6f4; --subtext0: #a6adc8; --subtext1: #bac2de;
+  --blue: #89b4fa; --sapphire: #74c7ec; --lavender: #b4befe;
+  --green: #a6e3a1; --yellow: #f9e2af; --peach: #fab387;
+  --red: #f38ba8; --mauve: #cba6f7; --teal: #94e2d5;
+  --ui-radius: 12px;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --panel-bg: #1e1e2eb3; --panel-border: #31324499;
+  --glow-blue: #89b4fa14;
+  --panel-glow: none; --panel-hover-glow: none;
+  --shadow-hover: 0 4px 24px #0003;
+  --title-text-shadow: none;
 }
 
-body {
-  background: var(--color-bp-bg);
-  color: var(--color-bp-text);
-  transition: background 0.3s, color 0.3s;
+/* ── Light theme (Catppuccin Latte) ── */
+[data-theme="light"] {
+  --crust: #dce0e8; --mantle: #e6e9ef; --base: #eff1f5;
+  --surface0: #ccd0da; --surface1: #bcc0cc;
+  --overlay0: #9ca0b0; --overlay1: #8c8fa1;
+  --text: #4c4f69; --subtext0: #6c6f85; --subtext1: #5c5f77;
+  --blue: #1e66f5; --sapphire: #209fb5; --lavender: #7287fd;
+  --green: #40a02b; --yellow: #df8e1d; --peach: #fe640b;
+  --red: #d20f39; --mauve: #8839ef; --teal: #179299;
+  --panel-bg: #eff1f5d9; --panel-border: #ccd0dab3;
+  --glow-blue: #1e66f50f;
+  --shadow-hover: 0 4px 24px #0000000f;
+  --panel-glow: none; --panel-hover-glow: none;
+  --title-text-shadow: none;
 }
 
-body.light {
-  background: var(--color-lt-bg);
-  color: var(--color-lt-text);
+/* ── Cyber theme (Neon) ── */
+[data-theme="cyber"] {
+  --crust: #05080a; --mantle: #0a0e14; --base: #0d1117;
+  --surface0: #1a1f2e; --surface1: #252b3b;
+  --overlay0: #4a5568; --overlay1: #718096;
+  --text: #e0f0ff; --subtext0: #8ba4c0; --subtext1: #a0c4e8;
+  --blue: #00e5ff; --sapphire: #00bcd4; --lavender: #b388ff;
+  --green: #00ff9f; --yellow: #ffea00; --peach: #ff6e40;
+  --red: #ff1744; --mauve: #e040fb; --teal: #1de9b6;
+  --ui-radius: 4px;
+  --panel-bg: #0d1117d9; --panel-border: #00e5ff26;
+  --glow-blue: #00e5ff0f;
+  --panel-glow: inset 0 0 30px #00e5ff05;
+  --panel-hover-glow: inset 0 0 30px #00e5ff08;
+  --shadow-hover: 0 0 20px #00e5ff1f, 0 0 40px #00e5ff0a;
+  --title-text-shadow: 0 0 6px #00e5ff4d;
 }
 
-/* Hide scrollbars but keep scrolling */
-* {
-  scrollbar-width: none;
+/* ── Base ── */
+@layer base {
+  body {
+    background: var(--crust);
+    color: var(--text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    transition: background .3s, color .3s;
+  }
+  /* Cyber scanline overlay */
+  [data-theme="cyber"] body::after {
+    content: ""; position: fixed; inset: 0;
+    pointer-events: none; z-index: 9999;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, #00e5ff04 2px, #00e5ff04 4px);
+    opacity: .5;
+  }
 }
-*::-webkit-scrollbar {
-  display: none;
+
+/* ── Panel component ── */
+@layer components {
+  .panel {
+    @apply flex flex-col overflow-hidden bg-panel-bg;
+    border: 1px solid var(--panel-border);
+    border-radius: var(--ui-radius);
+    box-shadow: var(--panel-glow);
+    transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+  }
+  .panel:hover {
+    border-color: var(--surface1);
+    box-shadow: 0 0 0 1px var(--surface1), var(--shadow-hover), var(--panel-hover-glow);
+  }
+  .panel-header {
+    @apply flex items-center gap-2 px-3 py-2 shrink-0;
+    border-bottom: 1px solid var(--panel-border);
+    background: var(--mantle);
+  }
+  .panel-title {
+    @apply text-subtext1 uppercase text-[11px] font-semibold;
+    letter-spacing: 0.5px;
+    text-shadow: var(--title-text-shadow);
+  }
+  .panel-body {
+    @apply flex-1 overflow-auto p-3;
+  }
 }
+
+/* ── Hide scrollbars ── */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
+
+html, body { overflow-x: hidden; }

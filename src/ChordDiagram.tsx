@@ -16,7 +16,7 @@ interface ChordDiagramProps {
 const VB_W = 140;
 const VB_H = 154;
 
-export function ChordDiagram({ voicing, highlighted = false, light = false, onDoubleClick, className = 'w-full max-w-[140px]', showBarre = false }: ChordDiagramProps) {
+export function ChordDiagram({ voicing, highlighted = false, light: _light = false, onDoubleClick, className = 'w-full max-w-[140px]', showBarre = false }: ChordDiagramProps) {
   const pad = { top: 36, left: 26, right: 12, bottom: 16 };
   const bw = VB_W - pad.left - pad.right;
   const bh = VB_H - pad.top - pad.bottom;
@@ -30,15 +30,15 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, onDo
   const startFret = maxFret <= FRETS_SHOWN ? 1 : minFret;
 
   const accent = `var(--color-deg-${voicing.degree})`;
-  const line = light ? '#cbd5e1' : '#1e3a5f';
-  const str = light ? '#94a3b8' : '#3a5a7a';
-  const txt = light ? '#334155' : '#c8daf0';
-  const muted = light ? '#94a3b8' : '#5a7a9a';
-  const bg = highlighted ? (light ? '#f0f4ff' : '#0f2040') : (light ? '#ffffff' : '#0a1628');
+  const line = 'var(--surface0)';
+  const str = 'var(--overlay0)';
+  const txt = 'var(--text)';
+  const muted = 'var(--overlay1)';
+  const bg = highlighted ? 'var(--glow-blue)' : 'var(--base)';
 
   const borderStyle = highlighted
     ? `2px solid ${accent}`
-    : `1px solid ${light ? '#e2e8f0' : '#1e3a5f'}`;
+    : `1px solid var(--panel-border)`;
 
   // Detect barre: find the lowest fret that appears on multiple consecutive strings
   // A barre spans from the first to last string that shares the minimum fret

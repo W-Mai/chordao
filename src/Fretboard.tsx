@@ -32,11 +32,11 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
   const svgH = pad.top + bh + pad.bottom;
   const r = 7;
 
-  const boardBg = light ? '#f0ece4' : '#1a1408';
-  const nutColor = light ? '#d4cfc2' : '#e0d6c2';
-  const fretLine = light ? '#c0c8d4' : '#2a4a6a';
-  const dotMarker = light ? '#c4b89c' : '#4a3c20';
-  const txt = light ? '#64748b' : '#5a7a9a';
+  const boardBg = light ? '#e6e1d6' : '#1a1408';
+  const nutColor = light ? '#c8c0b0' : '#e0d6c2';
+  const fretLine = light ? '#b0b8c4' : '#2a3a5a';
+  const dotMarker = light ? '#b0a488' : '#4a3c20';
+  const txt = light ? '#6c6f85' : '#7f849c';
 
   const handleEnter = useCallback((key: string) => setHovered(key), []);
   const handleLeave = useCallback(() => setHovered(null), []);
@@ -89,7 +89,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
           {/* Strings */}
           {Array.from({ length: STRINGS }, (_, i) => (
             <line key={i} x1={nutW} y1={i * ss} x2={nutW + bw} y2={i * ss}
-              stroke={light ? '#999' : '#aaa'} strokeWidth={0.8 + i * 0.3} />
+              stroke={light ? '#888' : '#aaa'} strokeWidth={0.8 + i * 0.3} />
           ))}
 
           {/* Chord outline + dots */}

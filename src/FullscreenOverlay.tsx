@@ -72,7 +72,7 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
   return (
     <div
       style={containerStyle}
-      className="flex items-center justify-center bg-bp-bg/95 [body.light_&]:bg-lt-bg/95 backdrop-blur-sm"
+      className="flex items-center justify-center bg-crust/95 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -88,8 +88,8 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
       </div>
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-bp-muted hover:text-bp-text text-2xl cursor-pointer
-                   [body.light_&]:text-lt-muted [body.light_&]:hover:text-lt-text"
+        className="absolute top-4 right-4 text-overlay1 hover:text-txt text-2xl cursor-pointer
+                   "
       >✕</button>
     </div>
   );
