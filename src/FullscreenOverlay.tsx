@@ -9,9 +9,23 @@ interface FullscreenOverlayProps {
 export function FullscreenOverlay({ active, onClose, children }: FullscreenOverlayProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [rotated, setRotated] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [animating, setAnimating] = useState(false);
+
+  // Open: mount then animate in
+  useEffect(() => {
+    if (active) {
+      setAnimating(true);
+      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    } else if (visible) {
+      setVisible(false);
+      const t = setTimeout(() => setAnimating(false), 250);
+      return () => clearTimeout(t);
+    }
+  }, [active]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!animating) return;
 
     const update = () => {
       const isPortrait = window.innerHeight > window.innerWidth;
@@ -29,26 +43,30 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
       window.removeEventListener('resize', update);
       document.body.style.overflow = '';
     };
-  }, [active, onClose]);
+  }, [animating, onClose]);
 
-  if (!active) return null;
+  if (!animating && !active) return null;
 
-  // When rotated: swap vw/vh so content fills the "landscape" view
   const containerStyle = rotated
     ? {
         width: '100vh',
         height: '100vw',
-        transform: 'rotate(90deg)',
+        transform: `rotate(90deg) scale(${visible ? 1 : 0.9})`,
         transformOrigin: 'top left',
         left: '100vw',
         position: 'fixed' as const,
         top: 0,
         zIndex: 50,
+        opacity: visible ? 1 : 0,
+        transition: 'opacity 0.25s ease, transform 0.25s ease',
       }
     : {
         position: 'fixed' as const,
         inset: 0,
         zIndex: 50,
+        opacity: visible ? 1 : 0,
+        transform: `scale(${visible ? 1 : 0.92})`,
+        transition: 'opacity 0.25s ease, transform 0.25s ease',
       };
 
   return (
