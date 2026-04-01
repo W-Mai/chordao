@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
@@ -8,14 +8,17 @@ const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
 
 function App() {
   const [selectedKey, setSelectedKey] = useState<NoteName>('C');
-  const [light, setLight] = useState(false);
+  const [light, setLight] = useState(() => window.matchMedia('(prefers-color-scheme: light)').matches);
 
-  const toggleTheme = useCallback(() => {
-    setLight(v => {
-      document.body.classList.toggle('light', !v);
-      return !v;
-    });
-  }, []);
+  useEffect(() => {
+    document.body.classList.toggle('light', light);
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const handler = (e: MediaQueryListEvent) => setLight(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [light]);
+
+  const toggleTheme = useCallback(() => setLight(v => !v), []);
 
   const voicings = useMemo(() => generateVoicings(selectedKey), [selectedKey]);
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
