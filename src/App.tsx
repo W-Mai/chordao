@@ -21,19 +21,42 @@ function ExpandBtn({ onClick }: { onClick: () => void }) {
 
 function App() {
   const [selectedKey, setSelectedKey] = useState<NoteName>('C');
+
+  const systemTheme = () => matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+
   const [theme, setTheme] = useState<string>(() => {
     const saved = localStorage.getItem('chordao:theme');
     if (saved && THEMES.includes(saved as typeof THEMES[number])) return saved;
-    return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return systemTheme();
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('chordao:theme', theme);
   }, [theme]);
 
+  // Follow system theme when in auto mode
+  useEffect(() => {
+    const mq = matchMedia('(prefers-color-scheme: light)');
+    const handler = () => {
+      if (!localStorage.getItem('chordao:theme')) {
+        setTheme(mq.matches ? 'light' : 'dark');
+      }
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const cycleTheme = useCallback(() => {
-    setTheme(t => THEMES[(THEMES.indexOf(t as typeof THEMES[number]) + 1) % THEMES.length]);
+    setTheme(t => {
+      const next = THEMES[(THEMES.indexOf(t as typeof THEMES[number]) + 1) % THEMES.length];
+      // If next theme matches system preference, enter auto mode
+      if (next === systemTheme()) {
+        localStorage.removeItem('chordao:theme');
+      } else {
+        localStorage.setItem('chordao:theme', next);
+      }
+      return next;
+    });
   }, []);
 
   const light = theme === 'light';
