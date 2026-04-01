@@ -33,7 +33,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
 
   return (
     <div className="overflow-x-auto">
-      <svg width={svgW} height={svgH} style={{ minWidth: svgW }}>
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" style={{ minWidth: svgW }}>
         <g transform={`translate(${pad.left}, ${pad.top})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (

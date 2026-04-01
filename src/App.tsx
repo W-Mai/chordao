@@ -1,10 +1,22 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName } from './chordData';
+import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
+import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
 
 const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
+
+function ExpandBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-xs px-2 py-1 rounded border border-bp-line text-bp-muted hover:text-bp-accent cursor-pointer transition-colors
+                 [body.light_&]:border-lt-line [body.light_&]:text-lt-muted"
+      title="Expand"
+    >⛶</button>
+  );
+}
 
 function App() {
   const [selectedKey, setSelectedKey] = useState<NoteName>('C');
@@ -25,13 +37,28 @@ function App() {
   const optimal = useMemo(() => findOptimalCombination(grouped), [grouped]);
   const optimalSet = useMemo(() => new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`)), [optimal]);
 
+  const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();
+  const [fretFS, openFret, closeFret] = useOverlayFullscreen();
+  const [chordFS, openChord, closeChord] = useOverlayFullscreen();
+  const [activeChord, setActiveChord] = useState<ChordVoicing | null>(null);
+
+  const handleChordDblClick = useCallback((v: ChordVoicing) => {
+    setActiveChord(v);
+    openChord();
+  }, [openChord]);
+
+  const handleCloseChord = useCallback(() => {
+    closeChord();
+    setActiveChord(null);
+  }, [closeChord]);
+
   const sectionCard = `mb-4 md:mb-6 rounded-xl border border-bp-line bg-bp-surface p-3 md:p-4 shadow-lg transition-all duration-300
     [body.light_&]:bg-lt-surface [body.light_&]:border-lt-line [body.light_&]:shadow-md`;
-  const sectionTitle = `text-sm font-semibold text-bp-muted mb-3 tracking-wider uppercase [body.light_&]:text-lt-muted`;
+  const sectionTitle = `text-sm font-semibold text-bp-muted tracking-wider uppercase [body.light_&]:text-lt-muted`;
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
-      {/* Sidebar: top bar on mobile, left sidebar on desktop */}
+      {/* Sidebar */}
       <aside className="w-full md:w-48 shrink-0 border-b md:border-b-0 md:border-r border-bp-line bg-bp-surface p-3 md:p-4
                         flex flex-col gap-3 md:gap-4 transition-colors
                         [body.light_&]:bg-lt-surface [body.light_&]:border-lt-line">
@@ -41,9 +68,7 @@ function App() {
             onClick={toggleTheme}
             className="text-xs px-2 py-1 rounded border border-bp-line text-bp-muted hover:text-bp-accent cursor-pointer transition-colors
                        [body.light_&]:border-lt-line [body.light_&]:text-lt-muted"
-          >
-            {light ? '🌙' : '☀️'}
-          </button>
+          >{light ? '🌙' : '☀️'}</button>
         </div>
 
         <div className="grid grid-cols-6 md:grid-cols-4 gap-1">
@@ -56,13 +81,10 @@ function App() {
                   ? 'bg-bp-accent text-white font-bold shadow-[0_0_8px_var(--color-bp-accent)] [body.light_&]:shadow-[0_0_6px_var(--color-lt-accent)] [body.light_&]:bg-lt-accent'
                   : 'border border-bp-line text-bp-muted hover:border-bp-accent [body.light_&]:border-lt-line [body.light_&]:text-lt-muted'
               }`}
-            >
-              {note}
-            </button>
+            >{note}</button>
           ))}
         </div>
 
-        {/* Degree legend: horizontal on mobile, vertical on desktop */}
         <div className="flex md:flex-col gap-2 md:gap-1 flex-wrap">
           {DEGREE_LABELS.slice(1).map((label, i) => (
             <div key={label} className="flex items-center gap-1.5 text-xs">
@@ -77,20 +99,26 @@ function App() {
         </div>
       </aside>
 
-      {/* Main content */}
+      {/* Main */}
       <main className="flex-1 p-3 md:p-6 overflow-auto">
         <section className={sectionCard}>
-          <h2 className={sectionTitle}>Shape Grid</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={sectionTitle}>Shape Grid</h2>
+            <ExpandBtn onClick={openGrid} />
+          </div>
           <ShapeGrid voicings={voicings} optimal={optimal} light={light} />
         </section>
 
         <section className={sectionCard}>
-          <h2 className={sectionTitle}>Fretboard Overview</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={sectionTitle}>Fretboard Overview</h2>
+            <ExpandBtn onClick={openFret} />
+          </div>
           <Fretboard voicings={voicings} optimal={optimal} light={light} />
         </section>
 
         <section className={sectionCard}>
-          <h2 className={sectionTitle}>Chord Diagrams</h2>
+          <h2 className={`${sectionTitle} mb-3`}>Chord Diagrams <span className="text-[10px] font-normal normal-case">(double-click to expand)</span></h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:flex md:flex-wrap gap-2 md:gap-4 justify-items-center">
             {[1, 2, 3, 4, 5, 6].map(degree => {
               const dv = grouped.get(degree) ?? [];
@@ -100,12 +128,33 @@ function App() {
                   voicing={v}
                   highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)}
                   light={light}
+                  onDoubleClick={() => handleChordDblClick(v)}
                 />
               ));
             })}
           </div>
         </section>
       </main>
+
+      {/* Fullscreen overlays */}
+      <FullscreenOverlay active={gridFS} onClose={closeGrid}>
+        <ShapeGrid voicings={voicings} optimal={optimal} light={light} />
+      </FullscreenOverlay>
+
+      <FullscreenOverlay active={fretFS} onClose={closeFret}>
+        <Fretboard voicings={voicings} optimal={optimal} light={light} />
+      </FullscreenOverlay>
+
+      <FullscreenOverlay active={chordFS} onClose={handleCloseChord}>
+        {activeChord && (
+          <ChordDiagram
+            voicing={activeChord}
+            highlighted={optimalSet.has(`${activeChord.name}-${activeChord.shapeOrigin}`)}
+            light={light}
+            size={360}
+          />
+        )}
+      </FullscreenOverlay>
     </div>
   );
 }

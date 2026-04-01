@@ -43,7 +43,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12 }:
 
   return (
     <div className="overflow-x-auto">
-      <table style={{ borderCollapse: 'collapse', fontSize: 12, fontFamily: 'monospace' }}>
+      <table style={{ borderCollapse: 'collapse', fontSize: 12, fontFamily: 'monospace', width: '100%' }}>
         <thead>
           <tr>
             <th style={{ padding: '4px 8px', textAlign: 'right', color: labelColor, fontSize: 10 }}>Shape</th>
