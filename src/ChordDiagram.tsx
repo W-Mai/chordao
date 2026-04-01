@@ -35,7 +35,7 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, size
   const border = highlighted ? accent : line;
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="w-full max-w-[140px]">
       <rect x={0} y={0} width={w} height={h} rx={10} fill={bg} stroke={border} strokeWidth={highlighted ? 2 : 1} />
 
       <text x={w / 2} y={14} textAnchor="middle" fontSize={12} fontWeight="bold" fill={txt}>
