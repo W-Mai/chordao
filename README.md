@@ -20,4 +20,8 @@ bun run dev
 
 ## Stack
 
-React + TypeScript + Vite + Bun
+React + TypeScript + Vite + Tailwind CSS + Bun
+
+## License
+
+MIT
