@@ -32,6 +32,14 @@ function App() {
 
   const toggleTheme = useCallback(() => setLight(v => !v), []);
 
+  const [showBarre, setShowBarre] = useState(() => localStorage.getItem('chordao:showBarre') !== 'false');
+  const toggleBarre = useCallback(() => {
+    setShowBarre(v => {
+      localStorage.setItem('chordao:showBarre', String(!v));
+      return !v;
+    });
+  }, []);
+
   const voicings = useMemo(() => generateVoicings(selectedKey), [selectedKey]);
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
   const optimal = useMemo(() => findOptimalCombination(grouped), [grouped]);
@@ -94,8 +102,14 @@ function App() {
           ))}
         </div>
 
-        <div className="hidden md:block mt-auto text-[10px] text-bp-muted [body.light_&]:text-lt-muted">
-          E/Em/A/Am shape derivation
+        <div className="hidden md:block mt-auto">
+          <label className="flex items-center gap-2 text-[11px] text-bp-muted cursor-pointer [body.light_&]:text-lt-muted mb-2">
+            <input type="checkbox" checked={showBarre} onChange={toggleBarre} className="accent-bp-accent" />
+            Barre lines
+          </label>
+          <div className="text-[10px] text-bp-muted [body.light_&]:text-lt-muted">
+            E/Em/A/Am shape derivation
+          </div>
         </div>
       </aside>
 
@@ -128,6 +142,7 @@ function App() {
                   voicing={v}
                   highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)}
                   light={light}
+                  showBarre={showBarre}
                   onDoubleClick={() => handleChordDblClick(v)}
                 />
               ));
@@ -152,6 +167,7 @@ function App() {
               voicing={activeChord}
               highlighted={optimalSet.has(`${activeChord.name}-${activeChord.shapeOrigin}`)}
               light={light}
+              showBarre={showBarre}
               className="w-full max-w-[50vh]"
             />
           </div>

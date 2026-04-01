@@ -10,12 +10,13 @@ interface ChordDiagramProps {
   light?: boolean;
   onDoubleClick?: () => void;
   className?: string;
+  showBarre?: boolean;
 }
 
 const VB_W = 140;
 const VB_H = 154;
 
-export function ChordDiagram({ voicing, highlighted = false, light = false, onDoubleClick, className = 'w-full max-w-[140px]' }: ChordDiagramProps) {
+export function ChordDiagram({ voicing, highlighted = false, light = false, onDoubleClick, className = 'w-full max-w-[140px]', showBarre = false }: ChordDiagramProps) {
   const pad = { top: 36, left: 26, right: 12, bottom: 16 };
   const bw = VB_W - pad.left - pad.right;
   const bh = VB_H - pad.top - pad.bottom;
@@ -36,6 +37,23 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, onDo
   const borderStyle = highlighted
     ? `2px solid ${accent}`
     : `1px solid ${light ? '#e2e8f0' : '#1e3a5f'}`;
+
+  // Detect barre: find the lowest fret that appears on multiple consecutive strings
+  // A barre spans from the first to last string that shares the minimum fret
+  let barreInfo: { fret: number; fromStr: number; toStr: number } | null = null;
+  if (showBarre && played.length > 0) {
+    const barreFret = Math.min(...played);
+    const stringsOnBarre = voicing.frets
+      .map((f, i) => ({ f, i }))
+      .filter(({ f }) => f >= barreFret && f !== -1);
+    if (stringsOnBarre.length >= 2) {
+      barreInfo = {
+        fret: barreFret,
+        fromStr: stringsOnBarre[0].i,
+        toStr: stringsOnBarre[stringsOnBarre.length - 1].i,
+      };
+    }
+  }
 
   return (
     <div
@@ -60,12 +78,33 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, onDo
           {Array.from({ length: STRINGS }, (_, i) => (
             <line key={i} x1={i * ss} y1={0} x2={i * ss} y2={bh} stroke={str} strokeWidth={0.8} />
           ))}
+
+          {/* Barre bar */}
+          {barreInfo && (() => {
+            const rf = barreInfo.fret - startFret;
+            if (rf < 0 || rf >= FRETS_SHOWN) return null;
+            const y = rf * fs + fs / 2;
+            const x1 = barreInfo.fromStr * ss;
+            const x2 = barreInfo.toStr * ss;
+            return (
+              <rect
+                x={x1 - 5.5} y={y - 5.5}
+                width={x2 - x1 + 11} height={11}
+                rx={5.5}
+                fill={accent} opacity={highlighted ? 1 : 0.6}
+              />
+            );
+          })()}
+
+          {/* Finger dots */}
           {voicing.frets.map((fret, si) => {
             const x = si * ss;
             if (fret === -1) return <text key={si} x={x} y={-6} textAnchor="middle" fontSize={10} fill={muted}>×</text>;
             if (fret === 0) return <circle key={si} cx={x} cy={-6} r={3.5} fill="none" stroke={muted} strokeWidth={1.2} />;
             const rf = fret - startFret;
             if (rf < 0 || rf >= FRETS_SHOWN) return null;
+            // Skip individual dot if it's on the barre fret and barre is shown
+            if (showBarre && barreInfo && fret === barreInfo.fret && si >= barreInfo.fromStr && si <= barreInfo.toStr) return null;
             return <circle key={si} cx={x} cy={rf * fs + fs / 2} r={5.5} fill={accent} opacity={highlighted ? 1 : 0.6} />;
           })}
         </g>
