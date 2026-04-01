@@ -27,8 +27,8 @@ export function ShapeGrid({ voicings, optimal, totalFrets = 12 }: ShapeGridProps
 
   for (const v of voicings) {
     const rowIdx = rows[0].shapes.includes(v.shapeOrigin) ? 0 : 1;
-    // baseFret = barre position (0 = open/nut)
-    const fret = v.baseFret;
+    // baseFret → use barrePosition for column placement
+    const fret = v.barrePosition;
     if (fret >= 0 && fret <= totalFrets) {
       grid[rowIdx][fret] = {
         degree: v.degree,

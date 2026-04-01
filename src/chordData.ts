@@ -28,6 +28,7 @@ export interface ChordVoicing {
   name: string;          // e.g. "C", "Dm"
   frets: number[];       // absolute fret positions per string (-1 = muted)
   baseFret: number;      // lowest fret used (for display)
+  barrePosition: number; // barre/capo fret (the offset from open shape)
   shapeOrigin: string;   // which base shape it derives from ("E" or "A")
   degree: number;        // scale degree 1-6
 }
@@ -58,7 +59,7 @@ function deriveVoicing(
   const frets = baseFrets.map(f => (f === -1 ? -1 : f + offset));
   const playedFrets = frets.filter(f => f > 0);
   const baseFret = playedFrets.length > 0 ? Math.min(...playedFrets) : 0;
-  return { name: chordName, frets, baseFret, shapeOrigin, degree };
+  return { name: chordName, frets, baseFret, barrePosition: offset, shapeOrigin, degree };
 }
 
 // Major scale intervals in semitones: 1=0, 2=2, 3=4, 4=5, 5=7, 6=9
