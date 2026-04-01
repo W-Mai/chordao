@@ -8,16 +8,18 @@ interface ChordDiagramProps {
   voicing: ChordVoicing;
   highlighted?: boolean;
   light?: boolean;
-  size?: number;
   onDoubleClick?: () => void;
+  className?: string;
 }
 
-export function ChordDiagram({ voicing, highlighted = false, light = false, size = 140, onDoubleClick }: ChordDiagramProps) {
+// viewBox is fixed; actual size controlled by parent via className
+const VB_W = 140;
+const VB_H = 154;
+
+export function ChordDiagram({ voicing, highlighted = false, light = false, onDoubleClick, className = 'w-full max-w-[140px]' }: ChordDiagramProps) {
   const pad = { top: 36, left: 26, right: 12, bottom: 16 };
-  const w = size;
-  const h = size * 1.1;
-  const bw = w - pad.left - pad.right;
-  const bh = h - pad.top - pad.bottom;
+  const bw = VB_W - pad.left - pad.right;
+  const bh = VB_H - pad.top - pad.bottom;
   const ss = bw / (STRINGS - 1);
   const fs = bh / FRETS_SHOWN;
 
@@ -34,11 +36,11 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, size
   const border = highlighted ? accent : line;
 
   return (
-    <div onDoubleClick={onDoubleClick} className="cursor-pointer">
-      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="w-full max-w-[140px]">
-        <rect x={0} y={0} width={w} height={h} rx={10} fill={bg} stroke={border} strokeWidth={highlighted ? 2 : 1} />
-        <text x={w / 2} y={14} textAnchor="middle" fontSize={12} fontWeight="bold" fill={txt}>{voicing.name}</text>
-        <text x={w / 2} y={26} textAnchor="middle" fontSize={9} fill={muted}>
+    <div onDoubleClick={onDoubleClick} className={`cursor-pointer ${className}`}>
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full h-auto">
+        <rect x={0} y={0} width={VB_W} height={VB_H} rx={10} fill={bg} stroke={border} strokeWidth={highlighted ? 2 : 1} />
+        <text x={VB_W / 2} y={14} textAnchor="middle" fontSize={12} fontWeight="bold" fill={txt}>{voicing.name}</text>
+        <text x={VB_W / 2} y={26} textAnchor="middle" fontSize={9} fill={muted}>
           {DEGREE_LABELS[voicing.degree]} · {voicing.shapeOrigin}
         </text>
         <g transform={`translate(${pad.left}, ${pad.top})`}>

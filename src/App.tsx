@@ -147,12 +147,14 @@ function App() {
 
       <FullscreenOverlay active={chordFS} onClose={handleCloseChord}>
         {activeChord && (
-          <ChordDiagram
-            voicing={activeChord}
-            highlighted={optimalSet.has(`${activeChord.name}-${activeChord.shapeOrigin}`)}
-            light={light}
-            size={360}
-          />
+          <div className="flex items-center justify-center w-full h-full">
+            <ChordDiagram
+              voicing={activeChord}
+              highlighted={optimalSet.has(`${activeChord.name}-${activeChord.shapeOrigin}`)}
+              light={light}
+              className="w-full max-w-[50vh]"
+            />
+          </div>
         )}
       </FullscreenOverlay>
     </div>
