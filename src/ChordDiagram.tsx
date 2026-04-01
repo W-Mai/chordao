@@ -25,7 +25,9 @@ export function ChordDiagram({ voicing, highlighted = false, light = false, onDo
 
   const played = voicing.frets.filter(f => f > 0);
   const minFret = played.length > 0 ? Math.min(...played) : 1;
-  const startFret = minFret <= FRETS_SHOWN ? 1 : minFret;
+  const maxFret = played.length > 0 ? Math.max(...played) : 1;
+  // Ensure all fretted notes fit within FRETS_SHOWN window
+  const startFret = maxFret <= FRETS_SHOWN ? 1 : minFret;
 
   const accent = `var(--color-deg-${voicing.degree})`;
   const line = light ? '#cbd5e1' : '#1e3a5f';
