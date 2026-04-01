@@ -5,7 +5,7 @@ const DEGREE_COLORS = ['', 'var(--color-deg-1)', 'var(--color-deg-2)', 'var(--co
 const DEGREE_LABELS = ['', '1', '2m', '3m', '4', '5', '6m'];
 
 const STRINGS = 6;
-const STRING_LABELS = ['E', 'A', 'D', 'G', 'B', 'e'];
+const STRING_LABELS = ['e', 'B', 'G', 'D', 'A', 'E'];
 const SINGLE_DOTS = [3, 5, 7, 9, 15];
 const DOUBLE_DOT = 12;
 
@@ -46,7 +46,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
     const pts: { x: number; y: number }[] = [];
     v.frets.forEach((fret, si) => {
       if (fret <= 0) return;
-      pts.push({ x: nutW + (fret - 0.5) * fw, y: si * ss });
+      pts.push({ x: nutW + (fret - 0.5) * fw, y: (STRINGS - 1 - si) * ss });
     });
     return pts;
   }
@@ -125,7 +125,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15 }:
                 {v.frets.map((fret, si) => {
                   if (fret <= 0) return null;
                   const x = nutW + (fret - 0.5) * fw;
-                  const y = si * ss;
+                  const y = (STRINGS - 1 - si) * ss;
 
                   return (
                     <g key={`${key}-${si}`}>
