@@ -91,7 +91,7 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
           </div>
           {activeProg && (
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>♪ {activeProg}</div>
+              <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>♪ {t(activeProg as any)}</div>
               <div style={{ fontSize: 11, color: 'var(--overlay1)', marginTop: 2 }}>
                 {PROGRESSIONS.find(p => p.name === activeProg)?.degrees.join(' → ')}
               </div>

@@ -253,7 +253,7 @@ function App() {
                       isActive ? 'bg-blue/15 text-blue' : 'text-subtext0 hover:text-txt hover:bg-surface0/30'
                     }`}
                     style={{ transition: 'all var(--transition)' }}
-                  >{p.name} <span className="text-overlay0">{p.degrees.join('-')}</span></button>
+                  >{t(p.name as any)} <span className="text-overlay0">{p.degrees.join('-')}</span></button>
                 );
               })}
             </div>
@@ -263,7 +263,7 @@ function App() {
                 items={[{ name: '', degrees: [] as number[] }, ...PROGRESSIONS]}
                 activeKey={activeProg ?? ''}
                 getKey={p => p.name}
-                getLabel={p => p.name ? `${p.name} ${p.degrees.join('-')}` : 'None'}
+                getLabel={p => p.name ? `${t(p.name as any)} ${p.degrees.join('-')}` : t('none')}
                 onSelect={name => setActiveProg(name || null)}
               />
             </div>
