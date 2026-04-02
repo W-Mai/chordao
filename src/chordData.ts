@@ -161,11 +161,13 @@ export function voicingKey(v: ChordVoicing): string {
 // Common chord progressions (degree-based)
 export const PROGRESSIONS = [
   { name: 'Pop Canon', degrees: [1, 5, 6, 4] },
+  { name: 'Canon Ext.', degrees: [1, 5, 6, 3, 4, 1, 4, 5] },
+  { name: 'C-Pop Ballad', degrees: [1, 3, 6, 4, 2, 6, 3, 5] },
   { name: 'Classic 50s', degrees: [1, 6, 4, 5] },
-  { name: 'Blues', degrees: [1, 1, 4, 4, 1, 1, 5, 4, 1] },
-  { name: 'Axis', degrees: [1, 5, 6, 3] },
-  { name: 'Andalusian', degrees: [6, 5, 4, 3] },
-  { name: 'Country', degrees: [1, 4, 5, 1] },
-  { name: 'Jazz ii-V-I', degrees: [2, 5, 1] },
   { name: 'Sad', degrees: [6, 4, 1, 5] },
+  { name: 'Axis', degrees: [1, 5, 6, 3] },
+  { name: 'Country', degrees: [1, 4, 5, 1] },
+  { name: 'Blues', degrees: [1, 1, 4, 4, 1, 1, 5, 4, 1] },
+  { name: 'Andalusian', degrees: [6, 5, 4, 3] },
+  { name: 'Jazz ii-V-I', degrees: [2, 5, 1] },
 ];
