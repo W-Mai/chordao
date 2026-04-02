@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { NOTES, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
+import { NOTE_DISPLAY, CIRCLE_OF_FIFTHS, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
@@ -106,9 +106,9 @@ function App() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      const idx = NOTES.indexOf(selectedKey);
-      if (e.key === 'ArrowLeft') setSelectedKey(NOTES[(idx - 1 + 12) % 12]);
-      else if (e.key === 'ArrowRight') setSelectedKey(NOTES[(idx + 1) % 12]);
+      const idx = CIRCLE_OF_FIFTHS.indexOf(selectedKey);
+      if (e.key === 'ArrowLeft') setSelectedKey(CIRCLE_OF_FIFTHS[(idx - 1 + 12) % 12]);
+      else if (e.key === 'ArrowRight') setSelectedKey(CIRCLE_OF_FIFTHS[(idx + 1) % 12]);
       else if (e.key >= '1' && e.key <= '6') toggleDegree(Number(e.key));
       else if (e.key === '0' || e.key === 'Escape') setActiveDegree(null);
     };
@@ -161,7 +161,7 @@ function App() {
 
           {/* Key selector */}
           <div className="grid grid-cols-6 md:grid-cols-4 gap-1">
-            {NOTES.map(note => (
+            {CIRCLE_OF_FIFTHS.map(note => (
               <button key={note} onClick={() => setSelectedKey(note)}
                 className={`px-1 py-1.5 rounded text-xs cursor-pointer ${
                   selectedKey === note
@@ -172,7 +172,7 @@ function App() {
                   transition: 'all var(--transition)',
                   boxShadow: selectedKey === note ? '0 0 8px var(--blue)' : 'none',
                 }}
-              >{note}</button>
+              >{NOTE_DISPLAY[note]}</button>
             ))}
           </div>
 

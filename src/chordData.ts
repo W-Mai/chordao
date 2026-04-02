@@ -1,6 +1,15 @@
-// Chromatic note names
+// Chromatic note names (internal, for calculation)
 const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
 type NoteName = (typeof NOTES)[number];
+
+// Display names using flats where conventional
+const NOTE_DISPLAY: Record<string, string> = {
+  'C': 'C', 'C#': 'Db', 'D': 'D', 'D#': 'Eb', 'E': 'E', 'F': 'F',
+  'F#': 'F#', 'G': 'G', 'G#': 'Ab', 'A': 'A', 'A#': 'Bb', 'B': 'B',
+};
+
+// Circle of fifths order for key selection UI
+const CIRCLE_OF_FIFTHS: NoteName[] = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F'];
 
 // Fret positions for each string (6 strings, high-to-low: E A D G B E)
 // -1 means muted, 0 means open
@@ -78,7 +87,7 @@ export function generateVoicings(key: NoteName): ChordVoicing[] {
 
   for (const deg of SCALE_DEGREES) {
     const targetNote = noteName(noteIndex(key) + deg.interval);
-    const chordName = `${targetNote}${deg.suffix}`;
+    const chordName = `${NOTE_DISPLAY[targetNote]}${deg.suffix}`;
     const isMajor = deg.suffix === '';
     const quality = isMajor ? 'major' : 'minor';
 
@@ -146,7 +155,7 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>): Ch
   return bestCombo;
 }
 
-export { NOTES, type NoteName };
+export { NOTES, NOTE_DISPLAY, CIRCLE_OF_FIFTHS, type NoteName };
 
 // Common chord progressions (degree-based)
 export const PROGRESSIONS = [

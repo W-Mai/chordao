@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import type { ChordVoicing, NoteName } from './chordData';
+import { NOTE_DISPLAY } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
@@ -54,7 +55,7 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
     if (!previewUrl) return;
     const a = document.createElement('a');
     a.href = previewUrl;
-    a.download = `chordao-${selectedKey}.png`;
+    a.download = `chordao-${NOTE_DISPLAY[selectedKey]}.png`;
     a.click();
   }, [previewUrl, selectedKey]);
 
@@ -79,10 +80,10 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 28, fontWeight: 'bold', flexShrink: 0,
             boxShadow: '0 0 20px var(--blue)',
-          }}>{selectedKey}</div>
+          }}>{NOTE_DISPLAY[selectedKey]}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>Chordao</div>
-            <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>Key of {selectedKey} · E/Em/A/Am shape derivation</div>
+            <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>Key of {NOTE_DISPLAY[selectedKey]} · E/Em/A/Am shape derivation</div>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             {qrChordao && (
