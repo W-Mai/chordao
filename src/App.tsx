@@ -464,25 +464,39 @@ function App() {
 
       {/* Fullscreen overlays */}
       <FullscreenOverlay active={gridFS} onClose={closeGrid}>
-        <ShapeGrid
-          voicings={filteredVoicings}
-          optimal={filteredOptimal}
-          light={light}
-          hoveredChord={activeChordKey}
-          onHoverChord={handleHoverChord}
-          onClickChord={handleClickChord}
-          progressionDegrees={activeProgObj?.degrees}
-        />
+        <section className="panel w-full">
+          <div className="panel-header">
+            <span className="panel-title flex-1">{t('shapeGrid')}</span>
+          </div>
+          <div className="panel-body">
+            <ShapeGrid
+              voicings={filteredVoicings}
+              optimal={filteredOptimal}
+              light={light}
+              hoveredChord={activeChordKey}
+              onHoverChord={handleHoverChord}
+              onClickChord={handleClickChord}
+              progressionDegrees={activeProgObj?.degrees}
+            />
+          </div>
+        </section>
       </FullscreenOverlay>
       <FullscreenOverlay active={fretFS} onClose={closeFret}>
-        <Fretboard
-          voicings={filteredVoicings}
-          optimal={filteredOptimal}
-          light={light}
-          hoveredChord={activeChordKey}
-          onHoverChord={handleHoverChord}
-          onClickChord={handleClickChord}
-        />
+        <section className="panel w-full">
+          <div className="panel-header">
+            <span className="panel-title flex-1">{t('fretboardOverview')}</span>
+          </div>
+          <div className="panel-body">
+            <Fretboard
+              voicings={filteredVoicings}
+              optimal={filteredOptimal}
+              light={light}
+              hoveredChord={activeChordKey}
+              onHoverChord={handleHoverChord}
+              onClickChord={handleClickChord}
+            />
+          </div>
+        </section>
       </FullscreenOverlay>
       <FullscreenOverlay active={chordFS} onClose={handleCloseChord}>
         {activeChord && (
