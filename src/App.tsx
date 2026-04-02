@@ -334,7 +334,7 @@ function App() {
               {t('progressions')}
             </span>
             {/* Desktop: vertical list */}
-            <div className="hidden md:flex md:flex-col gap-1">
+            <div className="hidden md:flex md:flex-col gap-1 max-h-40 overflow-y-auto">
               {PROGRESSIONS.map((p) => {
                 const isActive = activeProg === p.name;
                 return (
