@@ -113,6 +113,12 @@ function App() {
   }, [optimal, activeDegree, activeProgDegrees]);
 
   const [hoveredChord, setHoveredChord] = useState<string | null>(null);
+  const [lockedChord, setLockedChord] = useState<string | null>(null);
+  const activeChordKey = lockedChord ?? hoveredChord;
+  const handleHoverChord = useCallback((key: string | null) => setHoveredChord(key), []);
+  const handleClickChord = useCallback((key: string) => {
+    setLockedChord(prev => prev === key ? null : key);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -258,7 +264,7 @@ function App() {
               <ExpandBtn onClick={openGrid} />
             </div>
             <div className="panel-body">
-              <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
+              <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={activeChordKey} onHoverChord={handleHoverChord} onClickChord={handleClickChord} />
             </div>
           </section>
 
@@ -268,7 +274,7 @@ function App() {
               <ExpandBtn onClick={openFret} />
             </div>
             <div className="panel-body">
-              <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
+              <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={activeChordKey} onHoverChord={handleHoverChord} onClickChord={handleClickChord} />
             </div>
           </section>
 
@@ -317,10 +323,10 @@ function App() {
 
       {/* Fullscreen overlays */}
       <FullscreenOverlay active={gridFS} onClose={closeGrid}>
-        <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
+        <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={activeChordKey} onHoverChord={handleHoverChord} onClickChord={handleClickChord} />
       </FullscreenOverlay>
       <FullscreenOverlay active={fretFS} onClose={closeFret}>
-        <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={hoveredChord} onHoverChord={setHoveredChord} />
+        <Fretboard voicings={filteredVoicings} optimal={filteredOptimal} light={light} hoveredChord={activeChordKey} onHoverChord={handleHoverChord} onClickChord={handleClickChord} />
       </FullscreenOverlay>
       <FullscreenOverlay active={chordFS} onClose={handleCloseChord}>
         {activeChord && (

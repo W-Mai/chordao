@@ -16,10 +16,10 @@ interface FretboardProps {
   totalFrets?: number;
   hoveredChord?: string | null;
   onHoverChord?: (key: string | null) => void;
+  onClickChord?: (key: string) => void;
 }
 
-export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, hoveredChord, onHoverChord }: FretboardProps) {
-  const optimalSet = new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`));
+export function Fretboard({ voicings, optimal: _optimal, light = false, totalFrets = 15, hoveredChord, onHoverChord, onClickChord }: FretboardProps) {
   const [localHover, setLocalHover] = useState<string | null>(null);
   const hovered = hoveredChord ?? localHover;
 
@@ -98,13 +98,12 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, h
           {/* Chord outline + dots */}
           {voicings.map(v => {
             const key = vKey(v);
-            const isOpt = optimalSet.has(key);
             const isHov = hovered === key;
             const dimmed = hovered != null && !isHov;
             const color = DEGREE_COLORS[v.degree];
             const pts = getPoints(v);
             const isEShape = v.shapeOrigin.startsWith('E');
-            const active = isOpt || isHov;
+            const active = isHov;
 
             return (
               <g
@@ -113,6 +112,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, h
                 style={{ transition: 'opacity 0.2s' }}
                 onPointerEnter={() => handleEnter(key)}
                 onPointerLeave={handleLeave}
+                onClick={() => onClickChord?.(key)}
                 className="cursor-pointer"
               >
                 {/* Outline connecting played strings */}

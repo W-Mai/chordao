@@ -13,9 +13,10 @@ interface ShapeGridProps {
   totalFrets?: number;
   hoveredChord?: string | null;
   onHoverChord?: (key: string | null) => void;
+  onClickChord?: (key: string) => void;
 }
 
-export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, hoveredChord, onHoverChord }: ShapeGridProps) {
+export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, hoveredChord, onHoverChord, onClickChord }: ShapeGridProps) {
   const optimalSet = new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`));
 
   const rows = [
@@ -131,6 +132,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
                 style={{ transform: `translate(${x}px, ${y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s', cursor: 'pointer' }}
                 onPointerEnter={() => onHoverChord?.(chordKey)}
                 onPointerLeave={() => onHoverChord?.(null)}
+                onClick={() => onClickChord?.(chordKey)}
               >
                 <circle
                   cx={0} cy={0} r={r}
