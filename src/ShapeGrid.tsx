@@ -61,10 +61,10 @@ export function ShapeGrid({
   const openW = 40; // dedicated space for open position before nut
   const fretW = 52;
   const boardW = totalFrets * fretW;
-  const stringGap = 52;
-  const padY = 28;
+  const stringGap = 70;
+  const padY = 16;
   const svgW = labelW + openW + nutW + boardW + 8;
-  const svgH = padY + stringGap + padY + 16; // extra for fret numbers
+  const svgH = padY + stringGap + padY + 12;
   const stringY = [padY, padY + stringGap];
   const boardX = labelW + openW + nutW;
 
@@ -86,7 +86,7 @@ export function ShapeGrid({
 
   return (
     <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" style={{ minWidth: 600 }}>
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-auto md:w-full" style={{ height: 'auto', minWidth: svgW }}>
         {/* Fretboard wood */}
         <rect
           x={boardX - nutW}

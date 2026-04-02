@@ -122,17 +122,17 @@
     box-shadow: 0 0 0 1px var(--surface1), var(--shadow-hover), var(--panel-hover-glow);
   }
   .panel-header {
-    @apply flex items-center gap-2 px-3 py-2 shrink-0;
+    @apply flex items-center gap-2 px-2 py-1.5 md:px-3 md:py-2 shrink-0;
     border-bottom: 1px solid var(--panel-border);
     background: var(--mantle);
   }
   .panel-title {
-    @apply text-subtext1 uppercase text-[11px] font-semibold;
+    @apply text-subtext1 uppercase text-[10px] md:text-[11px] font-semibold;
     letter-spacing: 0.5px;
     text-shadow: var(--title-text-shadow);
   }
   .panel-body {
-    @apply flex-1 overflow-auto p-3;
+    @apply flex-1 overflow-auto p-1.5 md:p-3;
   }
 }
 

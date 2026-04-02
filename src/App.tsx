@@ -363,10 +363,10 @@ function App() {
 
         {/* Main */}
         <main
-          className="flex-1 min-h-0 p-3 md:p-6 overflow-y-auto bg-crust"
+          className="flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust"
           style={{ transition: 'background var(--transition)' }}
         >
-          <section className="panel mb-4 md:mb-6">
+          <section className="panel mb-2 md:mb-6">
             <div className="panel-header">
               <span className="panel-title flex-1">{t('shapeGrid')}</span>
               <ExpandBtn onClick={openGrid} />
@@ -384,7 +384,7 @@ function App() {
             </div>
           </section>
 
-          <section className="panel mb-4 md:mb-6">
+          <section className="panel mb-2 md:mb-6">
             <div className="panel-header">
               <span className="panel-title flex-1">{t('fretboardOverview')}</span>
               <ExpandBtn onClick={openFret} />
@@ -401,7 +401,7 @@ function App() {
             </div>
           </section>
 
-          <section className="panel mb-4 md:mb-6">
+          <section className="panel mb-2 md:mb-6">
             <div className="panel-header">
               <span className="panel-title">{t('chordDiagrams')}</span>
               <span className="text-[10px] text-overlay0 ml-2">{t('dblClickExpand')}</span>

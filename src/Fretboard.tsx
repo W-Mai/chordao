@@ -59,9 +59,9 @@ export function Fretboard({
   const ss = 18;
   const bw = fw * totalFrets;
   const bh = ss * (STRINGS - 1);
-  const padY = 28;
+  const padY = 16;
   const svgW = labelW + nutW + bw + 8;
-  const svgH = padY + bh + padY + 16;
+  const svgH = padY + bh + padY + 12;
   const r = 7;
 
   const boardBg = light ? '#e6e1d6' : '#1a1408';
@@ -82,7 +82,7 @@ export function Fretboard({
 
   return (
     <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" style={{ minWidth: svgW }}>
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-auto md:w-full" style={{ height: 'auto', minWidth: svgW }}>
         <g transform={`translate(${labelW}, ${padY})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (
