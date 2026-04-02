@@ -7,6 +7,8 @@ import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
 
 import { Roller } from './Roller';
 
+import { useExportImage } from './ExportView';
+
 const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
 const THEMES = ['dark', 'light', 'cyber'] as const;
 const THEME_ICONS: Record<string, string> = { dark: '🌙', light: '☀️', cyber: '⚡' };
@@ -113,6 +115,10 @@ function App() {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [selectedKey, toggleDegree]);
+
+  const { exportImage, ExportContainer } = useExportImage({
+    selectedKey, voicings, optimal, optimalSet, grouped, showBarre,
+  });
 
   const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();
   const [fretFS, openFret, closeFret] = useOverlayFullscreen();
@@ -280,6 +286,8 @@ function App() {
           <a href="https://github.com/W-Mai/chordao" target="_blank" rel="noopener"
             className="text-blue hover:underline">GitHub</a>
           <span className="text-surface1">·</span><span>MIT</span>
+          <span className="text-surface1">·</span>
+          <button onClick={exportImage} className="text-blue hover:underline cursor-pointer bg-transparent border-none p-0 font-inherit text-inherit">Export PNG</button>
         </div>
       </footer>
 
@@ -299,6 +307,8 @@ function App() {
           </div>
         )}
       </FullscreenOverlay>
+
+      {ExportContainer}
     </div>
   );
 }
