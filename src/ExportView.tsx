@@ -108,7 +108,7 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
         <div style={{ border: '1px solid var(--panel-border)', borderRadius: 'var(--ui-radius)', background: 'var(--panel-bg)', overflow: 'hidden' }}>
           <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)', background: 'var(--mantle)', fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chord Diagrams</div>
           <div style={{ padding: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 12 }}>
               {[1, 2, 3, 4, 5, 6].map(degree => {
                 const dv = grouped.get(degree) ?? [];
                 return dv.map(v => (
