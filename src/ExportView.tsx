@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { voicingKey, NOTE_DISPLAY, PROGRESSIONS, type ChordVoicing, type NoteName } from './chordData';
+import { t } from './i18n';
 import { ChordDiagram } from './ChordDiagram';
 import { ShapeGrid } from './ShapeGrid';
 import { generateQR } from './qr';
@@ -156,7 +157,7 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
         onClick={e => e.stopPropagation()}
       >
         {/* Preview image - long press to save on mobile */}
-        <img src={previewUrl!} alt="Export preview"
+        <img src={previewUrl!} alt={t("export")}
           className="max-w-full max-h-[70vh] rounded-xl border border-surface0 shadow-2xl" />
 
         {/* Action buttons */}
@@ -164,15 +165,15 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
           <button onClick={copyImage}
             className="px-4 py-2 rounded-lg bg-blue text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
             style={{ transition: 'all var(--transition)' }}
-          >📋 Copy</button>
+          >📋 {t("copy")}</button>
           <button onClick={downloadImage}
             className="px-4 py-2 rounded-lg bg-green text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
             style={{ transition: 'all var(--transition)' }}
-          >💾 Download</button>
+          >💾 {t("download")}</button>
           <button onClick={closePreview}
             className="px-4 py-2 rounded-lg bg-surface0 text-subtext1 font-semibold text-sm cursor-pointer hover:bg-surface1"
             style={{ transition: 'all var(--transition)' }}
-          >✕ Close</button>
+          >✕ {t("close")}</button>
         </div>
       </div>
     </div>

@@ -173,7 +173,7 @@ function App() {
               </div>
               <div className="flex-1 min-w-0">
                 <h1 className="text-sm font-bold tracking-wide leading-tight text-txt"
-                    style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}>Chordao</h1>
+                    style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}>{t('appName')}</h1>
                 <p className="text-[9px] text-overlay1 leading-tight">{t('subtitle')}</p>
               </div>
             </div>
@@ -182,7 +182,7 @@ function App() {
                 className={`text-xs px-2 py-1 rounded border cursor-pointer flex-1 ${
                   showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'
                 }`} style={{ transition: 'all var(--transition)' }}
-                title="Toggle barre">Barre</button>
+                title={t("barre")}>Barre</button>
               <button onClick={toggleKeyOrder}
                 className={`text-xs px-2 py-1 rounded border cursor-pointer flex-1 ${
                   keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'
@@ -242,7 +242,7 @@ function App() {
 
           {/* Progressions */}
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block">Progressions</span>
+            <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block">{t('progressions')}</span>
             {/* Desktop: vertical list */}
             <div className="hidden md:flex md:flex-col gap-1">
               {PROGRESSIONS.map(p => {
@@ -277,7 +277,7 @@ function App() {
               style={{ transition: 'background var(--transition)' }}>
           <section className="panel mb-4 md:mb-6">
             <div className="panel-header">
-              <span className="panel-title flex-1">Shape Grid</span>
+              <span className="panel-title flex-1">{t('shapeGrid')}</span>
               <ExpandBtn onClick={openGrid} />
             </div>
             <div className="panel-body">
@@ -287,7 +287,7 @@ function App() {
 
           <section className="panel mb-4 md:mb-6">
             <div className="panel-header">
-              <span className="panel-title flex-1">Fretboard Overview</span>
+              <span className="panel-title flex-1">{t('fretboardOverview')}</span>
               <ExpandBtn onClick={openFret} />
             </div>
             <div className="panel-body">
@@ -297,7 +297,7 @@ function App() {
 
           <section className="panel mb-4 md:mb-6">
             <div className="panel-header">
-              <span className="panel-title">Chord Diagrams</span>
+              <span className="panel-title">{t('chordDiagrams')}</span>
               <span className="text-[10px] text-overlay0 ml-2">{t("dblClickExpand")}</span>
             </div>
             <div className="panel-body">
