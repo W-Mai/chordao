@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 interface FullscreenOverlayProps {
@@ -11,12 +12,13 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
   const [rotated, setRotated] = useState(false);
   const [visible, setVisible] = useState(false);
   const [animating, setAnimating] = useState(false);
-
   // Open: mount then animate in
   useEffect(() => {
     if (active) {
-      setAnimating(true);
-      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+      requestAnimationFrame(() => {
+        setAnimating(true);
+        requestAnimationFrame(() => setVisible(true));
+      });
     } else if (visible) {
       setVisible(false);
       const t = setTimeout(() => setAnimating(false), 250);

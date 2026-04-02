@@ -22,9 +22,13 @@ export function Roller<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const activeRef = useRef(activeKey);
-  activeRef.current = activeKey;
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
+  useEffect(() => {
+    activeRef.current = activeKey;
+  }, [activeKey]);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
   const padY = (height - itemHeight) / 2;
 
   useEffect(() => {
