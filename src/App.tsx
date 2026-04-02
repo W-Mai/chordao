@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { NOTE_DISPLAY, CIRCLE_OF_FIFTHS, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
+import { NOTES, NOTE_DISPLAY, CIRCLE_OF_FIFTHS, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
@@ -70,6 +70,18 @@ function App() {
     setShowBarre(v => { localStorage.setItem('chordao:showBarre', String(!v)); return !v; });
   }, []);
 
+  const [keyOrder, setKeyOrder] = useState<'fifths' | 'chromatic'>(() =>
+    (localStorage.getItem('chordao:keyOrder') as 'fifths' | 'chromatic') || 'fifths'
+  );
+  const toggleKeyOrder = useCallback(() => {
+    setKeyOrder(v => {
+      const next = v === 'fifths' ? 'chromatic' : 'fifths';
+      localStorage.setItem('chordao:keyOrder', next);
+      return next;
+    });
+  }, []);
+  const keyList = keyOrder === 'fifths' ? CIRCLE_OF_FIFTHS : NOTES;
+
   const voicings = useMemo(() => generateVoicings(selectedKey), [selectedKey]);
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
   const optimal = useMemo(() => findOptimalCombination(grouped), [grouped]);
@@ -106,9 +118,9 @@ function App() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      const idx = CIRCLE_OF_FIFTHS.indexOf(selectedKey);
-      if (e.key === 'ArrowLeft') setSelectedKey(CIRCLE_OF_FIFTHS[(idx - 1 + 12) % 12]);
-      else if (e.key === 'ArrowRight') setSelectedKey(CIRCLE_OF_FIFTHS[(idx + 1) % 12]);
+      const idx = keyList.indexOf(selectedKey);
+      if (e.key === 'ArrowLeft') setSelectedKey(keyList[(idx - 1 + 12) % 12]);
+      else if (e.key === 'ArrowRight') setSelectedKey(keyList[(idx + 1) % 12]);
       else if (e.key >= '1' && e.key <= '6') toggleDegree(Number(e.key));
       else if (e.key === '0' || e.key === 'Escape') setActiveDegree(null);
     };
@@ -152,6 +164,11 @@ function App() {
                   showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'
                 }`} style={{ transition: 'all var(--transition)' }}
                 title="Toggle barre">B</button>
+              <button onClick={toggleKeyOrder}
+                className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer"
+                style={{ transition: 'all var(--transition)' }}
+                title={keyOrder === 'fifths' ? 'Circle of 5ths' : 'Chromatic'}
+              >{keyOrder === 'fifths' ? '⑤' : '♪'}</button>
               <button onClick={cycleTheme}
                 className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer"
                 style={{ transition: 'all var(--transition)' }}
@@ -161,7 +178,7 @@ function App() {
 
           {/* Key selector */}
           <div className="grid grid-cols-6 md:grid-cols-4 gap-1">
-            {CIRCLE_OF_FIFTHS.map(note => (
+            {keyList.map(note => (
               <button key={note} onClick={() => setSelectedKey(note)}
                 className={`px-1 py-1.5 rounded text-xs cursor-pointer ${
                   selectedKey === note
