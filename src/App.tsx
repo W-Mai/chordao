@@ -7,6 +7,8 @@ import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
 
 import { Roller } from './Roller';
 
+import { t, setLang, getLang } from './i18n';
+import { useLang } from './useLang';
 import { Guide } from './Guide';
 import { useExportImage } from './ExportView';
 
@@ -25,6 +27,7 @@ function ExpandBtn({ onClick }: { onClick: () => void }) {
 }
 
 function App() {
+  useLang(); // trigger re-render on language change
   const [selectedKey, _setSelectedKey] = useState<NoteName>('C');
 
   const [hoveredChord, setHoveredChord] = useState<string | null>(null);
@@ -171,7 +174,7 @@ function App() {
               <div className="flex-1 min-w-0">
                 <h1 className="text-sm font-bold tracking-wide leading-tight text-txt"
                     style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}>Chordao</h1>
-                <p className="text-[9px] text-overlay1 leading-tight">Chord Visualizer</p>
+                <p className="text-[9px] text-overlay1 leading-tight">{t('subtitle')}</p>
               </div>
             </div>
             <div className="flex gap-1">
@@ -192,6 +195,11 @@ function App() {
                 style={{ transition: 'all var(--transition)' }}
               >{THEME_ICONS[theme]}</button>
               <Guide />
+              <button onClick={() => setLang(getLang() === 'en' ? 'zh' : 'en')}
+                className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer"
+                style={{ transition: 'all var(--transition)' }}
+                title="Language"
+              >{getLang() === 'en' ? '中' : 'En'}</button>
             </div>
           </div>
 
@@ -290,7 +298,7 @@ function App() {
           <section className="panel mb-4 md:mb-6">
             <div className="panel-header">
               <span className="panel-title">Chord Diagrams</span>
-              <span className="text-[10px] text-overlay0 ml-2">(double-click to expand)</span>
+              <span className="text-[10px] text-overlay0 ml-2">{t("dblClickExpand")}</span>
             </div>
             <div className="panel-body">
               <div className="grid grid-cols-3 sm:grid-cols-4 md:flex md:flex-wrap gap-2 md:gap-4 justify-items-center">
@@ -330,7 +338,7 @@ function App() {
           <button onClick={exportImage}
             className="px-2.5 py-0.5 rounded-md bg-blue/15 text-blue font-semibold cursor-pointer hover:bg-blue/25 text-[11px]"
             style={{ transition: 'all var(--transition)' }}
-          >📷 Export</button>
+          >📷 {t('export')}</button>
         </div>
       </footer>
 

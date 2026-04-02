@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { t, type TranslationKeys } from './i18n';
 
 const step1svg = (
   <svg viewBox="0 0 320 80" className="w-full">
@@ -137,13 +138,10 @@ const step6svg = (
   </svg>
 );
 
-const STEPS = [
-  { title: 'E Shape & A Shape', desc: 'Every chord derives from two open forms (E/Em and A/Am) moved up the neck with a barre. The Shape Grid shows both — top row is A/Am, bottom row is E/Em. The column is the fret position.', svg: step1svg },
-  { title: 'Circle = E shape, Square = A shape', desc: 'On the fretboard view, circles represent E/Em shapes and squares represent A/Am shapes, so you can tell them apart at a glance.', svg: step2svg },
-  { title: 'Example: How C is Derived', desc: 'Take the open A chord → slide it to fret 3 with a barre → you get C. The dot on the Shape Grid marks fret 3 on the A row. This works for every chord!', svg: step3svg },
-  { title: 'Filled = Recommended', desc: 'The app finds the optimal combination with minimum hand movement. Filled = recommended, outlined = alternative position, dimmed = not in focus.', svg: step4svg },
-  { title: 'Reading a Chord Diagram', desc: 'Vertical lines = strings (E A D G B e). Horizontal lines = frets. Dots = press here. Bar across = barre. × = mute. ○ = open. Number on left = starting fret.', svg: step5svg },
-  { title: 'Colors = Scale Degrees', desc: 'Each color represents a scale degree. Hover or click any chord to highlight it across all views simultaneously.', svg: step6svg },
+const SVGS = [step1svg, step2svg, step3svg, step4svg, step5svg, step6svg];
+const STEP_KEYS: [TranslationKeys, TranslationKeys][] = [
+  ['guideT1', 'guideD1'], ['guideT2', 'guideD2'], ['guideT3', 'guideD3'],
+  ['guideT4', 'guideD4'], ['guideT5', 'guideD5'], ['guideT6', 'guideD6'],
 ];
 
 export function Guide() {
@@ -154,7 +152,7 @@ export function Guide() {
     setOpen(v => { if (v) localStorage.setItem('chordao:guideSeen', buildId); return !v; });
     setStep(0);
   }, [buildId]);
-  const s = STEPS[step];
+  const s = STEP_KEYS[step];
 
   return (
     <>
@@ -169,28 +167,28 @@ export function Guide() {
           <div className="max-w-md w-full mx-4 rounded-2xl border border-surface0 bg-mantle p-5 text-txt"
             style={{ animation: 'scaleIn 0.25s ease' }} onClick={e => e.stopPropagation()}>
             <div className="flex gap-1.5 mb-4 justify-center">
-              {STEPS.map((_, i) => (
+              {SVGS.map((_, i) => (
                 <div key={i} className={`w-2 h-2 rounded-full cursor-pointer ${i === step ? 'bg-blue' : 'bg-surface0'}`}
                   style={{ transition: 'background var(--transition)' }} onClick={() => setStep(i)} />
               ))}
             </div>
-            <h3 className="text-base font-bold text-blue mb-2">{s.title}</h3>
-            <div className="bg-base rounded-xl p-3 mb-3 border border-surface0">{s.svg}</div>
-            <p className="text-xs text-subtext0 leading-relaxed mb-4">{s.desc}</p>
+            <h3 className="text-base font-bold text-blue mb-2">{t(s[0])}</h3>
+            <div className="bg-base rounded-xl p-3 mb-3 border border-surface0">{SVGS[step]}</div>
+            <p className="text-xs text-subtext0 leading-relaxed mb-4">{t(s[1])}</p>
             <div className="flex gap-2">
               {step > 0 && (
                 <button onClick={() => setStep(step - 1)}
                   className="flex-1 py-2 rounded-lg bg-surface0 text-subtext1 font-semibold text-sm cursor-pointer hover:bg-surface1"
-                  style={{ transition: 'all var(--transition)' }}>← Back</button>
+                  style={{ transition: 'all var(--transition)' }}>{t('back')}</button>
               )}
-              {step < STEPS.length - 1 ? (
+              {step < SVGS.length - 1 ? (
                 <button onClick={() => setStep(step + 1)}
                   className="flex-1 py-2 rounded-lg bg-blue text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
-                  style={{ transition: 'all var(--transition)' }}>Next →</button>
+                  style={{ transition: 'all var(--transition)' }}>{t('next')}</button>
               ) : (
                 <button onClick={toggle}
                   className="flex-1 py-2 rounded-lg bg-blue text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
-                  style={{ transition: 'all var(--transition)' }}>Got it ✓</button>
+                  style={{ transition: 'all var(--transition)' }}>{t('gotIt')}</button>
               )}
             </div>
           </div>

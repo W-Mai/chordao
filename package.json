@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check-i18n": "bun check-i18n.ts",
     "lint": "eslint .",
     "preview": "vite preview"
   },
