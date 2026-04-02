@@ -238,9 +238,8 @@ export function ShapeGrid({
             );
           }),
         )}
-        {/* Progression arrows and step numbers */}
+        {/* Progression path with animated dot */}
         {progressionDegrees && progressionDegrees.length > 1 && (() => {
-          // Build ordered list of optimal voicing positions
           const optMap = new Map(optimal.map(v => [v.degree, v]));
           const steps: { x: number; y: number; deg: number }[] = [];
           for (const deg of progressionDegrees) {
@@ -250,46 +249,38 @@ export function ShapeGrid({
             steps.push({ x: cellX(v.barrePosition), y: stringY[rowIdx], deg });
           }
           if (steps.length < 2) return null;
+
+          // Build closed loop path (last → first to close)
+          const allPts = [...steps, steps[0]];
+          const pathD = allPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+
           return (
             <g>
-              {/* Arrow lines */}
-              {steps.map((s, i) => {
-                if (i === 0) return null;
-                const prev = steps[i - 1];
-                const dx = s.x - prev.x;
-                const dy = s.y - prev.y;
-                const len = Math.sqrt(dx * dx + dy * dy);
-                if (len === 0) return null;
-                const nx = dx / len;
-                const ny = dy / len;
-                const gap = dotR + 4;
-                return (
-                  <line key={`arr-${i}`}
-                    x1={prev.x + nx * gap} y1={prev.y + ny * gap}
-                    x2={s.x - nx * gap} y2={s.y - ny * gap}
-                    stroke="var(--blue)" strokeWidth={1.5} opacity={0.5}
-                    markerEnd="url(#arrowhead)"
-                  />
-                );
-              })}
+              {/* Path line */}
+              <path d={pathD} fill="none" stroke="var(--blue)" strokeWidth={1.5} opacity={0.2}
+                strokeDasharray="4 3" />
+
+              {/* Animated glow dot traveling along path */}
+              <circle r={5} fill="var(--blue)" opacity={0.8}>
+                <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+              </circle>
+              <circle r={10} fill="var(--blue)" opacity={0.15}>
+                <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+              </circle>
+
               {/* Step numbers */}
               {steps.map((s, i) => (
-                <text key={`step-${i}`}
-                  x={s.x} y={s.y - dotR - 5}
-                  textAnchor="middle" fontSize={8} fontWeight="bold"
-                  fill="var(--blue)" opacity={0.8}
-                >{i + 1}</text>
+                <g key={`step-${i}`}>
+                  <circle cx={s.x} cy={s.y - dotR - 8} r={7} fill="var(--blue)" opacity={0.15} />
+                  <text x={s.x} y={s.y - dotR - 5}
+                    textAnchor="middle" fontSize={8} fontWeight="bold"
+                    fill="var(--blue)" opacity={0.9}
+                  >{i + 1}</text>
+                </g>
               ))}
             </g>
           );
         })()}
-
-        {/* Arrow marker definition */}
-        <defs>
-          <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-            <polygon points="0 0, 6 2, 0 4" fill="var(--blue)" opacity="0.5" />
-          </marker>
-        </defs>
       </svg>
     </div>
   );
