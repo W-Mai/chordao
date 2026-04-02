@@ -64,7 +64,7 @@ export function ShapeGrid({
   const stringGap = 70;
   const padY = 16;
   const svgW = labelW + openW + nutW + boardW + 8;
-  const svgH = padY + stringGap + padY + 12;
+  const svgH = padY + stringGap + padY + 20;
   const stringY = [padY, padY + stringGap];
   const boardX = labelW + openW + nutW;
 
@@ -167,9 +167,9 @@ export function ShapeGrid({
           <text
             key={f}
             x={boardX + f * fretW + fretW / 2}
-            y={svgH - 2}
+            y={svgH - 3}
             textAnchor="middle"
-            fontSize={9}
+            fontSize={11}
             fill={txt}
             fontFamily="monospace"
           >

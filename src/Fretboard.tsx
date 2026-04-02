@@ -61,7 +61,7 @@ export function Fretboard({
   const bh = ss * (STRINGS - 1);
   const padY = 16;
   const svgW = labelW + nutW + bw + 8;
-  const svgH = padY + bh + padY + 12;
+  const svgH = padY + bh + padY + 20;
   const r = 7;
 
   const boardBg = light ? '#e6e1d6' : '#1a1408';
@@ -103,7 +103,7 @@ export function Fretboard({
             return (
               <g key={f}>
                 <line x1={x} y1={-8} x2={x} y2={bh + 8} stroke={fretLine} strokeWidth={1.5} />
-                <text x={x - fw / 2} y={bh + 16} fontSize={9} fill={txt} textAnchor="middle" fontFamily="monospace">
+                <text x={x - fw / 2} y={bh + 18} fontSize={11} fill={txt} textAnchor="middle" fontFamily="monospace">
                   {f + 1}
                 </text>
               </g>
