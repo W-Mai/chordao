@@ -5,23 +5,23 @@ const STEPS = [
     title: 'E Shape & A Shape',
     desc: 'Every chord derives from two open forms moved up the neck with a barre. The Shape Grid shows both on a mini fretboard.',
     svg: (
-      <svg viewBox="0 0 280 80" className="w-full">
+      <svg viewBox="0 0 320 80" className="w-full">
         {/* Mini fretboard bg */}
-        <rect x={40} y={10} width={230} height={60} rx={3} fill="#1a1408" />
-        <rect x={40} y={10} width={4} height={60} rx={1} fill="#e0d6c2" />
+        <rect x={80} y={10} width={230} height={60} rx={3} fill="#1a1408" />
+        <rect x={80} y={10} width={4} height={60} rx={1} fill="#e0d6c2" />
         {/* Two strings */}
-        <line x1={44} y1={28} x2={270} y2={28} stroke="#aaa" strokeWidth={1} />
-        <line x1={44} y1={52} x2={270} y2={52} stroke="#aaa" strokeWidth={1.5} />
+        <line x1={84} y1={28} x2={310} y2={28} stroke="#aaa" strokeWidth={1} />
+        <line x1={84} y1={52} x2={310} y2={52} stroke="#aaa" strokeWidth={1.5} />
         {/* Labels */}
-        <text x={36} y={32} textAnchor="end" fontSize={9} fill="#7f849c" fontFamily="monospace">A shape</text>
-        <text x={36} y={56} textAnchor="end" fontSize={9} fill="#7f849c" fontFamily="monospace">E shape</text>
+        <text x={76} y={32} textAnchor="end" fontSize={9} fill="#7f849c" fontFamily="monospace">A / Am</text>
+        <text x={76} y={56} textAnchor="end" fontSize={9} fill="#7f849c" fontFamily="monospace">E / Em</text>
         {/* Example dots */}
-        <circle cx={80} cy={28} r={10} fill="#f38ba8" />
-        <text x={80} y={31} textAnchor="middle" fontSize={8} fill="#fff" fontWeight="bold">1</text>
-        <rect x={140} y={42} width={20} height={20} rx={3} fill="#89b4fa" />
-        <text x={150} y={55} textAnchor="middle" fontSize={8} fill="#fff" fontWeight="bold">5</text>
-        <circle cx={200} cy={52} r={10} fill="transparent" stroke="#a6e3a1" strokeWidth={2} />
-        <text x={200} y={55} textAnchor="middle" fontSize={8} fill="#a6e3a1">4</text>
+        <circle cx={120} cy={28} r={10} fill="#f38ba8" />
+        <text x={120} y={31} textAnchor="middle" fontSize={8} fill="#fff" fontWeight="bold">1</text>
+        <rect x={170} y={42} width={20} height={20} rx={3} fill="#89b4fa" />
+        <text x={180} y={55} textAnchor="middle" fontSize={8} fill="#fff" fontWeight="bold">5</text>
+        <circle cx={240} cy={52} r={10} fill="transparent" stroke="#a6e3a1" strokeWidth={2} />
+        <text x={240} y={55} textAnchor="middle" fontSize={8} fill="#a6e3a1">4</text>
       </svg>
     ),
   },
