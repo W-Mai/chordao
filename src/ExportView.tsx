@@ -1,6 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { voicingKey, type ChordVoicing, type NoteName } from './chordData';
-import { NOTE_DISPLAY } from './chordData';
+import { voicingKey, NOTE_DISPLAY, PROGRESSIONS, type ChordVoicing, type NoteName } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { ShapeGrid } from './ShapeGrid';
 import { generateQR } from './qr';
@@ -86,9 +85,17 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>Chordao</div>
             <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>
-              Key of {NOTE_DISPLAY[selectedKey]}{activeProg ? ` · ${activeProg}` : ''} · E/Em/A/Am shape derivation
+              Key of {NOTE_DISPLAY[selectedKey]} · E/Em/A/Am shape derivation
             </div>
           </div>
+          {activeProg && (
+            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>♪ {activeProg}</div>
+              <div style={{ fontSize: 11, color: 'var(--overlay1)', marginTop: 2 }}>
+                {PROGRESSIONS.find(p => p.name === activeProg)?.degrees.join(' → ')}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             {qrChordao && (
               <div style={{ textAlign: 'center' }}>
