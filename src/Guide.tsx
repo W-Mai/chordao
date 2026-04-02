@@ -17,7 +17,7 @@ const step1svg = (
     <text x={120} y={31} textAnchor="middle" fontSize={8} fill="#fff" fontWeight="bold">
       1
     </text>
-    <rect x={170} y={42} width={20} height={20} rx={3} fill="#89b4fa" />
+    <circle cx={180} cy={52} r={10} fill="#89b4fa" />
     <text x={180} y={55} textAnchor="middle" fontSize={8} fill="#fff" fontWeight="bold">
       5
     </text>
