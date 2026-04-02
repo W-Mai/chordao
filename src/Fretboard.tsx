@@ -28,14 +28,15 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
   const handleEnter = useCallback((key: string) => { setLocalHover(key); onHoverChord?.(key); }, [onHoverChord]);
   const handleLeave = useCallback(() => { setLocalHover(null); onHoverChord?.(null); }, [onHoverChord]);
 
-  const pad = { top: 28, left: 28, right: 16, bottom: 44 };
+  const labelW = 56;
   const nutW = 5;
-  const fw = 48;
+  const fw = 52;
   const ss = 18;
   const bw = fw * totalFrets;
   const bh = ss * (STRINGS - 1);
-  const svgW = pad.left + nutW + bw + pad.right;
-  const svgH = pad.top + bh + pad.bottom;
+  const padY = 28;
+  const svgW = labelW + nutW + bw + 8;
+  const svgH = padY + bh + padY + 16;
   const r = 7;
 
   const boardBg = light ? '#e6e1d6' : '#1a1408';
@@ -57,10 +58,10 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" style={{ minWidth: svgW }}>
-        <g transform={`translate(${pad.left}, ${pad.top})`}>
+        <g transform={`translate(${labelW}, ${padY})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (
-            <text key={l} x={-14} y={i * ss + 4} fontSize={10} fill={txt} textAnchor="middle" fontFamily="monospace">{l}</text>
+            <text key={l} x={-6} y={i * ss + 4} fontSize={10} fill={txt} textAnchor="end" fontFamily="monospace">{l}</text>
           ))}
 
           {/* Fretboard wood */}
@@ -80,13 +81,13 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
             );
           })}
 
-          {/* Inlay dots */}
+          {/* Inlay dots (between strings, inside fretboard) */}
           {SINGLE_DOTS.filter(f => f <= totalFrets).map(f => (
-            <circle key={f} cx={nutW + (f - 0.5) * fw} cy={bh + 30} r={3.5} fill={dotMarker} />
+            <circle key={f} cx={nutW + (f - 0.5) * fw} cy={bh / 2} r={3} fill={dotMarker} />
           ))}
           {DOUBLE_DOT <= totalFrets && <>
-            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh + 25} r={3.5} fill={dotMarker} />
-            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh + 35} r={3.5} fill={dotMarker} />
+            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh / 2 - ss * 0.8} r={3} fill={dotMarker} />
+            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh / 2 + ss * 0.8} r={3} fill={dotMarker} />
           </>}
 
           {/* Strings */}
