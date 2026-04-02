@@ -84,8 +84,6 @@ function App() {
 
   const voicings = useMemo(() => generateVoicings(selectedKey), [selectedKey]);
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
-  const optimal = useMemo(() => findOptimalCombination(grouped), [grouped]);
-  const optimalSet = useMemo(() => new Set(optimal.map(voicingKey)), [optimal]);
 
   const [activeDegree, setActiveDegree] = useState<number | null>(null);
   const toggleDegree = useCallback((d: number) => setActiveDegree(v => v === d ? null : d), []);
@@ -96,10 +94,14 @@ function App() {
     setActiveDegree(null);
   }, []);
 
+  const activeProgObj = useMemo(() => activeProg ? PROGRESSIONS.find(p => p.name === activeProg) : null, [activeProg]);
+  const optimal = useMemo(() => findOptimalCombination(grouped, activeProgObj?.degrees), [grouped, activeProgObj]);
+  const optimalSet = useMemo(() => new Set(optimal.map(voicingKey)), [optimal]);
+
   const activeProgDegrees = useMemo(() => {
-    if (!activeProg) return null;
-    return new Set(PROGRESSIONS.find(p => p.name === activeProg)?.degrees);
-  }, [activeProg]);
+    if (!activeProgObj) return null;
+    return new Set(activeProgObj.degrees);
+  }, [activeProgObj]);
 
   const filteredVoicings = useMemo(() => {
     if (activeDegree) return voicings.filter(v => v.degree === activeDegree);

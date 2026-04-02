@@ -109,17 +109,22 @@ export function groupByDegree(voicings: ChordVoicing[]): Map<number, ChordVoicin
 }
 
 // Find the optimal 6-chord combination (one per degree) minimizing total fret movement
-export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>): ChordVoicing[] {
-  // Degrees ordered by circle of fifths: 4-1-5-2-6-3
-  const fifthsOrder = [4, 1, 5, 2, 6, 3];
-  const options = fifthsOrder.map(d => grouped.get(d) ?? []);
+export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, degreeOrder?: number[]): ChordVoicing[] {
+  // Default: circle of fifths order
+  const order = degreeOrder ?? [4, 1, 5, 2, 6, 3];
+  // Deduplicate while preserving order
+  const seen = new Set<number>();
+  const uniqueOrder = order.filter(d => { if (seen.has(d)) return false; seen.add(d); return true; });
+  const options = uniqueOrder.map(d => grouped.get(d) ?? []);
 
   // Prefer voicings below fret 12, minimize span, tiebreak on movement
   let bestCombo: ChordVoicing[] = [];
   let bestScore = Infinity;
 
+  const n = uniqueOrder.length;
+
   function search(idx: number, current: ChordVoicing[]) {
-    if (idx === 6) {
+    if (idx === n) {
       const positions = current.map(c => c.barrePosition);
       const highCount = positions.filter(p => p >= 12).length;
       const span = Math.max(...positions) - Math.min(...positions);
