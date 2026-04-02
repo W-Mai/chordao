@@ -12,9 +12,12 @@ interface ExportViewProps {
   optimalSet: Set<string>;
   grouped: Map<number, ChordVoicing[]>;
   showBarre: boolean;
+  activeProg?: string | null;
+  filteredVoicings: ChordVoicing[];
+  filteredOptimal: ChordVoicing[];
 }
 
-export function useExportImage({ selectedKey, voicings, optimal, optimalSet, grouped, showBarre }: ExportViewProps) {
+export function useExportImage({ selectedKey, voicings: _voicings, optimal: _optimal, optimalSet, grouped, showBarre, activeProg, filteredVoicings, filteredOptimal }: ExportViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -82,7 +85,9 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
           }}>{NOTE_DISPLAY[selectedKey]}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>Chordao</div>
-            <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>Key of {NOTE_DISPLAY[selectedKey]} · E/Em/A/Am shape derivation</div>
+            <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>
+              Key of {NOTE_DISPLAY[selectedKey]}{activeProg ? ` · ${activeProg}` : ''} · E/Em/A/Am shape derivation
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             {qrChordao && (
@@ -102,7 +107,7 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
         <div style={{ marginBottom: 20, border: '1px solid var(--panel-border)', borderRadius: 'var(--ui-radius)', background: 'var(--panel-bg)', overflow: 'hidden' }}>
           <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)', background: 'var(--mantle)', fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Shape Grid</div>
           <div style={{ padding: 12 }}>
-            <ShapeGrid voicings={voicings} optimal={optimal} light={document.documentElement.getAttribute('data-theme') === 'light'} />
+            <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={document.documentElement.getAttribute('data-theme') === 'light'} />
           </div>
         </div>
         <div style={{ border: '1px solid var(--panel-border)', borderRadius: 'var(--ui-radius)', background: 'var(--panel-bg)', overflow: 'hidden' }}>

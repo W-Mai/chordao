@@ -137,7 +137,7 @@ function App() {
   }, [selectedKey, toggleDegree]);
 
   const { exportImage, ExportContainer, PreviewModal } = useExportImage({
-    selectedKey, voicings, optimal, optimalSet, grouped, showBarre,
+    selectedKey, voicings, optimal, optimalSet, grouped, showBarre, activeProg, filteredVoicings, filteredOptimal,
   });
 
   const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();
