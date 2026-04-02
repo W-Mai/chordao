@@ -1,9 +1,8 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import type { ChordVoicing, NoteName } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
-
 
 interface ExportViewProps {
   selectedKey: NoteName;
@@ -14,16 +13,16 @@ interface ExportViewProps {
   showBarre: boolean;
 }
 
-// Fixed-width export layout rendered offscreen, then captured to PNG
 export function useExportImage({ selectedKey, voicings, optimal, optimalSet, grouped, showBarre }: ExportViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewMounted, setPreviewMounted] = useState(false);
 
   const exportImage = useCallback(async () => {
     const el = containerRef.current;
     if (!el) return;
-    // Show temporarily for rendering
     el.style.display = 'block';
-    // Wait for SVG rendering
     await new Promise(r => setTimeout(r, 100));
     const { default: html2canvas } = await import('html2canvas-pro');
     const canvas = await html2canvas(el, {
@@ -31,11 +30,30 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
       scale: 2,
     });
     el.style.display = 'none';
+    setPreviewUrl(canvas.toDataURL('image/png'));
+    setPreviewMounted(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setPreviewVisible(true)));
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreviewVisible(false);
+    setTimeout(() => setPreviewMounted(false), 250);
+  }, []);
+
+  const downloadImage = useCallback(() => {
+    if (!previewUrl) return;
     const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
+    a.href = previewUrl;
     a.download = `chordao-${selectedKey}.png`;
     a.click();
-  }, [selectedKey]);
+  }, [previewUrl, selectedKey]);
+
+  const copyImage = useCallback(async () => {
+    if (!previewUrl) return;
+    const res = await fetch(previewUrl);
+    const blob = await res.blob();
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+  }, [previewUrl]);
 
   const ExportContainer = (
     <div
@@ -43,54 +61,34 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
       style={{ display: 'none', position: 'fixed', left: '-9999px', top: 0, width: 1200, zIndex: -1 }}
     >
       <div style={{ padding: 32, fontFamily: 'Inter, system-ui, sans-serif', color: 'var(--text)' }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" style={{ width: 32, height: 32 }} />
           <div>
             <div style={{ fontSize: 20, fontWeight: 'bold', color: 'var(--text)' }}>Chordao — Key of {selectedKey}</div>
-            <div style={{ fontSize: 11, color: 'var(--overlay1)' }}>E/Em/A/Am shape derivation · chordao.w-mai.github.io</div>
+            <div style={{ fontSize: 11, color: 'var(--overlay1)' }}>E/Em/A/Am shape derivation</div>
           </div>
         </div>
-
-        {/* Shape Grid */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Shape Grid
-          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Shape Grid</div>
           <ShapeGrid voicings={voicings} optimal={optimal} light={false} />
         </div>
-
-        {/* Fretboard */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Fretboard Overview
-          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Fretboard Overview</div>
           <Fretboard voicings={voicings} optimal={optimal} light={false} />
         </div>
-
-        {/* Chord Diagrams */}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-            Chord Diagrams
-          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Chord Diagrams</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             {[1, 2, 3, 4, 5, 6].map(degree => {
               const dv = grouped.get(degree) ?? [];
               return dv.map(v => (
                 <div key={`${v.name}-${v.shapeOrigin}`} style={{ width: 140 }}>
-                  <ChordDiagram
-                    voicing={v}
-                    highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)}
-                    light={false}
-                    showBarre={showBarre}
-                  />
+                  <ChordDiagram voicing={v} highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)} light={false} showBarre={showBarre} />
                 </div>
               ));
             })}
           </div>
         </div>
-
-        {/* Footer */}
         <div style={{ marginTop: 24, paddingTop: 12, borderTop: '1px solid var(--surface0)', fontSize: 10, color: 'var(--overlay0)', textAlign: 'center' }}>
           Generated by Chordao · github.com/W-Mai/chordao · MIT
         </div>
@@ -98,5 +96,39 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
     </div>
   );
 
-  return { exportImage, ExportContainer };
+  const PreviewModal = previewMounted ? (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-crust/90 backdrop-blur-sm"
+      style={{ opacity: previewVisible ? 1 : 0, transition: 'opacity 0.25s ease' }}
+      onClick={closePreview}
+    >
+      <div
+        className="flex flex-col items-center gap-4 max-w-[90vw] max-h-[90vh]"
+        style={{ opacity: previewVisible ? 1 : 0, transform: previewVisible ? 'scale(1)' : 'scale(0.92)', transition: 'opacity 0.25s ease, transform 0.25s ease' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Preview image - long press to save on mobile */}
+        <img src={previewUrl!} alt="Export preview"
+          className="max-w-full max-h-[70vh] rounded-xl border border-surface0 shadow-2xl" />
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <button onClick={copyImage}
+            className="px-4 py-2 rounded-lg bg-blue text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
+            style={{ transition: 'all var(--transition)' }}
+          >📋 Copy</button>
+          <button onClick={downloadImage}
+            className="px-4 py-2 rounded-lg bg-green text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
+            style={{ transition: 'all var(--transition)' }}
+          >💾 Download</button>
+          <button onClick={closePreview}
+            className="px-4 py-2 rounded-lg bg-surface0 text-subtext1 font-semibold text-sm cursor-pointer hover:bg-surface1"
+            style={{ transition: 'all var(--transition)' }}
+          >✕ Close</button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return { exportImage, ExportContainer, PreviewModal };
 }

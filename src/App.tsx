@@ -116,7 +116,7 @@ function App() {
     return () => document.removeEventListener('keydown', handler);
   }, [selectedKey, toggleDegree]);
 
-  const { exportImage, ExportContainer } = useExportImage({
+  const { exportImage, ExportContainer, PreviewModal } = useExportImage({
     selectedKey, voicings, optimal, optimalSet, grouped, showBarre,
   });
 
@@ -287,7 +287,10 @@ function App() {
             className="text-blue hover:underline">GitHub</a>
           <span className="text-surface1">·</span><span>MIT</span>
           <span className="text-surface1">·</span>
-          <button onClick={exportImage} className="text-blue hover:underline cursor-pointer bg-transparent border-none p-0 font-inherit text-inherit">Export PNG</button>
+          <button onClick={exportImage}
+            className="px-2.5 py-0.5 rounded-md bg-blue/15 text-blue font-semibold cursor-pointer hover:bg-blue/25 text-[11px]"
+            style={{ transition: 'all var(--transition)' }}
+          >📷 Export</button>
         </div>
       </footer>
 
@@ -309,6 +312,7 @@ function App() {
       </FullscreenOverlay>
 
       {ExportContainer}
+      {PreviewModal}
     </div>
   );
 }
