@@ -144,33 +144,37 @@ function App() {
     <div className="flex flex-col h-screen">
       <div className="flex flex-col md:flex-row flex-1 min-h-0">
         {/* Sidebar */}
-        <aside className="w-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-surface0 bg-mantle p-3 md:p-4
+        <aside className="w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-surface0 bg-mantle p-3 md:p-4
                           flex flex-col gap-3 md:gap-4 md:overflow-y-auto md:min-h-0"
                style={{ transition: 'background var(--transition), border-color var(--transition)' }}>
           {/* Header */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue/15 flex items-center justify-center shrink-0"
-                 style={{ boxShadow: theme === 'cyber' ? '0 0 10px var(--blue)' : 'none' }}>
-              <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-6 h-6" />
+          <div>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-9 h-9 rounded-xl bg-blue/15 flex items-center justify-center shrink-0"
+                   style={{ boxShadow: theme === 'cyber' ? '0 0 10px var(--blue)' : 'none' }}>
+                <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-sm font-bold tracking-wide leading-tight text-txt"
+                    style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}>Chordao</h1>
+                <p className="text-[9px] text-overlay1 leading-tight">Chord Visualizer</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-sm font-bold tracking-wide leading-tight text-txt"
-                  style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}>Chordao</h1>
-              <p className="text-[9px] text-overlay1 leading-tight">Chord Visualizer</p>
-            </div>
-            <div className="flex gap-1 shrink-0">
+            <div className="flex gap-1">
               <button onClick={toggleBarre}
-                className={`text-xs px-2 py-1 rounded border cursor-pointer ${
+                className={`text-xs px-2 py-1 rounded border cursor-pointer flex-1 ${
                   showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'
                 }`} style={{ transition: 'all var(--transition)' }}
-                title="Toggle barre">B</button>
+                title="Toggle barre">Barre</button>
               <button onClick={toggleKeyOrder}
-                className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer"
+                className={`text-xs px-2 py-1 rounded border cursor-pointer flex-1 ${
+                  keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'
+                }`}
                 style={{ transition: 'all var(--transition)' }}
                 title={keyOrder === 'fifths' ? 'Circle of 5ths' : 'Chromatic'}
-              >{keyOrder === 'fifths' ? '⑤' : '♪'}</button>
+              >{keyOrder === 'fifths' ? '⑤ 5ths' : '♪ Semi'}</button>
               <button onClick={cycleTheme}
-                className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer"
+                className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex-1"
                 style={{ transition: 'all var(--transition)' }}
               >{THEME_ICONS[theme]}</button>
             </div>
