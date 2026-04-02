@@ -7,8 +7,12 @@ const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
 interface ChordDiagramProps {
   voicing: ChordVoicing;
   highlighted?: boolean;
+  dimmed?: boolean;
   light?: boolean;
   onDoubleClick?: () => void;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
+  onClick?: () => void;
   className?: string;
   showBarre?: boolean;
 }
@@ -16,7 +20,7 @@ interface ChordDiagramProps {
 const VB_W = 140;
 const VB_H = 154;
 
-export function ChordDiagram({ voicing, highlighted = false, light: _light = false, onDoubleClick, className = 'w-full max-w-[140px]', showBarre = false }: ChordDiagramProps) {
+export function ChordDiagram({ voicing, highlighted = false, dimmed = false, light: _light = false, onDoubleClick, onPointerEnter, onPointerLeave, onClick, className = 'w-full max-w-[140px]', showBarre = false }: ChordDiagramProps) {
   const pad = { top: 36, left: 26, right: 12, bottom: 16 };
   const bw = VB_W - pad.left - pad.right;
   const bh = VB_H - pad.top - pad.bottom;
@@ -61,8 +65,11 @@ export function ChordDiagram({ voicing, highlighted = false, light: _light = fal
   return (
     <div
       onDoubleClick={onDoubleClick}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onClick={onClick}
       className={`cursor-pointer rounded-[8%] overflow-hidden ${className}`}
-      style={{ border: borderStyle, background: bg }}
+      style={{ border: borderStyle, background: bg, opacity: dimmed ? 0.25 : 1, transition: 'opacity 0.2s' }}
     >
       <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full h-auto block">
         <text x={VB_W / 2} y={14} textAnchor="middle" fontSize={12} fontWeight="bold" fill={txt}>{voicing.name}</text>

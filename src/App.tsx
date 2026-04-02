@@ -298,10 +298,14 @@ function App() {
                     <ChordDiagram
                       key={voicingKey(v)}
                       voicing={v}
-                      highlighted={optimalSet.has(voicingKey(v))}
+                      highlighted={activeChordKey == null ? optimalSet.has(voicingKey(v)) : activeChordKey === voicingKey(v)}
+                      dimmed={activeChordKey != null && activeChordKey !== voicingKey(v)}
                       light={light}
                       showBarre={showBarre}
                       onDoubleClick={() => handleChordDblClick(v)}
+                      onPointerEnter={() => handleHoverChord(voicingKey(v))}
+                      onPointerLeave={() => handleHoverChord(null)}
+                      onClick={() => handleClickChord(voicingKey(v))}
                     />
                   ));
                 })}
