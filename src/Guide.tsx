@@ -230,7 +230,7 @@ export function Guide() {
     <>
       <button
         onClick={toggle}
-        className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer"
+        className="text-[11px] py-1.5 md:py-1.5 px-2 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer text-center w-7 h-7 md:w-auto md:h-auto flex items-center justify-center"
         style={{ transition: 'all var(--transition)' }}
         title="Help"
       >
