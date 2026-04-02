@@ -6,6 +6,9 @@
     <link rel="manifest" href="/chordao/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chordao</title>
+    <script>
+      (function(){var t=localStorage.getItem('chordao:theme');if(!t){t=matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)})();
+    </script>
   </head>
   <body>
     <div id="root"></div>
