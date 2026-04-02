@@ -1,7 +1,15 @@
 import { useState, useCallback } from 'react';
 import { voicingKey, type ChordVoicing } from './chordData';
 
-const DEGREE_COLORS = ['', 'var(--color-deg-1)', 'var(--color-deg-2)', 'var(--color-deg-3)', 'var(--color-deg-4)', 'var(--color-deg-5)', 'var(--color-deg-6)'];
+const DEGREE_COLORS = [
+  '',
+  'var(--color-deg-1)',
+  'var(--color-deg-2)',
+  'var(--color-deg-3)',
+  'var(--color-deg-4)',
+  'var(--color-deg-5)',
+  'var(--color-deg-6)',
+];
 const DEGREE_LABELS = ['', '1', '2m', '3m', '4', '5', '6m'];
 
 const STRINGS = 6;
@@ -19,14 +27,31 @@ interface FretboardProps {
   onClickChord?: (key: string) => void;
 }
 
-export function Fretboard({ voicings, optimal: _optimal, light = false, totalFrets = 17, hoveredChord, onHoverChord, onClickChord }: FretboardProps) {
+export function Fretboard({
+  voicings,
+  optimal: _optimal,
+  light = false,
+  totalFrets = 17,
+  hoveredChord,
+  onHoverChord,
+  onClickChord,
+}: FretboardProps) {
   const [localHover, setLocalHover] = useState<string | null>(null);
   const hovered = hoveredChord ?? localHover;
 
   const vKey = voicingKey;
 
-  const handleEnter = useCallback((key: string) => { setLocalHover(key); onHoverChord?.(key); }, [onHoverChord]);
-  const handleLeave = useCallback(() => { setLocalHover(null); onHoverChord?.(null); }, [onHoverChord]);
+  const handleEnter = useCallback(
+    (key: string) => {
+      setLocalHover(key);
+      onHoverChord?.(key);
+    },
+    [onHoverChord],
+  );
+  const handleLeave = useCallback(() => {
+    setLocalHover(null);
+    onHoverChord?.(null);
+  }, [onHoverChord]);
 
   const labelW = 56;
   const nutW = 5;
@@ -61,7 +86,9 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
         <g transform={`translate(${labelW}, ${padY})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (
-            <text key={l} x={-6} y={i * ss + 4} fontSize={10} fill={txt} textAnchor="end" fontFamily="monospace">{l}</text>
+            <text key={l} x={-6} y={i * ss + 4} fontSize={10} fill={txt} textAnchor="end" fontFamily="monospace">
+              {l}
+            </text>
           ))}
 
           {/* Fretboard wood */}
@@ -76,28 +103,39 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
             return (
               <g key={f}>
                 <line x1={x} y1={-8} x2={x} y2={bh + 8} stroke={fretLine} strokeWidth={1.5} />
-                <text x={x - fw / 2} y={bh + 16} fontSize={9} fill={txt} textAnchor="middle" fontFamily="monospace">{f + 1}</text>
+                <text x={x - fw / 2} y={bh + 16} fontSize={9} fill={txt} textAnchor="middle" fontFamily="monospace">
+                  {f + 1}
+                </text>
               </g>
             );
           })}
 
           {/* Inlay dots (between strings, inside fretboard) */}
-          {SINGLE_DOTS.filter(f => f <= totalFrets).map(f => (
+          {SINGLE_DOTS.filter((f) => f <= totalFrets).map((f) => (
             <circle key={f} cx={nutW + (f - 0.5) * fw} cy={bh / 2} r={3} fill={dotMarker} />
           ))}
-          {DOUBLE_DOT <= totalFrets && <>
-            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh / 2 - ss * 0.8} r={3} fill={dotMarker} />
-            <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh / 2 + ss * 0.8} r={3} fill={dotMarker} />
-          </>}
+          {DOUBLE_DOT <= totalFrets && (
+            <>
+              <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh / 2 - ss * 0.8} r={3} fill={dotMarker} />
+              <circle cx={nutW + (DOUBLE_DOT - 0.5) * fw} cy={bh / 2 + ss * 0.8} r={3} fill={dotMarker} />
+            </>
+          )}
 
           {/* Strings */}
           {Array.from({ length: STRINGS }, (_, i) => (
-            <line key={i} x1={nutW} y1={i * ss} x2={nutW + bw} y2={i * ss}
-              stroke={light ? '#888' : '#aaa'} strokeWidth={0.8 + i * 0.3} />
+            <line
+              key={i}
+              x1={nutW}
+              y1={i * ss}
+              x2={nutW + bw}
+              y2={i * ss}
+              stroke={light ? '#888' : '#aaa'}
+              strokeWidth={0.8 + i * 0.3}
+            />
           ))}
 
           {/* Chord outline + dots */}
-          {voicings.map(v => {
+          {voicings.map((v) => {
             const key = vKey(v);
             const isHov = hovered === key;
             const dimmed = hovered != null && !isHov;
@@ -119,9 +157,12 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
                 {/* Outline connecting played strings */}
                 {active && pts.length >= 2 && (
                   <polyline
-                    points={pts.map(p => `${p.x},${p.y}`).join(' ')}
-                    fill="none" stroke={color} strokeWidth={1.5}
-                    opacity={0.4} strokeLinejoin="round"
+                    points={pts.map((p) => `${p.x},${p.y}`).join(' ')}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={1.5}
+                    opacity={0.4}
+                    strokeLinejoin="round"
                   />
                 )}
 
@@ -137,11 +178,27 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
                   if (!active) {
                     // Non-active: just draw individual small dots
                     return dots.map((d, i) => (
-                      <g key={`dot-${i}`} style={{ transform: `translate(${d.x}px, ${d.y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
+                      <g
+                        key={`dot-${i}`}
+                        style={{
+                          transform: `translate(${d.x}px, ${d.y}px)`,
+                          transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+                        }}
+                      >
                         {isEShape ? (
                           <circle cx={0} cy={0} r={r} fill={boardBg} stroke={color} strokeWidth={1.5} opacity={0.5} />
                         ) : (
-                          <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5} fill={boardBg} stroke={color} strokeWidth={1.5} opacity={0.5} />
+                          <rect
+                            x={-r}
+                            y={-r}
+                            width={r * 2}
+                            height={r * 2}
+                            rx={2.5}
+                            fill={boardBg}
+                            stroke={color}
+                            strokeWidth={1.5}
+                            opacity={0.5}
+                          />
                         )}
                       </g>
                     ));
@@ -165,29 +222,66 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
                       const y1 = Math.min(first.y, last.y);
                       const y2 = Math.max(first.y, last.y);
                       elements.push(
-                        <g key={`bar-${i}`} style={{ transform: `translate(${barX}px, ${y1}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
-                          <rect x={-r} y={-r} width={r * 2} height={y2 - y1 + r * 2} rx={r}
-                            fill={color} opacity={0.9} />
-                          <text x={0} y={(y2 - y1) / 2 + 0.5} textAnchor="middle" dominantBaseline="middle"
-                            fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
-                          >{DEGREE_LABELS[v.degree]}</text>
-                        </g>
+                        <g
+                          key={`bar-${i}`}
+                          style={{
+                            transform: `translate(${barX}px, ${y1}px)`,
+                            transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+                          }}
+                        >
+                          <rect
+                            x={-r}
+                            y={-r}
+                            width={r * 2}
+                            height={y2 - y1 + r * 2}
+                            rx={r}
+                            fill={color}
+                            opacity={0.9}
+                          />
+                          <text
+                            x={0}
+                            y={(y2 - y1) / 2 + 0.5}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize={7}
+                            fontWeight="bold"
+                            fill="#fff"
+                            fontFamily="monospace"
+                          >
+                            {DEGREE_LABELS[v.degree]}
+                          </text>
+                        </g>,
                       );
                       for (let k = i; k < j; k++) rendered.add(k);
                     } else {
                       const d = dots[i];
                       rendered.add(i);
                       elements.push(
-                        <g key={`dot-${i}`} style={{ transform: `translate(${d.x}px, ${d.y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
+                        <g
+                          key={`dot-${i}`}
+                          style={{
+                            transform: `translate(${d.x}px, ${d.y}px)`,
+                            transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+                          }}
+                        >
                           {isEShape ? (
                             <circle cx={0} cy={0} r={r} fill={color} opacity={0.9} />
                           ) : (
                             <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5} fill={color} opacity={0.9} />
                           )}
-                          <text x={0} y={0.5} textAnchor="middle" dominantBaseline="middle"
-                            fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
-                          >{DEGREE_LABELS[v.degree]}</text>
-                        </g>
+                          <text
+                            x={0}
+                            y={0.5}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize={7}
+                            fontWeight="bold"
+                            fill="#fff"
+                            fontFamily="monospace"
+                          >
+                            {DEGREE_LABELS[v.degree]}
+                          </text>
+                        </g>,
                       );
                     }
                   }

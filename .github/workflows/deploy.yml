@@ -3,6 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -14,7 +16,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: i18n key check
+        run: bun check-i18n.ts
+      - name: Type check
+        run: tsc -b
+      - name: Lint
+        run: bun run lint
+      - name: Format check
+        run: bun run format:check
+
   deploy:
+    if: github.event_name == 'push'
+    needs: check
     runs-on: ubuntu-latest
     environment:
       name: github-pages

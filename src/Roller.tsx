@@ -10,7 +10,15 @@ interface RollerProps<T> {
   itemHeight?: number;
 }
 
-export function Roller<T>({ items, activeKey, getKey, getLabel, onSelect, height = 80, itemHeight = 28 }: RollerProps<T>) {
+export function Roller<T>({
+  items,
+  activeKey,
+  getKey,
+  getLabel,
+  onSelect,
+  height = 80,
+  itemHeight = 28,
+}: RollerProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const activeRef = useRef(activeKey);
@@ -32,10 +40,10 @@ export function Roller<T>({ items, activeKey, getKey, getLabel, onSelect, height
           }
         }
       },
-      { root: container, rootMargin: `-${padY}px 0px`, threshold: 0.5 }
+      { root: container, rootMargin: `-${padY}px 0px`, threshold: 0.5 },
     );
 
-    itemRefs.current.forEach(el => observer.observe(el));
+    itemRefs.current.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [items, padY]);
 
@@ -46,25 +54,42 @@ export function Roller<T>({ items, activeKey, getKey, getLabel, onSelect, height
 
   return (
     <div className="relative overflow-hidden" style={{ height }}>
-      <div className="absolute inset-x-0 top-0 bg-gradient-to-b from-mantle to-transparent z-10 pointer-events-none" style={{ height: padY }} />
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-mantle to-transparent z-10 pointer-events-none" style={{ height: padY }} />
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y border-surface0 pointer-events-none z-10" style={{ height: itemHeight }} />
-      <div ref={containerRef} className="h-full overflow-y-auto snap-y snap-mandatory"
-        style={{ paddingTop: padY, paddingBottom: padY }}>
-        {items.map(item => {
+      <div
+        className="absolute inset-x-0 top-0 bg-gradient-to-b from-mantle to-transparent z-10 pointer-events-none"
+        style={{ height: padY }}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-mantle to-transparent z-10 pointer-events-none"
+        style={{ height: padY }}
+      />
+      <div
+        className="absolute inset-x-0 top-1/2 -translate-y-1/2 border-y border-surface0 pointer-events-none z-10"
+        style={{ height: itemHeight }}
+      />
+      <div
+        ref={containerRef}
+        className="h-full overflow-y-auto snap-y snap-mandatory"
+        style={{ paddingTop: padY, paddingBottom: padY }}
+      >
+        {items.map((item) => {
           const key = getKey(item);
           const isActive = activeKey === key;
           return (
             <button
               key={key}
               data-rkey={key}
-              ref={el => { if (el) itemRefs.current.set(key, el); else itemRefs.current.delete(key); }}
+              ref={(el) => {
+                if (el) itemRefs.current.set(key, el);
+                else itemRefs.current.delete(key);
+              }}
               onClick={() => handleClick(key)}
               className={`snap-center w-full flex items-center justify-center text-[11px] cursor-pointer transition-colors ${
                 isActive ? 'text-blue font-bold' : 'text-subtext0'
               }`}
               style={{ height: itemHeight }}
-            >{getLabel(item)}</button>
+            >
+              {getLabel(item)}
+            </button>
           );
         })}
       </div>

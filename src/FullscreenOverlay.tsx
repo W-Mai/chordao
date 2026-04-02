@@ -33,7 +33,9 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
     };
     update();
 
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     document.addEventListener('keydown', handler);
     window.addEventListener('resize', update);
     document.body.style.overflow = 'hidden';
@@ -82,7 +84,7 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
           maxWidth: rotated ? 'calc(100vh - 2rem)' : 'calc(100vw - 2rem)',
           maxHeight: rotated ? 'calc(100vw - 2rem)' : 'calc(100vh - 2rem)',
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {children}
       </div>
@@ -90,7 +92,9 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
         onClick={onClose}
         className="absolute top-4 right-4 text-overlay1 hover:text-txt text-2xl cursor-pointer
                    "
-      >✕</button>
+      >
+        ✕
+      </button>
     </div>
   );
 }

@@ -4,8 +4,18 @@ type NoteName = (typeof NOTES)[number];
 
 // Display names using flats where conventional
 const NOTE_DISPLAY: Record<string, string> = {
-  'C': 'C', 'C#': 'Db', 'D': 'D', 'D#': 'Eb', 'E': 'E', 'F': 'F',
-  'F#': 'F#/Gb', 'G': 'G', 'G#': 'Ab', 'A': 'A', 'A#': 'Bb', 'B': 'B',
+  C: 'C',
+  'C#': 'Db',
+  D: 'D',
+  'D#': 'Eb',
+  E: 'E',
+  F: 'F',
+  'F#': 'F#/Gb',
+  G: 'G',
+  'G#': 'Ab',
+  A: 'A',
+  'A#': 'Bb',
+  B: 'B',
 };
 
 // Circle of fifths order for key selection UI
@@ -14,9 +24,9 @@ const CIRCLE_OF_FIFTHS: NoteName[] = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 
 // Fret positions for each string (6 strings, high-to-low: E A D G B E)
 // -1 means muted, 0 means open
 export interface ChordShape {
-  name: string;        // e.g. "E", "Em", "A", "Am"
-  frets: number[];     // length 6, relative to barre position
-  baseFret: number;    // 0 for open chords
+  name: string; // e.g. "E", "Em", "A", "Am"
+  frets: number[]; // length 6, relative to barre position
+  baseFret: number; // 0 for open chords
   barreString?: number; // which strings are barred (optional)
 }
 
@@ -24,8 +34,8 @@ export interface ChordShape {
 // String order: E2 A D G B E4
 const BASE_SHAPES: Record<string, { major: number[]; minor: number[] }> = {
   E: {
-    major: [0, 2, 2, 1, 0, 0],  // E major
-    minor: [0, 2, 2, 0, 0, 0],  // E minor
+    major: [0, 2, 2, 1, 0, 0], // E major
+    minor: [0, 2, 2, 0, 0, 0], // E minor
   },
   A: {
     major: [-1, 0, 2, 2, 2, 0], // A major
@@ -34,12 +44,12 @@ const BASE_SHAPES: Record<string, { major: number[]; minor: number[] }> = {
 };
 
 export interface ChordVoicing {
-  name: string;          // e.g. "C", "Dm"
-  frets: number[];       // absolute fret positions per string (-1 = muted)
-  baseFret: number;      // lowest fret used (for display)
+  name: string; // e.g. "C", "Dm"
+  frets: number[]; // absolute fret positions per string (-1 = muted)
+  baseFret: number; // lowest fret used (for display)
   barrePosition: number; // barre/capo fret (the offset from open shape)
-  shapeOrigin: string;   // which base shape it derives from ("E" or "A")
-  degree: number;        // scale degree 1-6
+  shapeOrigin: string; // which base shape it derives from ("E" or "A")
+  degree: number; // scale degree 1-6
 }
 
 function noteIndex(note: NoteName): number {
@@ -52,17 +62,17 @@ function noteName(index: number): NoteName {
 
 // Semitone offset from base shape root to target note
 function semitoneOffset(from: NoteName, to: NoteName): number {
-  return ((noteIndex(to) - noteIndex(from)) % 12 + 12) % 12;
+  return (((noteIndex(to) - noteIndex(from)) % 12) + 12) % 12;
 }
 
 // Major scale intervals in semitones: 1=0, 2=2, 3=4, 4=5, 5=7, 6=9
 const SCALE_DEGREES = [
-  { interval: 0, suffix: '', degree: 1 },   // 1  major
-  { interval: 2, suffix: 'm', degree: 2 },  // 2m minor
-  { interval: 4, suffix: 'm', degree: 3 },  // 3m minor
-  { interval: 5, suffix: '', degree: 4 },   // 4  major
-  { interval: 7, suffix: '', degree: 5 },   // 5  major
-  { interval: 9, suffix: 'm', degree: 6 },  // 6m minor
+  { interval: 0, suffix: '', degree: 1 }, // 1  major
+  { interval: 2, suffix: 'm', degree: 2 }, // 2m minor
+  { interval: 4, suffix: 'm', degree: 3 }, // 3m minor
+  { interval: 5, suffix: '', degree: 4 }, // 4  major
+  { interval: 7, suffix: '', degree: 5 }, // 5  major
+  { interval: 9, suffix: 'm', degree: 6 }, // 6m minor
 ];
 
 // Generate all voicings for a given key
@@ -83,13 +93,20 @@ export function generateVoicings(key: NoteName, maxFret = 17): ChordVoicing[] {
       const offset = semitoneOffset(baseRoot, targetNote);
       // Generate base position and +12 octave
       for (const o of [offset, offset + 12]) {
-        const frets = baseFrets.map(f => (f === -1 ? -1 : f + o));
-        const playedFrets = frets.filter(f => f > 0);
+        const frets = baseFrets.map((f) => (f === -1 ? -1 : f + o));
+        const playedFrets = frets.filter((f) => f > 0);
         if (playedFrets.length === 0) continue;
         const maxF = Math.max(...playedFrets);
         if (maxF > maxFret) continue;
         const baseFret = Math.min(...playedFrets);
-        voicings.push({ name: chordName, frets, baseFret, barrePosition: o, shapeOrigin: shapeLabel, degree: deg.degree });
+        voicings.push({
+          name: chordName,
+          frets,
+          baseFret,
+          barrePosition: o,
+          shapeOrigin: shapeLabel,
+          degree: deg.degree,
+        });
       }
     }
   }
@@ -114,8 +131,12 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, deg
   const order = degreeOrder ?? [4, 1, 5, 2, 6, 3];
   // Deduplicate while preserving order
   const seen = new Set<number>();
-  const uniqueOrder = order.filter(d => { if (seen.has(d)) return false; seen.add(d); return true; });
-  const options = uniqueOrder.map(d => grouped.get(d) ?? []);
+  const uniqueOrder = order.filter((d) => {
+    if (seen.has(d)) return false;
+    seen.add(d);
+    return true;
+  });
+  const options = uniqueOrder.map((d) => grouped.get(d) ?? []);
 
   // Prefer voicings below fret 12, minimize span, tiebreak on movement
   let bestCombo: ChordVoicing[] = [];
@@ -125,8 +146,8 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, deg
 
   function search(idx: number, current: ChordVoicing[]) {
     if (idx === n) {
-      const positions = current.map(c => c.barrePosition);
-      const highCount = positions.filter(p => p >= 12).length;
+      const positions = current.map((c) => c.barrePosition);
+      const highCount = positions.filter((p) => p >= 12).length;
       const span = Math.max(...positions) - Math.min(...positions);
       let move = 0;
       for (let i = 0; i < current.length - 1; i++) {
