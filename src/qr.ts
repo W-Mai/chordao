@@ -7,12 +7,12 @@ export function generateQR(text: string, size: number, logoUrl?: string): Promis
   qr.make();
 
   const modules = qr.getModuleCount();
-  const quiet = 4;
+  const quiet = 2;
   const totalModules = modules + quiet * 2;
   const cellSize = size / totalModules;
-  const padding = 8; // extra white padding outside
+  const padding = 4;
   const totalSize = size + padding * 2;
-  const radius = 12;
+  const radius = 8;
 
   const canvas = document.createElement('canvas');
   canvas.width = totalSize;
