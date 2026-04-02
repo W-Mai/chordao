@@ -5,7 +5,7 @@ type NoteName = (typeof NOTES)[number];
 // Display names using flats where conventional
 const NOTE_DISPLAY: Record<string, string> = {
   'C': 'C', 'C#': 'Db', 'D': 'D', 'D#': 'Eb', 'E': 'E', 'F': 'F',
-  'F#': 'F#', 'G': 'G', 'G#': 'Ab', 'A': 'A', 'A#': 'Bb', 'B': 'B',
+  'F#': 'F#/Gb', 'G': 'G', 'G#': 'Ab', 'A': 'A', 'A#': 'Bb', 'B': 'B',
 };
 
 // Circle of fifths order for key selection UI

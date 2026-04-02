@@ -76,10 +76,10 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
           {/* Large key badge */}
           <div style={{
-            width: 64, height: 64, borderRadius: 16,
+            minWidth: 64, height: 64, padding: '0 12px', borderRadius: 16,
             background: 'var(--blue)', color: 'var(--crust)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28, fontWeight: 'bold', flexShrink: 0,
+            fontSize: 22, fontWeight: 'bold', flexShrink: 0,
             boxShadow: '0 0 20px var(--blue)',
           }}>{NOTE_DISPLAY[selectedKey]}</div>
           <div style={{ flex: 1 }}>
