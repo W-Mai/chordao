@@ -147,9 +147,13 @@ const STEPS = [
 ];
 
 export function Guide() {
-  const [open, setOpen] = useState(false);
+  const buildId = __BUILD_ID__;
+  const [open, setOpen] = useState(() => localStorage.getItem('chordao:guideSeen') !== buildId);
   const [step, setStep] = useState(0);
-  const toggle = useCallback(() => { setOpen(v => !v); setStep(0); }, []);
+  const toggle = useCallback(() => {
+    setOpen(v => { if (v) localStorage.setItem('chordao:guideSeen', buildId); return !v; });
+    setStep(0);
+  }, [buildId]);
   const s = STEPS[step];
 
   return (
