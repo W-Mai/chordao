@@ -2,7 +2,6 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import type { ChordVoicing, NoteName } from './chordData';
 import { NOTE_DISPLAY } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
-import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
 import { generateQR } from './qr';
 
@@ -104,19 +103,13 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Shape Grid</div>
           <ShapeGrid voicings={voicings} optimal={optimal} light={false} />
         </div>
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Fretboard Overview</div>
-          <Fretboard voicings={voicings} optimal={optimal} light={false} />
-        </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Chord Diagrams</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 16 }}>
             {[1, 2, 3, 4, 5, 6].map(degree => {
               const dv = grouped.get(degree) ?? [];
               return dv.map(v => (
-                <div key={`${v.name}-${v.shapeOrigin}`} style={{ width: 140 }}>
-                  <ChordDiagram voicing={v} highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)} light={false} showBarre={showBarre} />
-                </div>
+                <ChordDiagram key={`${v.name}-${v.shapeOrigin}`} voicing={v} highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)} light={false} showBarre={showBarre} className="w-full" />
               ));
             })}
           </div>
