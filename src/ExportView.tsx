@@ -1,6 +1,6 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { voicingKey, NOTE_DISPLAY, PROGRESSIONS, type ChordVoicing, type NoteName } from './chordData';
-import { t } from './i18n';
+import { useTranslation } from 'react-i18next';
 import { ChordDiagram } from './ChordDiagram';
 import { ShapeGrid } from './ShapeGrid';
 import { generateQR } from './qr';
@@ -18,6 +18,7 @@ interface ExportViewProps {
 }
 
 export function useExportImage({ selectedKey, voicings: _voicings, optimal: _optimal, optimalSet, grouped, showBarre, activeProg, filteredVoicings, filteredOptimal }: ExportViewProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
@@ -86,12 +87,12 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>Chordao</div>
             <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>
-              Key of {NOTE_DISPLAY[selectedKey]} · E/Em/A/Am shape derivation
+              {t('keyOf')} {NOTE_DISPLAY[selectedKey]} · {t('derivation')}
             </div>
           </div>
           {activeProg && (
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>♪ {t(activeProg as any)}</div>
+              <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>♪ {t(activeProg as string)}</div>
               <div style={{ fontSize: 11, color: 'var(--overlay1)', marginTop: 2 }}>
                 {PROGRESSIONS.find(p => p.name === activeProg)?.degrees.join(' → ')}
               </div>
@@ -113,13 +114,13 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
           </div>
         </div>
         <div style={{ marginBottom: 20, border: '1px solid var(--panel-border)', borderRadius: 'var(--ui-radius)', background: 'var(--panel-bg)', overflow: 'hidden' }}>
-          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)', background: 'var(--mantle)', fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Shape Grid</div>
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)', background: 'var(--mantle)', fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('shapeGrid')}</div>
           <div style={{ padding: 12 }}>
             <ShapeGrid voicings={filteredVoicings} optimal={filteredOptimal} light={document.documentElement.getAttribute('data-theme') === 'light'} />
           </div>
         </div>
         <div style={{ border: '1px solid var(--panel-border)', borderRadius: 'var(--ui-radius)', background: 'var(--panel-bg)', overflow: 'hidden' }}>
-          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)', background: 'var(--mantle)', fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chord Diagrams</div>
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)', background: 'var(--mantle)', fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('chordDiagrams')}</div>
           <div style={{ padding: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 12 }}>
               {(activeProg ? filteredVoicings : [1, 2, 3, 4, 5, 6].flatMap(d => grouped.get(d) ?? [])).map(v => (
@@ -130,16 +131,16 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
         </div>
         {/* Legend */}
         <div style={{ marginTop: 20, padding: '10px 16px', border: '1px solid var(--panel-border)', borderRadius: 'var(--ui-radius)', background: 'var(--panel-bg)', display: 'flex', justifyContent: 'center', gap: 24, fontSize: 10, color: 'var(--overlay1)', flexWrap: 'wrap' }}>
-          <span>⬤ Filled = Recommended</span>
-          <span>○ Outlined = Alternative</span>
-          <span>⬤ Circle = E shape</span>
-          <span>◼ Square = A shape</span>
-          <span>━ Bar = Barre</span>
-          <span>× = Muted</span>
-          <span>○ = Open string</span>
+          <span>{t('legendFilled')}</span>
+          <span>{t('legendOutlined')}</span>
+          <span>{t('legendCircle')}</span>
+          <span>{t('legendSquare')}</span>
+          <span>{t('legendBar')}</span>
+          <span>{t('legendMuted')}</span>
+          <span>{t('legendOpen')}</span>
         </div>
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--surface0)', fontSize: 10, color: 'var(--overlay0)', textAlign: 'center' }}>
-          Generated by Chordao · github.com/W-Mai/chordao · MIT
+          {t('generatedBy')} · github.com/W-Mai/chordao · MIT
         </div>
       </div>
     </div>

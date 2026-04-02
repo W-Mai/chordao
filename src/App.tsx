@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NOTES, NOTE_DISPLAY, CIRCLE_OF_FIFTHS, generateVoicings, groupByDegree, findOptimalCombination, voicingKey, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
@@ -7,8 +8,6 @@ import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
 
 import { Roller } from './Roller';
 
-import { t, setLang, getLang } from './i18n';
-import { useLang } from './useLang';
 import { Guide } from './Guide';
 import { useExportImage } from './ExportView';
 
@@ -27,7 +26,7 @@ function ExpandBtn({ onClick }: { onClick: () => void }) {
 }
 
 function App() {
-  useLang(); // trigger re-render on language change
+  const { t, i18n } = useTranslation();
   const [selectedKey, _setSelectedKey] = useState<NoteName>('C');
 
   const [hoveredChord, setHoveredChord] = useState<string | null>(null);
@@ -195,11 +194,11 @@ function App() {
                 style={{ transition: 'all var(--transition)' }}
               >{THEME_ICONS[theme]}</button>
               <Guide />
-              <button onClick={() => setLang(getLang() === 'en' ? 'zh' : 'en')}
+              <button onClick={() => { const next = i18n.language === 'en' ? 'zh' : 'en'; i18n.changeLanguage(next); localStorage.setItem('chordao:lang', next); }}
                 className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer"
                 style={{ transition: 'all var(--transition)' }}
                 title="Language"
-              >{getLang() === 'en' ? '中' : 'En'}</button>
+              >{i18n.language === 'en' ? '中' : 'En'}</button>
             </div>
           </div>
 
@@ -253,7 +252,7 @@ function App() {
                       isActive ? 'bg-blue/15 text-blue' : 'text-subtext0 hover:text-txt hover:bg-surface0/30'
                     }`}
                     style={{ transition: 'all var(--transition)' }}
-                  >{t(p.name as any)} <span className="text-overlay0">{p.degrees.join('-')}</span></button>
+                  >{t(p.name)} <span className="text-overlay0">{p.degrees.join('-')}</span></button>
                 );
               })}
             </div>
@@ -263,7 +262,7 @@ function App() {
                 items={[{ name: '', degrees: [] as number[] }, ...PROGRESSIONS]}
                 activeKey={activeProg ?? ''}
                 getKey={p => p.name}
-                getLabel={p => p.name ? `${t(p.name as any)} ${p.degrees.join('-')}` : t('none')}
+                getLabel={p => p.name ? `${t(p.name)} ${p.degrees.join('-')}` : t('none')}
                 onSelect={name => setActiveProg(name || null)}
               />
             </div>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { t, type TranslationKeys } from './i18n';
+import { useTranslation } from 'react-i18next';
 
 const step1svg = (
   <svg viewBox="0 0 320 80" className="w-full">
@@ -139,12 +139,13 @@ const step6svg = (
 );
 
 const SVGS = [step1svg, step2svg, step3svg, step4svg, step5svg, step6svg];
-const STEP_KEYS: [TranslationKeys, TranslationKeys][] = [
+const STEP_KEYS: [string, string][] = [
   ['guideT1', 'guideD1'], ['guideT2', 'guideD2'], ['guideT3', 'guideD3'],
   ['guideT4', 'guideD4'], ['guideT5', 'guideD5'], ['guideT6', 'guideD6'],
 ];
 
 export function Guide() {
+  const { t } = useTranslation();
   const buildId = __BUILD_ID__;
   const [open, setOpen] = useState(() => localStorage.getItem('chordao:guideSeen') !== buildId);
   const [step, setStep] = useState(0);
