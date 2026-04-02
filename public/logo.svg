@@ -1,21 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Guitar neck (fretboard) -->
-  <rect x="20" y="8" width="24" height="48" rx="3" fill="#2c2c2c"/>
-  <!-- Frets -->
-  <line x1="20" y1="18" x2="44" y2="18" stroke="#888" stroke-width="1.5"/>
-  <line x1="20" y1="28" x2="44" y2="28" stroke="#888" stroke-width="1.5"/>
-  <line x1="20" y1="38" x2="44" y2="38" stroke="#888" stroke-width="1.5"/>
-  <line x1="20" y1="48" x2="44" y2="48" stroke="#888" stroke-width="1.5"/>
-  <!-- Strings -->
-  <line x1="24" y1="8" x2="24" y2="56" stroke="#ccc" stroke-width="0.8"/>
-  <line x1="28" y1="8" x2="28" y2="56" stroke="#ccc" stroke-width="0.8"/>
-  <line x1="32" y1="8" x2="32" y2="56" stroke="#ccc" stroke-width="0.8"/>
-  <line x1="36" y1="8" x2="36" y2="56" stroke="#ccc" stroke-width="0.8"/>
-  <line x1="40" y1="8" x2="40" y2="56" stroke="#ccc" stroke-width="0.8"/>
+  <defs>
+    <clipPath id="fb"><rect x="17" y="5" width="30" height="53" rx="3"/></clipPath>
+  </defs>
+  <!-- Fretboard -->
+  <rect x="17" y="5" width="30" height="53" rx="3" fill="#2c2c2c"/>
   <!-- Nut -->
-  <rect x="20" y="8" width="24" height="2.5" rx="1" fill="#e0d6c2"/>
-  <!-- Finger dots (chord shape) -->
-  <circle cx="28" cy="23" r="3" fill="#4a9eff"/>
-  <circle cx="32" cy="23" r="3" fill="#4a9eff"/>
-  <circle cx="36" cy="13" r="3" fill="#4a9eff"/>
+  <rect x="17" y="8" width="30" height="2.5" fill="#e0d6c2"/>
+  <g clip-path="url(#fb)">
+    <!-- Frets -->
+    <line x1="17" y1="18" x2="47" y2="18" stroke="#888" stroke-width="1.5"/>
+    <line x1="17" y1="28" x2="47" y2="28" stroke="#888" stroke-width="1.5"/>
+    <line x1="17" y1="38" x2="47" y2="38" stroke="#888" stroke-width="1.5"/>
+    <line x1="17" y1="48" x2="47" y2="48" stroke="#888" stroke-width="1.5"/>
+    <!-- 6 strings: left=thick(E) right=thin(e) -->
+    <line x1="17" y1="6" x2="17" y2="58" stroke="#ccc" stroke-width="1.2"/>
+    <line x1="23" y1="6" x2="23" y2="58" stroke="#ccc" stroke-width="1.0"/>
+    <line x1="29" y1="6" x2="29" y2="58" stroke="#ccc" stroke-width="0.8"/>
+    <line x1="35" y1="6" x2="35" y2="58" stroke="#ccc" stroke-width="0.7"/>
+    <line x1="41" y1="6" x2="41" y2="58" stroke="#ccc" stroke-width="0.6"/>
+    <line x1="47" y1="6" x2="47" y2="58" stroke="#ccc" stroke-width="0.5"/>
+  </g>
+  <!-- "3" fret number, Agency FB style -->
+  <g transform="translate(5, 8) scale(0.32)">
+    <path d="M18.556,34.717C18.556,37.044 17.408,38.208 15.113,38.208L3.394,38.208C1.132,38.208 0.001,37.044 0.001,34.717L0.001,25.903L5.616,25.903L5.616,33.301L12.965,33.301L12.965,23.706L5.958,18.896L5.958,17.7L12.965,12.964L12.965,4.907L5.616,4.907L5.616,11.865L0.001,11.865L0.001,3.516C0.001,1.172 1.157,0 3.468,0L15.113,0C17.408,0 18.556,1.172 18.556,3.516L18.556,12.5C18.556,14.014 17.921,15.186 16.651,16.016L13.111,18.311L16.7,20.557C17.937,21.322 18.556,22.469 18.556,23.999L18.556,34.717Z" fill="#aaa"/>
+  </g>
+  <!-- G chord, E shape @ fret 3 -->
+  <!-- Barre at fret 3 = first grid row, y=14.25 (between nut bottom and fret 1) -->
+  <rect x="17" y="12" width="30" height="3.5" rx="1.75" fill="#00e5ff"/>
+  <!-- A string (x=23) fret 5 = third row, y=33 -->
+  <circle cx="23" cy="33" r="2.5" fill="#00e5ff"/>
+  <!-- D string (x=29) fret 5 = third row, y=33 -->
+  <circle cx="29" cy="33" r="2.5" fill="#00e5ff"/>
+  <!-- G string (x=35) fret 4 = second row, y=23 -->
+  <circle cx="35" cy="23" r="2.5" fill="#00e5ff"/>
 </svg>
