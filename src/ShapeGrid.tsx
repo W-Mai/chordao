@@ -292,9 +292,13 @@ export function ShapeGrid({
                     arr.push(i);
                     groups.set(k, arr);
                   });
+                  const midY = (stringY[0] + stringY[1]) / 2;
                   const elements: React.ReactNode[] = [];
                   for (const [, indices] of groups) {
                     const s = steps[indices[0]];
+                    const isTop = s.y < midY;
+                    const numY = isTop ? s.y + dotR + 10 : s.y - dotR - 10;
+                    const numTextY = isTop ? s.y + dotR + 13 : s.y - dotR - 7;
                     const count = indices.length;
                     const spacing = 16;
                     const totalW = (count - 1) * spacing;
@@ -302,10 +306,10 @@ export function ShapeGrid({
                       const offsetX = -totalW / 2 + j * spacing;
                       elements.push(
                         <g key={`step-${idx}`}>
-                          <circle cx={s.x + offsetX} cy={s.y - dotR - 8} r={7} fill="var(--blue)" opacity={0.15} />
+                          <circle cx={s.x + offsetX} cy={numY} r={7} fill="var(--blue)" opacity={0.15} />
                           <text
                             x={s.x + offsetX}
-                            y={s.y - dotR - 5}
+                            y={numTextY}
                             textAnchor="middle"
                             fontSize={8}
                             fontWeight="bold"
