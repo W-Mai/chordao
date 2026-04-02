@@ -7,6 +7,7 @@ import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
 
 import { Roller } from './Roller';
 
+import { Guide } from './Guide';
 import { useExportImage } from './ExportView';
 
 const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
@@ -190,6 +191,7 @@ function App() {
                 className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex-1"
                 style={{ transition: 'all var(--transition)' }}
               >{THEME_ICONS[theme]}</button>
+              <Guide />
             </div>
           </div>
 
