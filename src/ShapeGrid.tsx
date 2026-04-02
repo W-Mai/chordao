@@ -18,6 +18,7 @@ interface ShapeGridProps {
   hoveredChord?: string | null;
   onHoverChord?: (key: string | null) => void;
   onClickChord?: (key: string) => void;
+  progressionDegrees?: number[];
 }
 
 export function ShapeGrid({
@@ -28,6 +29,7 @@ export function ShapeGrid({
   hoveredChord,
   onHoverChord,
   onClickChord,
+  progressionDegrees,
 }: ShapeGridProps) {
   const optimalSet = new Set(optimal.map(voicingKey));
 
@@ -236,6 +238,58 @@ export function ShapeGrid({
             );
           }),
         )}
+        {/* Progression arrows and step numbers */}
+        {progressionDegrees && progressionDegrees.length > 1 && (() => {
+          // Build ordered list of optimal voicing positions
+          const optMap = new Map(optimal.map(v => [v.degree, v]));
+          const steps: { x: number; y: number; deg: number }[] = [];
+          for (const deg of progressionDegrees) {
+            const v = optMap.get(deg);
+            if (!v) continue;
+            const rowIdx = rows[0].shapes.includes(v.shapeOrigin) ? 0 : 1;
+            steps.push({ x: cellX(v.barrePosition), y: stringY[rowIdx], deg });
+          }
+          if (steps.length < 2) return null;
+          return (
+            <g>
+              {/* Arrow lines */}
+              {steps.map((s, i) => {
+                if (i === 0) return null;
+                const prev = steps[i - 1];
+                const dx = s.x - prev.x;
+                const dy = s.y - prev.y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                if (len === 0) return null;
+                const nx = dx / len;
+                const ny = dy / len;
+                const gap = dotR + 4;
+                return (
+                  <line key={`arr-${i}`}
+                    x1={prev.x + nx * gap} y1={prev.y + ny * gap}
+                    x2={s.x - nx * gap} y2={s.y - ny * gap}
+                    stroke="var(--blue)" strokeWidth={1.5} opacity={0.5}
+                    markerEnd="url(#arrowhead)"
+                  />
+                );
+              })}
+              {/* Step numbers */}
+              {steps.map((s, i) => (
+                <text key={`step-${i}`}
+                  x={s.x} y={s.y - dotR - 5}
+                  textAnchor="middle" fontSize={8} fontWeight="bold"
+                  fill="var(--blue)" opacity={0.8}
+                >{i + 1}</text>
+              ))}
+            </g>
+          );
+        })()}
+
+        {/* Arrow marker definition */}
+        <defs>
+          <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+            <polygon points="0 0, 6 2, 0 4" fill="var(--blue)" opacity="0.5" />
+          </marker>
+        </defs>
       </svg>
     </div>
   );

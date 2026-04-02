@@ -384,6 +384,7 @@ function App() {
                 hoveredChord={activeChordKey}
                 onHoverChord={handleHoverChord}
                 onClickChord={handleClickChord}
+                progressionDegrees={activeProgObj?.degrees}
               />
             </div>
           </section>
@@ -475,6 +476,7 @@ function App() {
           hoveredChord={activeChordKey}
           onHoverChord={handleHoverChord}
           onClickChord={handleClickChord}
+          progressionDegrees={activeProgObj?.degrees}
         />
       </FullscreenOverlay>
       <FullscreenOverlay active={fretFS} onClose={closeFret}>
