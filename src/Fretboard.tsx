@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react';
-import type { ChordVoicing } from './chordData';
+import { voicingKey, type ChordVoicing } from './chordData';
 
 const DEGREE_COLORS = ['', 'var(--color-deg-1)', 'var(--color-deg-2)', 'var(--color-deg-3)', 'var(--color-deg-4)', 'var(--color-deg-5)', 'var(--color-deg-6)'];
 const DEGREE_LABELS = ['', '1', '2m', '3m', '4', '5', '6m'];
 
 const STRINGS = 6;
 const STRING_LABELS = ['e', 'B', 'G', 'D', 'A', 'E'];
-const SINGLE_DOTS = [3, 5, 7, 9, 15];
+const SINGLE_DOTS = [3, 5, 7, 9, 15, 17];
 const DOUBLE_DOT = 12;
 
 interface FretboardProps {
@@ -19,11 +19,11 @@ interface FretboardProps {
   onClickChord?: (key: string) => void;
 }
 
-export function Fretboard({ voicings, optimal: _optimal, light = false, totalFrets = 15, hoveredChord, onHoverChord, onClickChord }: FretboardProps) {
+export function Fretboard({ voicings, optimal: _optimal, light = false, totalFrets = 17, hoveredChord, onHoverChord, onClickChord }: FretboardProps) {
   const [localHover, setLocalHover] = useState<string | null>(null);
   const hovered = hoveredChord ?? localHover;
 
-  const vKey = (v: ChordVoicing) => `${v.name}-${v.shapeOrigin}`;
+  const vKey = voicingKey;
 
   const handleEnter = useCallback((key: string) => { setLocalHover(key); onHoverChord?.(key); }, [onHoverChord]);
   const handleLeave = useCallback(() => { setLocalHover(null); onHoverChord?.(null); }, [onHoverChord]);

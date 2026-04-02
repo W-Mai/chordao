@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import type { ChordVoicing, NoteName } from './chordData';
+import { voicingKey, type ChordVoicing, type NoteName } from './chordData';
 import { NOTE_DISPLAY } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { ShapeGrid } from './ShapeGrid';
@@ -112,7 +112,7 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
               {[1, 2, 3, 4, 5, 6].map(degree => {
                 const dv = grouped.get(degree) ?? [];
                 return dv.map(v => (
-                  <ChordDiagram key={`${v.name}-${v.shapeOrigin}`} voicing={v} highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)} light={document.documentElement.getAttribute('data-theme') === 'light'} showBarre={showBarre} className="w-full" />
+                  <ChordDiagram key={voicingKey(v)} voicing={v} highlighted={optimalSet.has(voicingKey(v))} light={document.documentElement.getAttribute('data-theme') === 'light'} showBarre={showBarre} className="w-full" />
                 ));
               })}
             </div>

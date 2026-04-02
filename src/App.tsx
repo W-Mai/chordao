@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { NOTES, NOTE_DISPLAY, CIRCLE_OF_FIFTHS, generateVoicings, groupByDegree, findOptimalCombination, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
+import { NOTES, NOTE_DISPLAY, CIRCLE_OF_FIFTHS, generateVoicings, groupByDegree, findOptimalCombination, voicingKey, type NoteName, type ChordVoicing, PROGRESSIONS } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
@@ -85,7 +85,7 @@ function App() {
   const voicings = useMemo(() => generateVoicings(selectedKey), [selectedKey]);
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
   const optimal = useMemo(() => findOptimalCombination(grouped), [grouped]);
-  const optimalSet = useMemo(() => new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`)), [optimal]);
+  const optimalSet = useMemo(() => new Set(optimal.map(voicingKey)), [optimal]);
 
   const [activeDegree, setActiveDegree] = useState<number | null>(null);
   const toggleDegree = useCallback((d: number) => setActiveDegree(v => v === d ? null : d), []);
@@ -289,9 +289,9 @@ function App() {
                   const dv = grouped.get(degree) ?? [];
                   return dv.map(v => (
                     <ChordDiagram
-                      key={`${v.name}-${v.shapeOrigin}`}
+                      key={voicingKey(v)}
                       voicing={v}
-                      highlighted={optimalSet.has(`${v.name}-${v.shapeOrigin}`)}
+                      highlighted={optimalSet.has(voicingKey(v))}
                       light={light}
                       showBarre={showBarre}
                       onDoubleClick={() => handleChordDblClick(v)}
@@ -332,7 +332,7 @@ function App() {
         {activeChord && (
           <div className="flex items-center justify-center w-full h-full">
             <ChordDiagram voicing={activeChord}
-              highlighted={optimalSet.has(`${activeChord.name}-${activeChord.shapeOrigin}`)}
+              highlighted={optimalSet.has(voicingKey(activeChord))}
               light={light} showBarre={showBarre} className="w-full max-w-[50vh]" />
           </div>
         )}

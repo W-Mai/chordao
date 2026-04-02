@@ -1,4 +1,4 @@
-import type { ChordVoicing } from './chordData';
+import { voicingKey, type ChordVoicing } from './chordData';
 
 const DEGREE_LABELS: Record<number, string> = { 1: '1', 2: '2m', 3: '3m', 4: '4', 5: '5', 6: '6m' };
 const DEGREE_COLORS: Record<number, string> = {
@@ -16,15 +16,15 @@ interface ShapeGridProps {
   onClickChord?: (key: string) => void;
 }
 
-export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, hoveredChord, onHoverChord, onClickChord }: ShapeGridProps) {
-  const optimalSet = new Set(optimal.map(v => `${v.name}-${v.shapeOrigin}`));
+export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 17, hoveredChord, onHoverChord, onClickChord }: ShapeGridProps) {
+  const optimalSet = new Set(optimal.map(voicingKey));
 
   const rows = [
     { label: 'A / Am', shapes: ['A', 'Am'] },
     { label: 'E / Em', shapes: ['E', 'Em'] },
   ];
 
-  type Cell = { degree: number; name: string; isOptimal: boolean };
+  type Cell = { degree: number; name: string; isOptimal: boolean; key: string };
   const grid: (Cell | null)[][] = rows.map(() => Array.from({ length: totalFrets + 1 }, () => null));
 
   for (const v of voicings) {
@@ -34,7 +34,8 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
       grid[rowIdx][fret] = {
         degree: v.degree,
         name: v.name,
-        isOptimal: optimalSet.has(`${v.name}-${v.shapeOrigin}`),
+        isOptimal: optimalSet.has(voicingKey(v)),
+        key: voicingKey(v),
       };
     }
   }
@@ -121,13 +122,12 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
             const color = DEGREE_COLORS[cell.degree];
             const isOpt = cell.isOptimal;
             const r = dotR;
-            const vKey = voicings.find(v => v.degree === cell.degree && rows[ri].shapes.includes(v.shapeOrigin));
-            const chordKey = vKey ? `${vKey.name}-${vKey.shapeOrigin}` : '';
+            const chordKey = cell.key;
             const isHov = hoveredChord === chordKey;
             const dimmed = hoveredChord != null && !isHov;
 
             return (
-              <g key={`${cell.degree}-${ri}`}
+              <g key={cell.key}
                 opacity={dimmed ? 0.15 : 1}
                 style={{ transform: `translate(${x}px, ${y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s', cursor: 'pointer' }}
                 onPointerEnter={() => onHoverChord?.(chordKey)}
@@ -136,16 +136,16 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
               >
                 <circle
                   cx={0} cy={0} r={r}
-                  fill={isOpt || isHov ? color : boardBg}
+                  fill={(hoveredChord == null ? isOpt : isHov) ? color : boardBg}
                   stroke={color}
-                  strokeWidth={isOpt || isHov ? 0 : 2}
-                  opacity={isOpt || isHov ? 0.9 : 0.7}
+                  strokeWidth={(hoveredChord == null ? isOpt : isHov) ? 0 : 2}
+                  opacity={(hoveredChord == null ? isOpt : isHov) ? 0.9 : 0.7}
                 />
                 <text
                   x={0} y={-3}
                   textAnchor="middle" dominantBaseline="middle"
                   fontSize={10} fontWeight="bold"
-                  fill={isOpt || isHov ? '#fff' : color}
+                  fill={(hoveredChord == null ? isOpt : isHov) ? '#fff' : color}
                   fontFamily="monospace"
                 >
                   {DEGREE_LABELS[cell.degree]}
@@ -154,7 +154,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
                   x={0} y={7}
                   textAnchor="middle" dominantBaseline="middle"
                   fontSize={6.5} fontWeight="bold"
-                  fill={isOpt || isHov ? 'rgba(255,255,255,0.8)' : color}
+                  fill={(hoveredChord == null ? isOpt : isHov) ? 'rgba(255,255,255,0.8)' : color}
                   opacity={isOpt || isHov ? 1 : 0.7}
                 >
                   {cell.name}

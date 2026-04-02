@@ -55,22 +55,6 @@ function semitoneOffset(from: NoteName, to: NoteName): number {
   return ((noteIndex(to) - noteIndex(from)) % 12 + 12) % 12;
 }
 
-// Derive a chord voicing by shifting a base shape up the neck
-function deriveVoicing(
-  baseRoot: NoteName,
-  baseFrets: number[],
-  targetRoot: NoteName,
-  chordName: string,
-  degree: number,
-  shapeOrigin: string,
-): ChordVoicing {
-  const offset = semitoneOffset(baseRoot, targetRoot);
-  const frets = baseFrets.map(f => (f === -1 ? -1 : f + offset));
-  const playedFrets = frets.filter(f => f > 0);
-  const baseFret = playedFrets.length > 0 ? Math.min(...playedFrets) : 0;
-  return { name: chordName, frets, baseFret, barrePosition: offset, shapeOrigin, degree };
-}
-
 // Major scale intervals in semitones: 1=0, 2=2, 3=4, 4=5, 5=7, 6=9
 const SCALE_DEGREES = [
   { interval: 0, suffix: '', degree: 1 },   // 1  major
@@ -82,7 +66,7 @@ const SCALE_DEGREES = [
 ];
 
 // Generate all voicings for a given key
-export function generateVoicings(key: NoteName): ChordVoicing[] {
+export function generateVoicings(key: NoteName, maxFret = 17): ChordVoicing[] {
   const voicings: ChordVoicing[] = [];
 
   for (const deg of SCALE_DEGREES) {
@@ -90,15 +74,24 @@ export function generateVoicings(key: NoteName): ChordVoicing[] {
     const chordName = `${NOTE_DISPLAY[targetNote]}${deg.suffix}`;
     const isMajor = deg.suffix === '';
     const quality = isMajor ? 'major' : 'minor';
+    const shapeSuffix = isMajor ? '' : 'm';
 
-    // Derive from E shape
-    voicings.push(
-      deriveVoicing('E', BASE_SHAPES.E[quality], targetNote, chordName, deg.degree, `E${isMajor ? '' : 'm'}`)
-    );
-    // Derive from A shape
-    voicings.push(
-      deriveVoicing('A', BASE_SHAPES.A[quality], targetNote, chordName, deg.degree, `A${isMajor ? '' : 'm'}`)
-    );
+    for (const [baseRoot, baseFrets, shapeLabel] of [
+      ['E', BASE_SHAPES.E[quality], `E${shapeSuffix}`],
+      ['A', BASE_SHAPES.A[quality], `A${shapeSuffix}`],
+    ] as [NoteName, number[], string][]) {
+      const offset = semitoneOffset(baseRoot, targetNote);
+      // Generate base position and +12 octave
+      for (const o of [offset, offset + 12]) {
+        const frets = baseFrets.map(f => (f === -1 ? -1 : f + o));
+        const playedFrets = frets.filter(f => f > 0);
+        if (playedFrets.length === 0) continue;
+        const maxF = Math.max(...playedFrets);
+        if (maxF > maxFret) continue;
+        const baseFret = Math.min(...playedFrets);
+        voicings.push({ name: chordName, frets, baseFret, barrePosition: o, shapeOrigin: shapeLabel, degree: deg.degree });
+      }
+    }
   }
 
   return voicings;
@@ -117,28 +110,26 @@ export function groupByDegree(voicings: ChordVoicing[]): Map<number, ChordVoicin
 
 // Find the optimal 6-chord combination (one per degree) minimizing total fret movement
 export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>): ChordVoicing[] {
-  const degrees = [1, 2, 3, 4, 5, 6];
-  const options = degrees.map(d => grouped.get(d) ?? []);
+  // Degrees ordered by circle of fifths: 4-1-5-2-6-3
+  const fifthsOrder = [4, 1, 5, 2, 6, 3];
+  const options = fifthsOrder.map(d => grouped.get(d) ?? []);
 
-  // For each combination, compute total pairwise fret distance
+  // Prefer voicings below fret 12, minimize span, tiebreak on movement
   let bestCombo: ChordVoicing[] = [];
-  let bestCost = Infinity;
+  let bestScore = Infinity;
 
-  function avgFret(v: ChordVoicing): number {
-    const played = v.frets.filter(f => f >= 0);
-    if (played.length === 0) return 0;
-    return played.reduce((a, b) => a + b, 0) / played.length;
-  }
-
-  // Brute force: 2^6 = 64 combinations (2 voicings per degree)
   function search(idx: number, current: ChordVoicing[]) {
     if (idx === 6) {
-      let cost = 0;
+      const positions = current.map(c => c.barrePosition);
+      const highCount = positions.filter(p => p >= 12).length;
+      const span = Math.max(...positions) - Math.min(...positions);
+      let move = 0;
       for (let i = 0; i < current.length - 1; i++) {
-        cost += Math.abs(avgFret(current[i]) - avgFret(current[i + 1]));
+        move += Math.abs(current[i].barrePosition - current[i + 1].barrePosition);
       }
-      if (cost < bestCost) {
-        bestCost = cost;
+      const score = highCount * 1000 + span * 100 + move;
+      if (score < bestScore) {
+        bestScore = score;
         bestCombo = [...current];
       }
       return;
@@ -156,6 +147,11 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>): Ch
 }
 
 export { NOTES, NOTE_DISPLAY, CIRCLE_OF_FIFTHS, type NoteName };
+
+// Stable unique key for a voicing
+export function voicingKey(v: ChordVoicing): string {
+  return `${v.name}-${v.shapeOrigin}-${v.barrePosition}`;
+}
 
 // Common chord progressions (degree-based)
 export const PROGRESSIONS = [
