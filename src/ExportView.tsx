@@ -163,6 +163,8 @@ export function useExportImage({
               voicings={filteredVoicings}
               optimal={filteredOptimal}
               light={document.documentElement.getAttribute('data-theme') === 'light'}
+              progressionDegrees={activeProg ? PROGRESSIONS.find(p => p.name === activeProg)?.degrees : undefined}
+              animated={false}
             />
           </div>
         </div>

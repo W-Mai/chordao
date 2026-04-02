@@ -19,6 +19,7 @@ interface ShapeGridProps {
   onHoverChord?: (key: string | null) => void;
   onClickChord?: (key: string) => void;
   progressionDegrees?: number[];
+  animated?: boolean;
 }
 
 export function ShapeGrid({
@@ -30,6 +31,7 @@ export function ShapeGrid({
   onHoverChord,
   onClickChord,
   progressionDegrees,
+  animated = true,
 }: ShapeGridProps) {
   const optimalSet = new Set(optimal.map(voicingKey));
 
@@ -261,12 +263,14 @@ export function ShapeGrid({
                 strokeDasharray="4 3" />
 
               {/* Animated glow dot traveling along path */}
-              <circle r={5} fill="var(--blue)" opacity={0.8}>
-                <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
-              </circle>
-              <circle r={10} fill="var(--blue)" opacity={0.15}>
-                <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
-              </circle>
+              {animated && <>
+                <circle r={5} fill="var(--blue)" opacity={0.8}>
+                  <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+                </circle>
+                <circle r={10} fill="var(--blue)" opacity={0.15}>
+                  <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+                </circle>
+              </>}
 
               {/* Step numbers — group by position, spread horizontally */}
               {(() => {
