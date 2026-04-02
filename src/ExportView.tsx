@@ -1,8 +1,9 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import type { ChordVoicing, NoteName } from './chordData';
 import { ChordDiagram } from './ChordDiagram';
 import { Fretboard } from './Fretboard';
 import { ShapeGrid } from './ShapeGrid';
+import { generateQR } from './qr';
 
 interface ExportViewProps {
   selectedKey: NoteName;
@@ -18,6 +19,15 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewMounted, setPreviewMounted] = useState(false);
+  const [qrChordao, setQrChordao] = useState<string>('');
+  const [qrBlog, setQrBlog] = useState<string>('');
+
+  // Generate QR codes once
+  useEffect(() => {
+    const logoUrl = `${window.location.origin}${import.meta.env.BASE_URL}logo.svg`;
+    generateQR('https://w-mai.github.io/chordao/', 200, logoUrl).then(setQrChordao);
+    generateQR('https://benign.host', 200).then(setQrBlog);
+  }, []);
 
   const exportImage = useCallback(async () => {
     const el = containerRef.current;
@@ -63,9 +73,23 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
       <div style={{ padding: 32, fontFamily: 'Inter, system-ui, sans-serif', color: 'var(--text)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" style={{ width: 32, height: 32 }} />
-          <div>
+          <div style={{ flex: 1 }}>
             <div style={{ fontSize: 20, fontWeight: 'bold', color: 'var(--text)' }}>Chordao — Key of {selectedKey}</div>
             <div style={{ fontSize: 11, color: 'var(--overlay1)' }}>E/Em/A/Am shape derivation</div>
+          </div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {qrChordao && (
+              <div style={{ textAlign: 'center' }}>
+                <img src={qrChordao} alt="Chordao" style={{ width: 56, height: 56, borderRadius: 4 }} />
+                <div style={{ fontSize: 7, color: 'var(--overlay0)', marginTop: 2 }}>Chordao</div>
+              </div>
+            )}
+            {qrBlog && (
+              <div style={{ textAlign: 'center' }}>
+                <img src={qrBlog} alt="Blog" style={{ width: 56, height: 56, borderRadius: 4 }} />
+                <div style={{ fontSize: 7, color: 'var(--overlay0)', marginTop: 2 }}>benign.host</div>
+              </div>
+            )}
           </div>
         </div>
         <div style={{ marginBottom: 20 }}>
