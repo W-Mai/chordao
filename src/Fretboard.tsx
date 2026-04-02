@@ -108,7 +108,7 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
 
             return (
               <g
-                key={`${v.degree}-${v.shapeOrigin}`}
+                key={vKey(v)}
                 opacity={dimmed ? 0.12 : 1}
                 style={{ transition: 'opacity 0.2s' }}
                 onPointerEnter={() => handleEnter(key)}
@@ -125,9 +125,8 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
                   />
                 )}
 
-                {/* Dots: circle for E shape, rounded rect for A shape, barre bar for consecutive same-fret */}
+                {/* Dots: circle for E shape, rounded rect for A shape, barre bar only when active */}
                 {(() => {
-                  // Group consecutive strings on the same fret into barre segments
                   type Dot = { fret: number; si: number; x: number; y: number };
                   const dots: Dot[] = [];
                   v.frets.forEach((fret, si) => {
@@ -135,7 +134,20 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
                     dots.push({ fret, si, x: nutW + (fret - 0.5) * fw, y: (STRINGS - 1 - si) * ss });
                   });
 
-                  // Find barre groups: consecutive string indices with same fret
+                  if (!active) {
+                    // Non-active: just draw individual small dots
+                    return dots.map((d, i) => (
+                      <g key={`dot-${i}`} style={{ transform: `translate(${d.x}px, ${d.y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
+                        {isEShape ? (
+                          <circle cx={0} cy={0} r={r} fill={boardBg} stroke={color} strokeWidth={1.5} opacity={0.5} />
+                        ) : (
+                          <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5} fill={boardBg} stroke={color} strokeWidth={1.5} opacity={0.5} />
+                        )}
+                      </g>
+                    ));
+                  }
+
+                  // Active: merge consecutive same-fret into barre bars
                   const rendered = new Set<number>();
                   const elements: React.ReactNode[] = [];
 
@@ -147,7 +159,6 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
                     }
                     const span = j - i;
                     if (span >= 2) {
-                      // Barre bar
                       const first = dots[i];
                       const last = dots[j - 1];
                       const barX = first.x;
@@ -155,46 +166,27 @@ export function Fretboard({ voicings, optimal: _optimal, light = false, totalFre
                       const y2 = Math.max(first.y, last.y);
                       elements.push(
                         <g key={`bar-${i}`} style={{ transform: `translate(${barX}px, ${y1}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
-                          <rect
-                            x={-r} y={-r}
-                            width={r * 2} height={y2 - y1 + r * 2}
-                            rx={r}
-                            fill={active ? color : boardBg}
-                            stroke={color} strokeWidth={active ? 0 : 1.5}
-                            opacity={active ? 0.9 : 0.5}
-                          />
-                          {active && (
-                            <text x={0} y={(y2 - y1) / 2 + 0.5} textAnchor="middle" dominantBaseline="middle"
-                              fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
-                            >{DEGREE_LABELS[v.degree]}</text>
-                          )}
+                          <rect x={-r} y={-r} width={r * 2} height={y2 - y1 + r * 2} rx={r}
+                            fill={color} opacity={0.9} />
+                          <text x={0} y={(y2 - y1) / 2 + 0.5} textAnchor="middle" dominantBaseline="middle"
+                            fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
+                          >{DEGREE_LABELS[v.degree]}</text>
                         </g>
                       );
                       for (let k = i; k < j; k++) rendered.add(k);
                     } else {
-                      // Single dot
                       const d = dots[i];
                       rendered.add(i);
                       elements.push(
                         <g key={`dot-${i}`} style={{ transform: `translate(${d.x}px, ${d.y}px)`, transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
                           {isEShape ? (
-                            <circle cx={0} cy={0} r={r}
-                              fill={active ? color : boardBg}
-                              stroke={color} strokeWidth={active ? 0 : 1.5}
-                              opacity={active ? 0.9 : 0.5}
-                            />
+                            <circle cx={0} cy={0} r={r} fill={color} opacity={0.9} />
                           ) : (
-                            <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5}
-                              fill={active ? color : boardBg}
-                              stroke={color} strokeWidth={active ? 0 : 1.5}
-                              opacity={active ? 0.9 : 0.5}
-                            />
+                            <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5} fill={color} opacity={0.9} />
                           )}
-                          {active && (
-                            <text x={0} y={0.5} textAnchor="middle" dominantBaseline="middle"
-                              fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
-                            >{DEGREE_LABELS[v.degree]}</text>
-                          )}
+                          <text x={0} y={0.5} textAnchor="middle" dominantBaseline="middle"
+                            fontSize={7} fontWeight="bold" fill="#fff" fontFamily="monospace"
+                          >{DEGREE_LABELS[v.degree]}</text>
                         </g>
                       );
                     }
