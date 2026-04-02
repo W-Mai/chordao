@@ -230,53 +230,86 @@ function App() {
                 <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-sm font-bold tracking-wide leading-tight text-txt"
+                <h1
+                  className="text-sm font-bold tracking-wide leading-tight text-txt"
                   style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}
-                >{t('appName')}</h1>
+                >
+                  {t('appName')}
+                </h1>
                 <p className="text-[9px] text-overlay1 leading-tight hidden md:block">{t('subtitle')}</p>
               </div>
               {/* Mobile: buttons inline */}
               <div className="flex gap-1 shrink-0 md:hidden">
-                <button onClick={toggleBarre}
+                <button
+                  onClick={toggleBarre}
                   className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
                   style={{ transition: 'all var(--transition)' }}
-                >B</button>
-                <button onClick={toggleKeyOrder}
+                >
+                  B
+                </button>
+                <button
+                  onClick={toggleKeyOrder}
                   className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
                   style={{ transition: 'all var(--transition)' }}
-                >{keyOrder === 'fifths' ? '⑤' : '♪'}</button>
-                <button onClick={cycleTheme}
+                >
+                  {keyOrder === 'fifths' ? '⑤' : '♪'}
+                </button>
+                <button
+                  onClick={cycleTheme}
                   className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
                   style={{ transition: 'all var(--transition)' }}
-                >{THEME_ICONS[theme]}</button>
+                >
+                  {THEME_ICONS[theme]}
+                </button>
                 <Guide />
                 <button
-                  onClick={() => { const next = i18n.language === 'en' ? 'zh' : 'en'; i18n.changeLanguage(next); localStorage.setItem('chordao:lang', next); }}
+                  onClick={() => {
+                    const next = i18n.language === 'en' ? 'zh' : 'en';
+                    i18n.changeLanguage(next);
+                    localStorage.setItem('chordao:lang', next);
+                  }}
                   className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
                   style={{ transition: 'all var(--transition)' }}
-                >{i18n.language === 'en' ? '中' : 'En'}</button>
+                >
+                  {i18n.language === 'en' ? '中' : 'En'}
+                </button>
               </div>
             </div>
             {/* Desktop: buttons second row */}
             <div className="hidden md:grid grid-cols-5 gap-1 mt-2">
-              <button onClick={toggleBarre}
+              <button
+                onClick={toggleBarre}
                 className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
                 style={{ transition: 'all var(--transition)' }}
-              >Barre</button>
-              <button onClick={toggleKeyOrder}
+              >
+                Barre
+              </button>
+              <button
+                onClick={toggleKeyOrder}
                 className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
                 style={{ transition: 'all var(--transition)' }}
-              >{keyOrder === 'fifths' ? '⑤ 5ths' : '♪ Semi'}</button>
-              <button onClick={cycleTheme}
+              >
+                {keyOrder === 'fifths' ? '⑤ 5ths' : '♪ Semi'}
+              </button>
+              <button
+                onClick={cycleTheme}
                 className="text-[11px] py-1.5 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer text-center"
                 style={{ transition: 'all var(--transition)' }}
-              >{THEME_ICONS[theme]}</button>
+              >
+                {THEME_ICONS[theme]}
+              </button>
               <Guide />
               <button
-                onClick={() => { const next = i18n.language === 'en' ? 'zh' : 'en'; i18n.changeLanguage(next); localStorage.setItem('chordao:lang', next); }}
+                onClick={() => {
+                  const next = i18n.language === 'en' ? 'zh' : 'en';
+                  i18n.changeLanguage(next);
+                  localStorage.setItem('chordao:lang', next);
+                }}
                 className="text-[11px] py-1.5 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer text-center"
                 style={{ transition: 'all var(--transition)' }}
-              >{i18n.language === 'en' ? '中' : 'En'}</button>
+              >
+                {i18n.language === 'en' ? '中' : 'En'}
+              </button>
             </div>
           </div>
           <div className="grid grid-cols-6 md:grid-cols-4 gap-1">

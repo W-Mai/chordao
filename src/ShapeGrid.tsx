@@ -241,71 +241,88 @@ export function ShapeGrid({
           }),
         )}
         {/* Progression path with animated dot */}
-        {progressionDegrees && progressionDegrees.length > 1 && (() => {
-          const optMap = new Map(optimal.map(v => [v.degree, v]));
-          const steps: { x: number; y: number; deg: number }[] = [];
-          for (const deg of progressionDegrees) {
-            const v = optMap.get(deg);
-            if (!v) continue;
-            const rowIdx = rows[0].shapes.includes(v.shapeOrigin) ? 0 : 1;
-            steps.push({ x: cellX(v.barrePosition), y: stringY[rowIdx], deg });
-          }
-          if (steps.length < 2) return null;
+        {progressionDegrees &&
+          progressionDegrees.length > 1 &&
+          (() => {
+            const optMap = new Map(optimal.map((v) => [v.degree, v]));
+            const steps: { x: number; y: number; deg: number }[] = [];
+            for (const deg of progressionDegrees) {
+              const v = optMap.get(deg);
+              if (!v) continue;
+              const rowIdx = rows[0].shapes.includes(v.shapeOrigin) ? 0 : 1;
+              steps.push({ x: cellX(v.barrePosition), y: stringY[rowIdx], deg });
+            }
+            if (steps.length < 2) return null;
 
-          // Build closed loop path (last → first to close)
-          const allPts = [...steps, steps[0]];
-          const pathD = allPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+            // Build closed loop path (last → first to close)
+            const allPts = [...steps, steps[0]];
+            const pathD = allPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
 
-          return (
-            <g>
-              {/* Path line */}
-              <path d={pathD} fill="none" stroke="var(--blue)" strokeWidth={1.5} opacity={0.2}
-                strokeDasharray="4 3" />
+            return (
+              <g>
+                {/* Path line */}
+                <path
+                  d={pathD}
+                  fill="none"
+                  stroke="var(--blue)"
+                  strokeWidth={1.5}
+                  opacity={0.2}
+                  strokeDasharray="4 3"
+                />
 
-              {/* Animated glow dot traveling along path */}
-              {animated && <>
-                <circle r={5} fill="var(--blue)" opacity={0.8}>
-                  <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
-                </circle>
-                <circle r={10} fill="var(--blue)" opacity={0.15}>
-                  <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
-                </circle>
-              </>}
+                {/* Animated glow dot traveling along path */}
+                {animated && (
+                  <>
+                    <circle r={5} fill="var(--blue)" opacity={0.8}>
+                      <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+                    </circle>
+                    <circle r={10} fill="var(--blue)" opacity={0.15}>
+                      <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+                    </circle>
+                  </>
+                )}
 
-              {/* Step numbers — group by position, spread horizontally */}
-              {(() => {
-                const posKey = (s: { x: number; y: number }) => `${s.x},${s.y}`;
-                const groups = new Map<string, number[]>();
-                steps.forEach((s, i) => {
-                  const k = posKey(s);
-                  const arr = groups.get(k) ?? [];
-                  arr.push(i);
-                  groups.set(k, arr);
-                });
-                const elements: React.ReactNode[] = [];
-                for (const [, indices] of groups) {
-                  const s = steps[indices[0]];
-                  const count = indices.length;
-                  const spacing = 16;
-                  const totalW = (count - 1) * spacing;
-                  indices.forEach((idx, j) => {
-                    const offsetX = -totalW / 2 + j * spacing;
-                    elements.push(
-                      <g key={`step-${idx}`}>
-                        <circle cx={s.x + offsetX} cy={s.y - dotR - 8} r={7} fill="var(--blue)" opacity={0.15} />
-                        <text x={s.x + offsetX} y={s.y - dotR - 5}
-                          textAnchor="middle" fontSize={8} fontWeight="bold"
-                          fill="var(--blue)" opacity={0.9}
-                        >{idx + 1}</text>
-                      </g>
-                    );
+                {/* Step numbers — group by position, spread horizontally */}
+                {(() => {
+                  const posKey = (s: { x: number; y: number }) => `${s.x},${s.y}`;
+                  const groups = new Map<string, number[]>();
+                  steps.forEach((s, i) => {
+                    const k = posKey(s);
+                    const arr = groups.get(k) ?? [];
+                    arr.push(i);
+                    groups.set(k, arr);
                   });
-                }
-                return elements;
-              })()}
-            </g>
-          );
-        })()}
+                  const elements: React.ReactNode[] = [];
+                  for (const [, indices] of groups) {
+                    const s = steps[indices[0]];
+                    const count = indices.length;
+                    const spacing = 16;
+                    const totalW = (count - 1) * spacing;
+                    indices.forEach((idx, j) => {
+                      const offsetX = -totalW / 2 + j * spacing;
+                      elements.push(
+                        <g key={`step-${idx}`}>
+                          <circle cx={s.x + offsetX} cy={s.y - dotR - 8} r={7} fill="var(--blue)" opacity={0.15} />
+                          <text
+                            x={s.x + offsetX}
+                            y={s.y - dotR - 5}
+                            textAnchor="middle"
+                            fontSize={8}
+                            fontWeight="bold"
+                            fill="var(--blue)"
+                            opacity={0.9}
+                          >
+                            {idx + 1}
+                          </text>
+                        </g>,
+                      );
+                    });
+                  }
+                  return elements;
+                })()}
+              </g>
+            );
+          })()}
       </svg>
     </div>
   );
