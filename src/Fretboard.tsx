@@ -100,7 +100,7 @@ export function Fretboard({ voicings, optimal, light = false, totalFrets = 15, h
             const key = vKey(v);
             const isOpt = optimalSet.has(key);
             const isHov = hovered === key;
-            const dimmed = hovered !== null && !isHov;
+            const dimmed = hovered != null && !isHov;
             const color = DEGREE_COLORS[v.degree];
             const pts = getPoints(v);
             const isEShape = v.shapeOrigin.startsWith('E');

@@ -123,7 +123,7 @@ export function ShapeGrid({ voicings, optimal, light = false, totalFrets = 12, h
             const vKey = voicings.find(v => v.degree === cell.degree && rows[ri].shapes.includes(v.shapeOrigin));
             const chordKey = vKey ? `${vKey.name}-${vKey.shapeOrigin}` : '';
             const isHov = hoveredChord === chordKey;
-            const dimmed = hoveredChord !== null && !isHov;
+            const dimmed = hoveredChord != null && !isHov;
 
             return (
               <g key={`${cell.degree}-${ri}`}
