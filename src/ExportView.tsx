@@ -71,11 +71,18 @@ export function useExportImage({ selectedKey, voicings, optimal, optimalSet, gro
       style={{ display: 'none', position: 'fixed', left: '-9999px', top: 0, width: 1200, zIndex: -1 }}
     >
       <div style={{ padding: 32, fontFamily: 'Inter, system-ui, sans-serif', color: 'var(--text)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" style={{ width: 32, height: 32 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+          {/* Large key badge */}
+          <div style={{
+            width: 64, height: 64, borderRadius: 16,
+            background: 'var(--blue)', color: 'var(--crust)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 28, fontWeight: 'bold', flexShrink: 0,
+            boxShadow: '0 0 20px var(--blue)',
+          }}>{selectedKey}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 20, fontWeight: 'bold', color: 'var(--text)' }}>Chordao — Key of {selectedKey}</div>
-            <div style={{ fontSize: 11, color: 'var(--overlay1)' }}>E/Em/A/Am shape derivation</div>
+            <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>Chordao</div>
+            <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>Key of {selectedKey} · E/Em/A/Am shape derivation</div>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             {qrChordao && (
