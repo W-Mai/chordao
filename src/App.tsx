@@ -24,7 +24,15 @@ function ExpandBtn({ onClick }: { onClick: () => void }) {
 }
 
 function App() {
-  const [selectedKey, setSelectedKey] = useState<NoteName>('C');
+  const [selectedKey, _setSelectedKey] = useState<NoteName>('C');
+
+  const [hoveredChord, setHoveredChord] = useState<string | null>(null);
+  const [lockedChord, setLockedChord] = useState<string | null>(null);
+  const activeChordKey = lockedChord ?? hoveredChord;
+  const handleHoverChord = useCallback((key: string | null) => setHoveredChord(key), []);
+  const resetHover = useCallback(() => { setHoveredChord(null); setLockedChord(null); }, []);
+
+  const setSelectedKey = useCallback((k: NoteName) => { _setSelectedKey(k); resetHover(); }, [resetHover]);
 
   const systemTheme = () => matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 
@@ -86,13 +94,14 @@ function App() {
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
 
   const [activeDegree, setActiveDegree] = useState<number | null>(null);
-  const toggleDegree = useCallback((d: number) => setActiveDegree(v => v === d ? null : d), []);
+  const toggleDegree = useCallback((d: number) => { setActiveDegree(v => v === d ? null : d); resetHover(); }, [resetHover]);
 
   const [activeProg, setActiveProg] = useState<string | null>(null);
   const toggleProg = useCallback((name: string) => {
     setActiveProg(v => v === name ? null : name);
     setActiveDegree(null);
-  }, []);
+    resetHover();
+  }, [resetHover]);
 
   const activeProgObj = useMemo(() => activeProg ? PROGRESSIONS.find(p => p.name === activeProg) : null, [activeProg]);
   const optimal = useMemo(() => findOptimalCombination(grouped, activeProgObj?.degrees), [grouped, activeProgObj]);
@@ -114,10 +123,6 @@ function App() {
     return optimal;
   }, [optimal, activeDegree, activeProgDegrees]);
 
-  const [hoveredChord, setHoveredChord] = useState<string | null>(null);
-  const [lockedChord, setLockedChord] = useState<string | null>(null);
-  const activeChordKey = lockedChord ?? hoveredChord;
-  const handleHoverChord = useCallback((key: string | null) => setHoveredChord(key), []);
   const handleClickChord = useCallback((key: string) => {
     setLockedChord(prev => prev === key ? null : key);
   }, []);
