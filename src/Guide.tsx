@@ -120,9 +120,9 @@ const step5svg = (
     <text x={25} y={18} textAnchor="middle" fontSize={10} fill="#7f849c">×</text>
     <circle cx={43} cy={18} r={4} fill="none" stroke="#7f849c" strokeWidth={1.2} />
     <circle cx={115} cy={18} r={4} fill="none" stroke="#7f849c" strokeWidth={1.2} />
-    <circle cx={61} cy={36} r={6} fill="#cba6f7" />
-    <circle cx={79} cy={47} r={6} fill="#cba6f7" />
-    <circle cx={97} cy={47} r={6} fill="#cba6f7" />
+    <circle cx={61} cy={58} r={6} fill="#cba6f7" />
+    <circle cx={79} cy={58} r={6} fill="#cba6f7" />
+    <circle cx={97} cy={36} r={6} fill="#cba6f7" />
     <text x={70} y={125} textAnchor="middle" fontSize={8} fill="#7f849c">× = mute · ○ = open · ● = press</text>
   </svg>
 );
