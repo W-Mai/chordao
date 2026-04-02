@@ -121,12 +121,9 @@ export function useExportImage({ selectedKey, voicings: _voicings, optimal: _opt
           <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--panel-border)', background: 'var(--mantle)', fontSize: 11, fontWeight: 600, color: 'var(--subtext1)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chord Diagrams</div>
           <div style={{ padding: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 12 }}>
-              {[1, 2, 3, 4, 5, 6].map(degree => {
-                const dv = grouped.get(degree) ?? [];
-                return dv.map(v => (
-                  <ChordDiagram key={voicingKey(v)} voicing={v} highlighted={optimalSet.has(voicingKey(v))} light={document.documentElement.getAttribute('data-theme') === 'light'} showBarre={showBarre} className="w-full" />
-                ));
-              })}
+              {(activeProg ? filteredVoicings : [1, 2, 3, 4, 5, 6].flatMap(d => grouped.get(d) ?? [])).map(v => (
+                <ChordDiagram key={voicingKey(v)} voicing={v} highlighted={optimalSet.has(voicingKey(v))} light={document.documentElement.getAttribute('data-theme') === 'light'} showBarre={showBarre} className="w-full" />
+              ))}
             </div>
           </div>
         </div>
