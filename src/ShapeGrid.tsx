@@ -268,16 +268,37 @@ export function ShapeGrid({
                 <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
               </circle>
 
-              {/* Step numbers */}
-              {steps.map((s, i) => (
-                <g key={`step-${i}`}>
-                  <circle cx={s.x} cy={s.y - dotR - 8} r={7} fill="var(--blue)" opacity={0.15} />
-                  <text x={s.x} y={s.y - dotR - 5}
-                    textAnchor="middle" fontSize={8} fontWeight="bold"
-                    fill="var(--blue)" opacity={0.9}
-                  >{i + 1}</text>
-                </g>
-              ))}
+              {/* Step numbers — group by position, spread horizontally */}
+              {(() => {
+                const posKey = (s: { x: number; y: number }) => `${s.x},${s.y}`;
+                const groups = new Map<string, number[]>();
+                steps.forEach((s, i) => {
+                  const k = posKey(s);
+                  const arr = groups.get(k) ?? [];
+                  arr.push(i);
+                  groups.set(k, arr);
+                });
+                const elements: React.ReactNode[] = [];
+                for (const [, indices] of groups) {
+                  const s = steps[indices[0]];
+                  const count = indices.length;
+                  const spacing = 16;
+                  const totalW = (count - 1) * spacing;
+                  indices.forEach((idx, j) => {
+                    const offsetX = -totalW / 2 + j * spacing;
+                    elements.push(
+                      <g key={`step-${idx}`}>
+                        <circle cx={s.x + offsetX} cy={s.y - dotR - 8} r={7} fill="var(--blue)" opacity={0.15} />
+                        <text x={s.x + offsetX} y={s.y - dotR - 5}
+                          textAnchor="middle" fontSize={8} fontWeight="bold"
+                          fill="var(--blue)" opacity={0.9}
+                        >{idx + 1}</text>
+                      </g>
+                    );
+                  });
+                }
+                return elements;
+              })()}
             </g>
           );
         })()}
