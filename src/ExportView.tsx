@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { voicingKey, NOTE_DISPLAY, PROGRESSIONS, type ChordVoicing, type NoteName } from './chordData';
+import { voicingKey, NOTE_DISPLAY, type ChordVoicing, type NoteName } from './chordData';
 import { useTranslation } from 'react-i18next';
 import { ChordDiagram } from './ChordDiagram';
 import { ShapeGrid } from './ShapeGrid';
@@ -12,7 +12,7 @@ interface ExportViewProps {
   optimalSet: Set<string>;
   grouped: Map<number, ChordVoicing[]>;
   showBarre: boolean;
-  activeProg?: string | null;
+  activeProgObj?: { name: string; degrees: number[] } | null;
   filteredVoicings: ChordVoicing[];
   filteredOptimal: ChordVoicing[];
 }
@@ -24,7 +24,7 @@ export function useExportImage({
   optimalSet,
   grouped,
   showBarre,
-  activeProg,
+  activeProgObj,
   filteredVoicings,
   filteredOptimal,
 }: ExportViewProps) {
@@ -112,11 +112,13 @@ export function useExportImage({
               {t('keyOf')} {NOTE_DISPLAY[selectedKey]} · {t('derivation')}
             </div>
           </div>
-          {activeProg && (
+          {activeProgObj && (
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
-              <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>♪ {t(activeProg as string)}</div>
+              <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>
+                ♪ {activeProgObj.name === 'custom' ? activeProgObj.degrees.join('-') : t(activeProgObj.name as string)}
+              </div>
               <div style={{ fontSize: 11, color: 'var(--overlay1)', marginTop: 2 }}>
-                {PROGRESSIONS.find((p) => p.name === activeProg)?.degrees.join(' → ')}
+                {activeProgObj.degrees.join(' → ')}
               </div>
             </div>
           )}
@@ -163,7 +165,7 @@ export function useExportImage({
               voicings={filteredVoicings}
               optimal={filteredOptimal}
               light={document.documentElement.getAttribute('data-theme') === 'light'}
-              progressionDegrees={activeProg ? PROGRESSIONS.find((p) => p.name === activeProg)?.degrees : undefined}
+              progressionDegrees={activeProgObj?.degrees}
               animated={false}
             />
           </div>
@@ -192,7 +194,7 @@ export function useExportImage({
           </div>
           <div style={{ padding: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: 12 }}>
-              {(activeProg ? filteredVoicings : [1, 2, 3, 4, 5, 6].flatMap((d) => grouped.get(d) ?? [])).map((v) => (
+              {(activeProgObj ? filteredVoicings : [1, 2, 3, 4, 5, 6].flatMap((d) => grouped.get(d) ?? [])).map((v) => (
                 <ChordDiagram
                   key={voicingKey(v)}
                   voicing={v}

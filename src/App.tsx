@@ -49,6 +49,12 @@ function App() {
     return {
       key: (params.get('key') as NoteName) || null,
       prog: params.get('prog') || null,
+      degrees:
+        params
+          .get('degrees')
+          ?.split('-')
+          .map(Number)
+          .filter((n) => n >= 1 && n <= 6) || [],
     };
   }, []);
 
@@ -144,6 +150,8 @@ function App() {
   );
 
   const [activeProg, setActiveProg] = useState<string | null>(initial.prog);
+  const [customDegrees, setCustomDegrees] = useState<number[]>(initial.degrees);
+  const [customInput, setCustomInput] = useState(initial.degrees.length ? initial.degrees.join(' ') : '');
   const toggleProg = useCallback(
     (name: string) => {
       setActiveProg((v) => (v === name ? null : name));
@@ -153,10 +161,27 @@ function App() {
     [resetHover],
   );
 
-  const activeProgObj = useMemo(
-    () => (activeProg ? PROGRESSIONS.find((p) => p.name === activeProg) : null),
-    [activeProg],
+  const handleCustomProg = useCallback(
+    (input: string) => {
+      const degrees = input
+        .split(/[\s,\-]+/)
+        .map(Number)
+        .filter((n) => n >= 1 && n <= 6);
+      setCustomInput(input);
+      if (degrees.length >= 2) {
+        setCustomDegrees(degrees);
+        setActiveProg('custom');
+        setActiveDegree(null);
+        resetHover();
+      }
+    },
+    [resetHover],
   );
+
+  const activeProgObj = useMemo(() => {
+    if (activeProg === 'custom' && customDegrees.length >= 2) return { name: 'custom', degrees: customDegrees };
+    return activeProg ? (PROGRESSIONS.find((p) => p.name === activeProg) ?? null) : null;
+  }, [activeProg, customDegrees]);
   const optimal = useMemo(() => findOptimalCombination(grouped, activeProgObj?.degrees), [grouped, activeProgObj]);
   const optimalSet = useMemo(() => new Set(optimal.map(voicingKey)), [optimal]);
 
@@ -184,9 +209,14 @@ function App() {
   useEffect(() => {
     const params = new URLSearchParams();
     params.set('key', selectedKey);
-    if (activeProg) params.set('prog', activeProg);
+    if (activeProg === 'custom' && customDegrees.length >= 2) {
+      params.set('prog', 'custom');
+      params.set('degrees', customDegrees.join('-'));
+    } else if (activeProg) {
+      params.set('prog', activeProg);
+    }
     window.history.replaceState(null, '', `#${params.toString()}`);
-  }, [selectedKey, activeProg]);
+  }, [selectedKey, activeProg, customDegrees]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -209,7 +239,7 @@ function App() {
     optimalSet,
     grouped,
     showBarre,
-    activeProg,
+    activeProgObj,
     filteredVoicings,
     filteredOptimal,
   });
@@ -411,6 +441,18 @@ function App() {
                 onSelect={(name) => setActiveProg(name || null)}
               />
             </div>
+            {/* Custom progression input */}
+            <input
+              type="text"
+              placeholder="1 4 5 1"
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              className="w-full text-[11px] px-2 py-1 mt-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue"
+              style={{ transition: 'border-color var(--transition)' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
+              }}
+            />
           </div>
 
           <div className="hidden md:block mt-auto" />
