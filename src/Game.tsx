@@ -356,7 +356,7 @@ export function Game() {
                         <ShapeGrid
                           voicings={question.allVoicings}
                           optimal={question.optimal}
-                          light={false}
+                          light={document.documentElement.getAttribute('data-theme') === 'light'}
                           totalFrets={12}
                           hoveredChord={selectedAnswer}
                           onClickChord={handleGridClick}
@@ -372,7 +372,7 @@ export function Game() {
                         <ShapeGrid
                           voicings={question.allVoicings}
                           optimal={[question.voicing]}
-                          light={false}
+                          light={document.documentElement.getAttribute('data-theme') === 'light'}
                           totalFrets={12}
                           hideLabels
                           monoColor={difficulty !== 'easy'}
