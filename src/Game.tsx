@@ -335,9 +335,7 @@ export function Game() {
                   >
                     {/* Prompt */}
                     <div className="text-center mb-3">
-                      <span className="text-xs text-overlay0 uppercase tracking-wider">
-                        {NOTE_DISPLAY[question.key]}
-                      </span>
+                      <span className="text-xs text-overlay0 tracking-wider">{NOTE_DISPLAY[question.key]}</span>
                       <div className="text-xl font-bold mt-1">
                         {mode === 'reverse' ? '?' : DEGREE_LABELS[question.degree]}
                       </div>
@@ -367,6 +365,7 @@ export function Game() {
                           hoveredChord={selectedAnswer}
                           onClickChord={handleGridClick}
                           hideLabels
+                          monoColor={difficulty !== 'easy'}
                         />
                       </div>
                     )}
@@ -379,6 +378,8 @@ export function Game() {
                           optimal={[question.voicing]}
                           light={false}
                           totalFrets={12}
+                          hideLabels
+                          monoColor={difficulty !== 'easy'}
                         />
                       </div>
                     )}

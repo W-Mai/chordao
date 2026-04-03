@@ -21,6 +21,7 @@ interface ShapeGridProps {
   progressionDegrees?: number[];
   animated?: boolean;
   hideLabels?: boolean;
+  monoColor?: boolean;
 }
 
 export function ShapeGrid({
@@ -34,6 +35,7 @@ export function ShapeGrid({
   progressionDegrees,
   animated = true,
   hideLabels = false,
+  monoColor = false,
 }: ShapeGridProps) {
   const optimalSet = new Set(optimal.map(voicingKey));
 
@@ -185,7 +187,7 @@ export function ShapeGrid({
             if (!cell) return null;
             const x = cellX(fret);
             const y = stringY[ri];
-            const color = DEGREE_COLORS[cell.degree];
+            const color = monoColor ? 'var(--overlay0)' : DEGREE_COLORS[cell.degree];
             const isOpt = cell.isOptimal;
             const r = dotR;
             const chordKey = cell.key;
@@ -209,7 +211,7 @@ export function ShapeGrid({
                   cx={0}
                   cy={0}
                   r={r}
-                  fill={(hoveredChord == null ? isOpt : isHov) ? color : boardBg}
+                  fill={(hoveredChord == null ? isOpt : isHov) ? (monoColor ? 'var(--blue)' : color) : boardBg}
                   stroke={color}
                   strokeWidth={(hoveredChord == null ? isOpt : isHov) ? 0 : 2}
                   opacity={(hoveredChord == null ? isOpt : isHov) ? 0.9 : 0.7}
