@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   NOTES,
@@ -32,6 +32,7 @@ interface Question {
   voicing: ChordVoicing;
   allVoicings: ChordVoicing[];
   optimal: ChordVoicing[];
+  reverseOptions: number[];
 }
 
 function generateQuestion(difficulty: Difficulty): Question {
@@ -43,7 +44,10 @@ function generateQuestion(difficulty: Difficulty): Question {
   const degree = randomItem(degrees);
   const degVoicings = grouped.get(degree) ?? [];
   const voicing = randomItem(degVoicings);
-  return { key, degree, voicing, allVoicings: voicings, optimal };
+  const options = new Set([degree]);
+  while (options.size < Math.min(3, degrees.length)) options.add(randomItem(degrees));
+  const reverseOptions = [...options].sort(() => Math.random() - 0.5);
+  return { key, degree, voicing, allVoicings: voicings, optimal, reverseOptions };
 }
 
 const TOTAL_QUESTIONS = 10;
@@ -145,14 +149,7 @@ export function Game() {
     [question, feedback, recordAnswer],
   );
 
-  const reverseOptions = useMemo(() => {
-    if (!question || mode !== 'reverse') return [];
-    const correct = question.degree;
-    const degrees = difficulty === 'easy' ? EASY_DEGREES : ALL_DEGREES;
-    const options = new Set([correct]);
-    while (options.size < Math.min(3, degrees.length)) options.add(randomItem(degrees));
-    return [...options].sort(() => Math.random() - 0.5);
-  }, [question, mode, difficulty]);
+  const reverseOptions = question?.reverseOptions ?? [];
 
   const handleReverseAnswer = useCallback(
     (deg: number) => {

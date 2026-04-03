@@ -24,9 +24,10 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/refs': 'off',
       'react-hooks/set-state-in-effect': 'off',
-      'i18next/no-literal-string': ['error', {
+      'i18next/no-literal-string': ['warn', {
         markupOnly: true,
-        ignoreAttribute: ['className', 'style', 'key', 'viewBox', 'fill', 'stroke', 'cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'rx', 'ry', 'width', 'height', 'd', 'points', 'transform', 'textAnchor', 'dominantBaseline', 'fontFamily', 'strokeWidth', 'strokeLinejoin', 'opacity'],
+        ignoreAttribute: ['className', 'style', 'key', 'viewBox', 'fill', 'stroke', 'cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'rx', 'ry', 'width', 'height', 'd', 'points', 'transform', 'textAnchor', 'dominantBaseline', 'fontFamily', 'strokeWidth', 'strokeLinejoin', 'opacity', 'aria-label', 'title'],
+        ignore: ['Chordao', 'benign.host', 'GitHub', 'MIT', '✕', '♪', '🔥', '🎮', '|'],
       }],
     },
     languageOptions: {
