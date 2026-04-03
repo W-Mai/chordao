@@ -335,11 +335,10 @@ export function Game() {
                   >
                     {/* Prompt */}
                     <div className="text-center mb-3">
-                      <span className="text-xs text-overlay0 tracking-wider">{NOTE_DISPLAY[question.key]}</span>
-                      <div className="text-xl font-bold mt-1">
+                      <div className="text-xl font-bold">
                         {mode === 'reverse' ? '?' : DEGREE_LABELS[question.degree]}
                       </div>
-                      <div className="text-xs text-overlay1 mt-0.5">
+                      <div className="text-xs text-overlay1 mt-1">
                         {mode === 'flash' &&
                           t('gameFlashPrompt', {
                             key: NOTE_DISPLAY[question.key],
