@@ -64,6 +64,15 @@ export function Game() {
   const [shakeKey, setShakeKey] = useState(0);
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [rotated, setRotated] = useState(false);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const update = () => setRotated(window.innerHeight > window.innerWidth);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [mounted]);
 
   const openGame = useCallback(() => {
     setOpen(true);
@@ -171,12 +180,31 @@ export function Game() {
 
       {mounted && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-crust/95 backdrop-blur-sm"
-          style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.25s ease' }}
+          className="fixed z-50 flex items-center justify-center bg-crust/95 backdrop-blur-sm"
+          style={
+            rotated
+              ? {
+                  width: '100vh',
+                  height: '100vw',
+                  transform: `rotate(90deg) scale(${visible ? 1 : 0.92})`,
+                  transformOrigin: 'top left',
+                  left: '100vw',
+                  top: 0,
+                  opacity: visible ? 1 : 0,
+                  transition: 'opacity 0.25s ease, transform 0.25s ease',
+                }
+              : {
+                  inset: 0,
+                  opacity: visible ? 1 : 0,
+                  transform: `scale(${visible ? 1 : 0.92})`,
+                  transition: 'opacity 0.25s ease, transform 0.25s ease',
+                }
+          }
         >
           <div
-            className="max-w-2xl w-full mx-3 rounded-2xl border border-surface0 bg-mantle text-txt max-h-[90vh] overflow-y-auto flex flex-col"
+            className="max-w-2xl w-full mx-3 rounded-2xl border border-surface0 bg-mantle text-txt overflow-y-auto flex flex-col"
             style={{
+              maxHeight: rotated ? 'calc(100vw - 1.5rem)' : '90vh',
               opacity: visible ? 1 : 0,
               transform: visible ? 'scale(1)' : 'scale(0.92)',
               transition: 'opacity 0.25s ease, transform 0.25s ease',
