@@ -150,7 +150,7 @@ export function Game() {
     const correct = question.degree;
     const degrees = difficulty === 'easy' ? EASY_DEGREES : ALL_DEGREES;
     const options = new Set([correct]);
-    while (options.size < Math.min(4, degrees.length)) options.add(randomItem(degrees));
+    while (options.size < Math.min(3, degrees.length)) options.add(randomItem(degrees));
     return [...options].sort(() => Math.random() - 0.5);
   }, [question, mode, difficulty]);
 
@@ -202,9 +202,10 @@ export function Game() {
           }
         >
           <div
-            className="max-w-2xl w-full mx-3 rounded-2xl border border-surface0 bg-mantle text-txt overflow-y-auto flex flex-col"
+            className="w-fit max-w-[95vw] mx-3 rounded-2xl border border-surface0 bg-mantle text-txt overflow-y-auto flex flex-col"
             style={{
               maxHeight: rotated ? 'calc(100vw - 1.5rem)' : '90vh',
+              maxWidth: rotated ? 'calc(100vh - 1.5rem)' : '95vw',
               opacity: visible ? 1 : 0,
               transform: visible ? 'scale(1)' : 'scale(0.92)',
               transition: 'opacity 0.25s ease, transform 0.25s ease',
@@ -385,7 +386,7 @@ export function Game() {
 
                   {/* Reverse choices */}
                   {mode === 'reverse' && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       {reverseOptions.map((deg) => (
                         <button
                           key={deg}
