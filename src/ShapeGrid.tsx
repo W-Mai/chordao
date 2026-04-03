@@ -20,6 +20,7 @@ interface ShapeGridProps {
   onClickChord?: (key: string) => void;
   progressionDegrees?: number[];
   animated?: boolean;
+  hideLabels?: boolean;
 }
 
 export function ShapeGrid({
@@ -32,6 +33,7 @@ export function ShapeGrid({
   onClickChord,
   progressionDegrees,
   animated = true,
+  hideLabels = false,
 }: ShapeGridProps) {
   const optimalSet = new Set(optimal.map(voicingKey));
 
@@ -212,30 +214,34 @@ export function ShapeGrid({
                   strokeWidth={(hoveredChord == null ? isOpt : isHov) ? 0 : 2}
                   opacity={(hoveredChord == null ? isOpt : isHov) ? 0.9 : 0.7}
                 />
-                <text
-                  x={0}
-                  y={-3}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={10}
-                  fontWeight="bold"
-                  fill={(hoveredChord == null ? isOpt : isHov) ? '#fff' : color}
-                  fontFamily="monospace"
-                >
-                  {DEGREE_LABELS[cell.degree]}
-                </text>
-                <text
-                  x={0}
-                  y={7}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={6.5}
-                  fontWeight="bold"
-                  fill={(hoveredChord == null ? isOpt : isHov) ? 'rgba(255,255,255,0.8)' : color}
-                  opacity={isOpt || isHov ? 1 : 0.7}
-                >
-                  {cell.name}
-                </text>
+                {!hideLabels && (
+                  <>
+                    <text
+                      x={0}
+                      y={-3}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={10}
+                      fontWeight="bold"
+                      fill={(hoveredChord == null ? isOpt : isHov) ? '#fff' : color}
+                      fontFamily="monospace"
+                    >
+                      {DEGREE_LABELS[cell.degree]}
+                    </text>
+                    <text
+                      x={0}
+                      y={7}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={6.5}
+                      fontWeight="bold"
+                      fill={(hoveredChord == null ? isOpt : isHov) ? 'rgba(255,255,255,0.8)' : color}
+                      opacity={isOpt || isHov ? 1 : 0.7}
+                    >
+                      {cell.name}
+                    </text>
+                  </>
+                )}
               </g>
             );
           }),

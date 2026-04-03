@@ -24,7 +24,7 @@ export default defineConfig([
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/refs': 'off',
       'react-hooks/set-state-in-effect': 'off',
-      'i18next/no-literal-string': ['warn', {
+      'i18next/no-literal-string': ['error', {
         markupOnly: true,
         ignoreAttribute: ['className', 'style', 'key', 'viewBox', 'fill', 'stroke', 'cx', 'cy', 'r', 'x', 'y', 'x1', 'x2', 'y1', 'y2', 'rx', 'ry', 'width', 'height', 'd', 'points', 'transform', 'textAnchor', 'dominantBaseline', 'fontFamily', 'strokeWidth', 'strokeLinejoin', 'opacity'],
       }],

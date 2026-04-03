@@ -20,6 +20,7 @@ import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
 import { Roller } from './Roller';
 
 import { Guide } from './Guide';
+import { Game } from './Game';
 import { useExportImage } from './ExportView';
 
 const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
@@ -262,6 +263,7 @@ function App() {
                   {THEME_ICONS[theme]}
                 </button>
                 <Guide />
+                <Game />
                 <button
                   onClick={() => {
                     const next = i18n.language === 'en' ? 'zh' : 'en';
@@ -299,6 +301,7 @@ function App() {
                 {THEME_ICONS[theme]}
               </button>
               <Guide />
+              <Game />
               <button
                 onClick={() => {
                   const next = i18n.language === 'en' ? 'zh' : 'en';
