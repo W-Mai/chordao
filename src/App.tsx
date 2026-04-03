@@ -42,7 +42,18 @@ function ExpandBtn({ onClick }: { onClick: () => void }) {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const [selectedKey, _setSelectedKey] = useState<NoteName>('C');
+
+  // Parse URL hash for shared state: #key=C&prog=progPopCanon
+  const parseHash = useCallback(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    return {
+      key: (params.get('key') as NoteName) || null,
+      prog: params.get('prog') || null,
+    };
+  }, []);
+
+  const initial = parseHash();
+  const [selectedKey, _setSelectedKey] = useState<NoteName>(initial.key || 'C');
 
   const [hoveredChord, setHoveredChord] = useState<string | null>(null);
   const [lockedChord, setLockedChord] = useState<string | null>(null);
@@ -132,7 +143,7 @@ function App() {
     [resetHover],
   );
 
-  const [activeProg, setActiveProg] = useState<string | null>(null);
+  const [activeProg, setActiveProg] = useState<string | null>(initial.prog);
   const toggleProg = useCallback(
     (name: string) => {
       setActiveProg((v) => (v === name ? null : name));
@@ -168,6 +179,14 @@ function App() {
   const handleClickChord = useCallback((key: string) => {
     setLockedChord((prev) => (prev === key ? null : key));
   }, []);
+
+  // Sync state to URL hash for sharing
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('key', selectedKey);
+    if (activeProg) params.set('prog', activeProg);
+    window.history.replaceState(null, '', `#${params.toString()}`);
+  }, [selectedKey, activeProg]);
 
   // Keyboard shortcuts
   useEffect(() => {
