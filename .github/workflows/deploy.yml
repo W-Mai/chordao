@@ -30,6 +30,8 @@ jobs:
         run: bun run lint
       - name: Format check
         run: bun run format:check
+      - name: Unit tests
+        run: bun test
 
   deploy:
     if: github.event_name == 'push'

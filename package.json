@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "bun check-i18n.ts && tsc -b && vite build",
     "check-i18n": "bun check-i18n.ts",
+    "test": "bun test",
     "scan-i18n": "bun scan-i18n.ts",
     "lint": "eslint .",
     "format": "prettier --write 'src/**/*.{ts,tsx}'",
