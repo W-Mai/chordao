@@ -16,6 +16,7 @@ type GameMode = 'flash' | 'reverse' | 'findAll';
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 const DEGREE_LABELS: Record<number, string> = { 1: 'I', 2: 'IIm', 3: 'IIIm', 4: 'IV', 5: 'V', 6: 'VIm' };
+const BEGINNER_DEGREES = [1];
 const EASY_DEGREES = [1, 4, 5];
 const ALL_DEGREES = [1, 2, 3, 4, 5, 6];
 
@@ -40,12 +41,12 @@ function generateQuestion(difficulty: Difficulty): Question {
   const voicings = generateVoicings(key);
   const grouped = groupByDegree(voicings);
   const optimal = findOptimalCombination(grouped);
-  const degrees = difficulty === 'easy' ? EASY_DEGREES : ALL_DEGREES;
+  const degrees = difficulty === 'easy' ? BEGINNER_DEGREES : difficulty === 'medium' ? EASY_DEGREES : ALL_DEGREES;
   const degree = randomItem(degrees);
   const degVoicings = grouped.get(degree) ?? [];
   const voicing = randomItem(degVoicings);
   const options = new Set([degree]);
-  while (options.size < Math.min(3, degrees.length)) options.add(randomItem(degrees));
+  while (options.size < 3) options.add(randomItem(ALL_DEGREES));
   const reverseOptions = [...options].sort(() => Math.random() - 0.5);
   return { key, degree, voicing, allVoicings: voicings, optimal, reverseOptions };
 }
