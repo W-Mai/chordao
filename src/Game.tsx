@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   NOTES,
@@ -12,19 +12,21 @@ import {
 } from './chordData';
 import { ShapeGrid } from './ShapeGrid';
 
-type GameMode = 'flash' | 'reverse' | 'findAll';
+type GameMode = 'locate' | 'reverse' | 'sprint' | 'chain';
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 const DEGREE_LABELS: Record<number, string> = { 1: 'I', 2: 'IIm', 3: 'IIIm', 4: 'IV', 5: 'V', 6: 'VIm' };
-const BEGINNER_DEGREES = [1];
-const EASY_DEGREES = [1, 4, 5];
+const DIFFICULTY_DEGREES: Record<Difficulty, number[]> = {
+  easy: [1],
+  medium: [1, 4, 5],
+  hard: [1, 2, 3, 4, 5, 6],
+};
+const DIFFICULTY_TIME: Record<Difficulty, number> = { easy: 10, medium: 7, hard: 5 };
 const ALL_DEGREES = [1, 2, 3, 4, 5, 6];
+const TOTAL_QUESTIONS = 10;
 
 function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
-}
-function randomKey(): NoteName {
-  return NOTES[Math.floor(Math.random() * 12)];
 }
 
 interface Question {
@@ -36,27 +38,31 @@ interface Question {
   reverseOptions: number[];
 }
 
-function generateQuestion(difficulty: Difficulty): Question {
-  const key = randomKey();
+function generateQuestion(difficulty: Difficulty, mode: GameMode): Question {
+  const key = NOTES[Math.floor(Math.random() * 12)];
   const voicings = generateVoicings(key);
   const grouped = groupByDegree(voicings);
   const optimal = findOptimalCombination(grouped);
-  const degrees = difficulty === 'easy' ? BEGINNER_DEGREES : difficulty === 'medium' ? EASY_DEGREES : ALL_DEGREES;
+
+  // Locate: degree range by difficulty; Reverse: always all 6
+  const degrees = mode === 'reverse' ? ALL_DEGREES : DIFFICULTY_DEGREES[difficulty];
   const degree = randomItem(degrees);
   const degVoicings = grouped.get(degree) ?? [];
   const voicing = randomItem(degVoicings);
+
+  // Reverse options: always 3 choices
+  const optionPool = difficulty === 'easy' ? [1, 4, 5] : ALL_DEGREES;
   const options = new Set([degree]);
-  while (options.size < 3) options.add(randomItem(ALL_DEGREES));
+  while (options.size < Math.min(3, optionPool.length)) options.add(randomItem(optionPool));
   const reverseOptions = [...options].sort(() => Math.random() - 0.5);
+
   return { key, degree, voicing, allVoicings: voicings, optimal, reverseOptions };
 }
 
-const TOTAL_QUESTIONS = 10;
-
 export function Game() {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<GameMode>('flash');
+  const [, setOpen] = useState(false);
+  const [mode, setMode] = useState<GameMode>('locate');
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [question, setQuestion] = useState<Question | null>(null);
   const [score, setScore] = useState(0);
@@ -64,12 +70,24 @@ export function Game() {
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [timeLeft, setTimeLeft] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [shakeKey, setShakeKey] = useState(0);
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [rotated, setRotated] = useState(false);
+  const [questionTimer, setQuestionTimer] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Correct voicing keys for "show correct answer" on wrong
+  const [correctHighlight, setCorrectHighlight] = useState<string[]>([]);
+  // Sprint mode state
+  const [sprintFound, setSprintFound] = useState<Set<number>>(new Set());
+  const [sprintElapsed, setSprintElapsed] = useState(0);
+  const sprintStartRef = useRef(0);
+  // Chain mode state
+  const [chainTarget, setChainTarget] = useState(0);
+  const [chainStep, setChainStep] = useState(0);
+
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
   useEffect(() => {
     if (!mounted) return;
@@ -87,41 +105,124 @@ export function Game() {
 
   const closeGame = useCallback(() => {
     setVisible(false);
+    if (timerRef.current) clearInterval(timerRef.current);
     setTimeout(() => {
       setMounted(false);
       setOpen(false);
     }, 250);
   }, []);
 
-  const isHard = difficulty === 'hard';
+  const sprintDone = mode === 'sprint' && sprintFound.size >= 6;
+  const chainDone = mode === 'chain' && chainStep >= 6;
   const gameOver =
-    (isHard && timeLeft <= 0 && open && total > 0) || (!isHard && total >= TOTAL_QUESTIONS && feedback === null);
+    sprintDone ||
+    chainDone ||
+    ((mode === 'locate' || mode === 'reverse') && total >= TOTAL_QUESTIONS && feedback === null);
 
-  const startGame = useCallback(() => {
-    setScore(0);
-    setTotal(0);
-    setStreak(0);
-    setBestStreak(0);
-    setFeedback(null);
-    setSelectedAnswer(null);
-    setQuestion(generateQuestion(difficulty));
-    if (isHard) setTimeLeft(60);
-  }, [difficulty, isHard]);
+  const startTimer = useCallback((diff: Difficulty) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const time = DIFFICULTY_TIME[diff];
+    setQuestionTimer(time);
+    timerRef.current = setInterval(() => {
+      setQuestionTimer((v) => {
+        if (v <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return v - 1;
+      });
+    }, 1000);
+  }, []);
 
+  const nextQuestion = useCallback(
+    (diff: Difficulty) => {
+      setFeedback(null);
+      setSelectedAnswer(null);
+      setCorrectHighlight([]);
+      setQuestion(generateQuestion(diff, mode));
+      startTimer(diff);
+    },
+    [startTimer],
+  );
+
+  const startGame = useCallback(
+    (diff?: Difficulty, m?: GameMode) => {
+      const d = diff ?? difficulty;
+      const currentMode = m ?? mode;
+      setScore(0);
+      setTotal(0);
+      setStreak(0);
+      setBestStreak(0);
+      setFeedback(null);
+      setSelectedAnswer(null);
+      setCorrectHighlight([]);
+      setSprintFound(new Set());
+      setSprintElapsed(0);
+      setChainStep(0);
+
+      if (currentMode === 'sprint' || currentMode === 'chain') {
+        const key = NOTES[Math.floor(Math.random() * 12)];
+        const voicings = generateVoicings(key);
+        const grouped = groupByDegree(voicings);
+        const optimal = findOptimalCombination(grouped);
+        const q: Question = {
+          key,
+          degree: currentMode === 'chain' ? 1 : 0,
+          voicing: optimal[0],
+          allVoicings: voicings,
+          optimal,
+          reverseOptions: [],
+        };
+        setQuestion(q);
+        if (currentMode === 'sprint') {
+          sprintStartRef.current = Date.now();
+        }
+        if (currentMode === 'chain') {
+          setChainTarget(4);
+          setChainStep(0);
+        }
+        if (timerRef.current) clearInterval(timerRef.current);
+        setQuestionTimer(0);
+      } else {
+        setQuestion(generateQuestion(d, currentMode));
+        startTimer(d);
+      }
+    },
+    [difficulty, startTimer, mode],
+  );
+
+  // Sprint elapsed timer
   useEffect(() => {
-    if (!open || !isHard || timeLeft <= 0) return;
-    const timer = setInterval(() => setTimeLeft((v) => v - 1), 1000);
-    return () => clearInterval(timer);
-  }, [open, isHard, timeLeft]);
+    if (mode !== 'sprint' || !question || sprintFound.size >= 6 || !sprintStartRef.current) return;
+    const id = setInterval(() => setSprintElapsed(Math.floor((Date.now() - sprintStartRef.current) / 1000)), 200);
+    return () => clearInterval(id);
+  }, [mode, question, sprintStartRef.current, sprintFound.size]);
 
-  const nextQuestion = useCallback(() => {
-    setFeedback(null);
-    setSelectedAnswer(null);
-    setQuestion(generateQuestion(difficulty));
-  }, [difficulty]);
+  // Timer expired → auto wrong (locate/reverse only)
+  useEffect(() => {
+    if (
+      questionTimer === 0 &&
+      question &&
+      !feedback &&
+      total < TOTAL_QUESTIONS &&
+      (mode === 'locate' || mode === 'reverse')
+    ) {
+      // Time's up for this question
+      setTotal((n) => n + 1);
+      setStreak(0);
+      setShakeKey((k) => k + 1);
+      setFeedback('wrong');
+      // Show correct positions
+      const correctKeys = question.allVoicings.filter((v) => v.degree === question.degree).map(voicingKey);
+      setCorrectHighlight(correctKeys);
+      if (timerRef.current) clearInterval(timerRef.current);
+      setTimeout(() => nextQuestion(difficulty), 2500);
+    }
+  }, [questionTimer, question, feedback, total, difficulty, nextQuestion]);
 
   const recordAnswer = useCallback(
-    (correct: boolean) => {
+    (correct: boolean, q: Question) => {
+      if (timerRef.current) clearInterval(timerRef.current);
       setTotal((n) => n + 1);
       if (correct) {
         setScore((n) => n + 1);
@@ -130,37 +231,88 @@ export function Game() {
           setBestStreak((b) => Math.max(b, next));
           return next;
         });
+        setFeedback('correct');
+        setTimeout(() => nextQuestion(difficulty), 2500);
       } else {
         setStreak(0);
         setShakeKey((k) => k + 1);
+        setFeedback('wrong');
+        // Show correct positions for 1.5s
+        const correctKeys = q.allVoicings.filter((v) => v.degree === q.degree).map(voicingKey);
+        setCorrectHighlight(correctKeys);
+        setTimeout(() => nextQuestion(difficulty), 2500);
       }
-      setFeedback(correct ? 'correct' : 'wrong');
-      setTimeout(nextQuestion, correct ? 600 : 1200);
     },
-    [nextQuestion],
+    [nextQuestion, difficulty],
   );
 
+  const CHAIN_ORDER = [4, 1, 5, 2, 6, 3];
+
+  // Grid click handler for all modes
   const handleGridClick = useCallback(
     (chordKey: string) => {
-      if (!question || feedback) return;
+      if (!question) return;
+      if (mode === 'sprint' && sprintDone) return;
+      if (mode === 'chain' && chainDone) return;
+      if ((mode === 'locate' || mode === 'reverse') && feedback) return;
+
+      if (mode === 'sprint') {
+        const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
+        if (!clicked || sprintFound.has(clicked.degree)) return;
+        const next = new Set([...sprintFound, clicked.degree]);
+        setSprintFound(next);
+        setScore((n) => n + 1);
+        if (next.size >= 6) {
+          setSprintElapsed(Math.floor((Date.now() - sprintStartRef.current) / 1000));
+        }
+        return;
+      }
+
+      if (mode === 'chain') {
+        const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
+        if (!clicked) return;
+        if (clicked.degree === chainTarget) {
+          setScore((n) => n + 1);
+          setStreak((s) => {
+            const next = s + 1;
+            setBestStreak((b) => Math.max(b, next));
+            return next;
+          });
+          const nextStep = chainStep + 1;
+          setChainStep(nextStep);
+          if (nextStep < CHAIN_ORDER.length) {
+            setChainTarget(CHAIN_ORDER[nextStep]);
+          }
+        } else {
+          setStreak(0);
+          setShakeKey((k) => k + 1);
+        }
+        return;
+      }
+
+      // Locate mode
       setSelectedAnswer(chordKey);
       const correct = question.allVoicings.some((v) => v.degree === question.degree && voicingKey(v) === chordKey);
-      recordAnswer(correct);
+      recordAnswer(correct, question);
     },
-    [question, feedback, recordAnswer],
+    [question, feedback, mode, sprintFound, sprintDone, chainTarget, chainStep, chainDone, recordAnswer],
   );
 
-  const reverseOptions = question?.reverseOptions ?? [];
-
+  // Reverse mode: click degree button
   const handleReverseAnswer = useCallback(
     (deg: number) => {
       if (!question || feedback) return;
-      recordAnswer(deg === question.degree);
+      recordAnswer(deg === question.degree, question);
     },
     [question, feedback, recordAnswer],
   );
 
-  const progress = isHard ? timeLeft / 60 : total / TOTAL_QUESTIONS;
+  const progress =
+    mode === 'sprint' ? sprintFound.size / 6 : mode === 'chain' ? chainStep / 6 : total / TOTAL_QUESTIONS;
+  const timerPct = questionTimer / DIFFICULTY_TIME[difficulty];
+
+  // Streak milestones
+  const streakEmoji = streak >= 10 ? '💥' : streak >= 5 ? '🔥🔥' : streak >= 3 ? '🔥' : null;
 
   return (
     <>
@@ -213,11 +365,7 @@ export function Game() {
             <div className="h-1 bg-surface0 rounded-t-2xl overflow-hidden">
               <div
                 className="h-full rounded-full"
-                style={{
-                  width: `${progress * 100}%`,
-                  background: isHard ? (timeLeft > 15 ? 'var(--blue)' : 'var(--red)') : 'var(--blue)',
-                  transition: 'width 0.3s, background 0.3s',
-                }}
+                style={{ width: `${progress * 100}%`, background: 'var(--blue)', transition: 'width 0.3s' }}
               />
             </div>
 
@@ -225,13 +373,12 @@ export function Game() {
             <div className="flex items-center justify-between px-5 pt-4 pb-2">
               <div className="flex items-center gap-3">
                 <h2 className="text-base font-bold text-blue">{t('practice')}</h2>
-                {/* Streak badge */}
-                {streak > 1 && (
+                {streakEmoji && (
                   <span
                     className="text-xs px-2 py-0.5 rounded-full bg-peach/20 text-peach font-bold"
                     style={{ animation: 'scaleIn 0.2s ease' }}
                   >
-                    {'🔥'} {streak}
+                    {streakEmoji} {streak}
                   </span>
                 )}
               </div>
@@ -241,11 +388,6 @@ export function Game() {
                     {score}
                     <span className="text-overlay0 text-sm font-normal">/{total}</span>
                   </div>
-                  {isHard && (
-                    <div className={`text-xs font-mono ${timeLeft <= 10 ? 'text-red' : 'text-overlay1'}`}>
-                      {t('gameTimer', { time: timeLeft })}
-                    </div>
-                  )}
                 </div>
                 <button
                   onClick={closeGame}
@@ -260,54 +402,81 @@ export function Game() {
 
             {/* Mode & Difficulty */}
             <div className="flex gap-1.5 px-5 pb-3 flex-wrap">
-              {(['flash', 'reverse', 'findAll'] as GameMode[]).map((m) => (
+              {(['locate', 'reverse', 'sprint', 'chain'] as GameMode[]).map((m) => (
                 <button
                   key={m}
                   onClick={() => {
                     setMode(m);
-                    startGame();
+                    startGame(undefined, m);
                   }}
                   className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${mode === m ? 'bg-blue/20 text-blue font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
                   style={{ transition: 'all var(--transition)' }}
                 >
-                  {m === 'flash' ? t('gameFlash') : m === 'reverse' ? t('gameReverse') : t('gameFindAll')}
+                  {m === 'locate'
+                    ? t('gameLocate')
+                    : m === 'reverse'
+                      ? t('gameReverse')
+                      : m === 'sprint'
+                        ? t('gameSprint')
+                        : t('gameChain')}
                 </button>
               ))}
-              <div className="w-px bg-surface0 mx-1" />
-              {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => {
-                    setDifficulty(d);
-                    startGame();
-                  }}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${difficulty === d ? 'bg-peach/20 text-peach font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  {d === 'easy' ? '⭐' : d === 'medium' ? '⭐⭐' : '⭐⭐⭐'}
-                </button>
-              ))}
+              {(mode === 'locate' || mode === 'reverse') && (
+                <>
+                  <div className="w-px bg-surface0 mx-1" />
+                  {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => {
+                        setDifficulty(d);
+                        startGame(d);
+                      }}
+                      className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${difficulty === d ? 'bg-peach/20 text-peach font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
+                      style={{ transition: 'all var(--transition)' }}
+                    >
+                      {d === 'easy' ? '⭐' : d === 'medium' ? '⭐⭐' : '⭐⭐⭐'}
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
 
             {/* Content */}
             <div className="px-5 pb-5 flex-1">
               {gameOver ? (
-                /* Game Over */
                 <div className="text-center py-10">
                   <div className="text-5xl mb-3" style={{ animation: 'scaleIn 0.3s ease' }}>
-                    {score / total >= 0.8 ? '🏆' : score / total >= 0.5 ? '👍' : '💪'}
+                    {mode === 'sprint'
+                      ? '⚡'
+                      : mode === 'chain'
+                        ? '🔗'
+                        : score / Math.max(total, 1) >= 0.8
+                          ? '🏆'
+                          : score / Math.max(total, 1) >= 0.5
+                            ? '👍'
+                            : '💪'}
                   </div>
-                  <div className="text-2xl font-bold mb-1">
-                    {score}/{total}
-                  </div>
-                  <div className="text-sm text-overlay1 mb-1">{Math.round((score / total) * 100)}%</div>
+                  {mode === 'sprint' ? (
+                    <div className="text-2xl font-bold mb-1">{t('gameSprintComplete', { time: sprintElapsed })}</div>
+                  ) : mode === 'chain' ? (
+                    <div className="text-2xl font-bold mb-1">{'6/6 🎉'}</div>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold mb-1">
+                        {score}/{total}
+                      </div>
+                      <div className="text-sm text-overlay1 mb-1">
+                        {Math.round((score / Math.max(total, 1)) * 100)}%
+                      </div>
+                    </>
+                  )}
                   {bestStreak > 1 && (
                     <div className="text-xs text-peach mb-4">
-                      {'🔥'} {t('practice')} {bestStreak}
+                      {'🔥'} {t('gameStreak', { count: bestStreak })}
                     </div>
                   )}
                   <button
-                    onClick={startGame}
+                    onClick={() => startGame()}
                     className="px-8 py-2.5 rounded-xl bg-blue text-crust font-semibold cursor-pointer hover:opacity-90 text-sm"
                     style={{ transition: 'all var(--transition)' }}
                   >
@@ -316,6 +485,34 @@ export function Game() {
                 </div>
               ) : question ? (
                 <>
+                  {/* Per-question timer bar (locate/reverse only) */}
+                  {(mode === 'locate' || mode === 'reverse') && (
+                    <div className="h-0.5 bg-surface0 rounded-full mb-3 overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${timerPct * 100}%`,
+                          background: timerPct > 0.3 ? 'var(--blue)' : 'var(--red)',
+                          transition: 'width 1s linear, background 0.3s',
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Sprint timer */}
+                  {mode === 'sprint' && (
+                    <div className="text-center mb-2 text-sm font-mono text-overlay1">
+                      {t('gameFound', { count: sprintFound.size })} · {sprintElapsed}s
+                    </div>
+                  )}
+
+                  {/* Chain progress */}
+                  {mode === 'chain' && (
+                    <div className="text-center mb-2 text-sm text-overlay1">
+                      {chainStep}/6 · {DEGREE_LABELS[chainTarget]}
+                    </div>
+                  )}
+
                   {/* Question card */}
                   <div
                     key={shakeKey}
@@ -334,50 +531,58 @@ export function Game() {
                     {/* Prompt */}
                     <div className="text-center mb-3">
                       <div className="text-xl font-bold">
-                        {mode === 'reverse' ? '?' : DEGREE_LABELS[question.degree]}
+                        {mode === 'reverse'
+                          ? '?'
+                          : mode === 'sprint'
+                            ? t('gameFound', { count: sprintFound.size })
+                            : mode === 'chain'
+                              ? DEGREE_LABELS[chainTarget]
+                              : DEGREE_LABELS[question.degree]}
                       </div>
                       <div className="text-xs text-overlay1 mt-1">
-                        {mode === 'flash' &&
-                          t('gameFlashPrompt', {
+                        {mode === 'locate' &&
+                          t('gameLocatePrompt', {
                             key: NOTE_DISPLAY[question.key],
                             degree: DEGREE_LABELS[question.degree],
                           })}
                         {mode === 'reverse' && t('gameReversePrompt', { key: NOTE_DISPLAY[question.key] })}
-                        {mode === 'findAll' &&
-                          t('gameFindAllPrompt', {
-                            key: NOTE_DISPLAY[question.key],
-                            degree: DEGREE_LABELS[question.degree],
-                          })}
+                        {mode === 'sprint' && t('gameSprintPrompt', { key: NOTE_DISPLAY[question.key] })}
+                        {mode === 'chain' &&
+                          t('gameChainPrompt', { key: NOTE_DISPLAY[question.key], degree: DEGREE_LABELS[chainTarget] })}
                       </div>
                     </div>
 
                     {/* Shape Grid */}
-                    {(mode === 'flash' || mode === 'findAll') && (
-                      <div className="overflow-x-auto">
-                        <ShapeGrid
-                          voicings={question.allVoicings}
-                          optimal={question.optimal}
-                          light={document.documentElement.getAttribute('data-theme') === 'light'}
-                          totalFrets={12}
-                          hoveredChord={selectedAnswer}
-                          onClickChord={handleGridClick}
-                          hideLabels
-                          monoColor={difficulty !== 'easy'}
-                        />
+                    <div className="overflow-x-auto">
+                      <ShapeGrid
+                        voicings={question.allVoicings}
+                        optimal={mode === 'reverse' ? [question.voicing] : question.optimal}
+                        light={isLight}
+                        totalFrets={12}
+                        hoveredChord={selectedAnswer}
+                        onClickChord={mode !== 'reverse' ? handleGridClick : undefined}
+                        hideLabels
+                        monoColor={mode === 'reverse' || difficulty !== 'easy'}
+                      />
+                    </div>
+
+                    {/* Show correct answer on wrong */}
+                    {feedback === 'wrong' && correctHighlight.length > 0 && (
+                      <div className="text-center mt-2 text-xs text-red">
+                        {t('gameWrongAnswer', {
+                          name: question.voicing.name,
+                          degree: DEGREE_LABELS[question.degree],
+                          shape: question.voicing.shapeOrigin,
+                          fret: question.voicing.barrePosition,
+                        })}
                       </div>
                     )}
 
-                    {/* Reverse: highlighted grid */}
-                    {mode === 'reverse' && (
-                      <div className="overflow-x-auto mb-3">
-                        <ShapeGrid
-                          voicings={question.allVoicings}
-                          optimal={[question.voicing]}
-                          light={document.documentElement.getAttribute('data-theme') === 'light'}
-                          totalFrets={12}
-                          hideLabels
-                          monoColor={difficulty !== 'easy'}
-                        />
+                    {/* Show chord info on correct */}
+                    {feedback === 'correct' && mode !== 'sprint' && mode !== 'chain' && (
+                      <div className="text-center mt-2 text-xs text-green">
+                        {question.voicing.name} · {DEGREE_LABELS[question.degree]} · {question.voicing.shapeOrigin} @{' '}
+                        {question.voicing.barrePosition}
                       </div>
                     )}
                   </div>
@@ -385,7 +590,7 @@ export function Game() {
                   {/* Reverse choices */}
                   {mode === 'reverse' && (
                     <div className="grid grid-cols-3 gap-2">
-                      {reverseOptions.map((deg) => (
+                      {question.reverseOptions.map((deg) => (
                         <button
                           key={deg}
                           onClick={() => handleReverseAnswer(deg)}
@@ -395,23 +600,6 @@ export function Game() {
                           {DEGREE_LABELS[deg]}
                         </button>
                       ))}
-                    </div>
-                  )}
-
-                  {/* Feedback toast */}
-                  {feedback && (
-                    <div
-                      className={`text-center text-sm font-bold mt-2 ${feedback === 'correct' ? 'text-green' : 'text-red'}`}
-                      style={{ animation: 'scaleIn 0.2s ease' }}
-                    >
-                      {feedback === 'correct'
-                        ? t('gameCorrect')
-                        : t('gameWrongDetail', {
-                            wrong: t('gameWrong'),
-                            itWas: t('gameItWas'),
-                            name: question.voicing.name,
-                            shape: question.voicing.shapeOrigin,
-                          })}
                     </div>
                   )}
                 </>
