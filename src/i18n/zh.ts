@@ -66,6 +66,8 @@ export default {
   gameChainPrompt: '{{key}} 调 — 找到最近的 {{degree}}',
   gameSprintComplete: '全部找到！用时 {{time}}秒',
   gameFound: '{{count}}/6',
+  gameMemory: '👁 记忆',
+  gameMemoryPrompt: '{{key}} 调 — 刚才的和弦在哪？',
   progPopCanon: '卡农进行',
   progCanonExt: '卡农变体',
   progCPopBallad: '华语抒情',

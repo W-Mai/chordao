@@ -70,6 +70,8 @@ export default {
   gameChainPrompt: 'Key of {{key}} — find the nearest {{degree}}',
   gameSprintComplete: 'All found in {{time}}s!',
   gameFound: '{{count}}/6',
+  gameMemory: '👁 Memory',
+  gameMemoryPrompt: 'Key of {{key}} — where was that chord?',
   progPopCanon: 'Pop Canon',
   progCanonExt: 'Canon Ext.',
   progCPopBallad: 'C-Pop Ballad',

@@ -12,7 +12,7 @@ import {
 } from './chordData';
 import { ShapeGrid } from './ShapeGrid';
 
-type GameMode = 'locate' | 'reverse' | 'sprint' | 'chain';
+type GameMode = 'locate' | 'reverse' | 'sprint' | 'chain' | 'memory';
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 const DEGREE_LABELS: Record<number, string> = { 1: 'I', 2: 'IIm', 3: 'IIIm', 4: 'IV', 5: 'V', 6: 'VIm' };
@@ -86,6 +86,8 @@ export function Game() {
   // Chain mode state
   const [chainTarget, setChainTarget] = useState(0);
   const [chainStep, setChainStep] = useState(0);
+  // Memory mode: show chord briefly then hide
+  const [memoryPhase, setMemoryPhase] = useState<'show' | 'guess'>('show');
 
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
@@ -117,7 +119,7 @@ export function Game() {
   const gameOver =
     sprintDone ||
     chainDone ||
-    ((mode === 'locate' || mode === 'reverse') && total >= TOTAL_QUESTIONS && feedback === null);
+    ((mode === 'locate' || mode === 'reverse' || mode === 'memory') && total >= TOTAL_QUESTIONS && feedback === null);
 
   const startTimer = useCallback((diff: Difficulty) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -139,10 +141,16 @@ export function Game() {
       setFeedback(null);
       setSelectedAnswer(null);
       setCorrectHighlight([]);
-      setQuestion(generateQuestion(diff, mode));
+      const q = generateQuestion(diff, mode);
+      setQuestion(q);
+      if (mode === 'memory') {
+        setMemoryPhase('show');
+        const showTime = diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600;
+        setTimeout(() => setMemoryPhase('guess'), showTime);
+      }
       startTimer(diff);
     },
-    [startTimer],
+    [startTimer, mode],
   );
 
   const startGame = useCallback(
@@ -184,7 +192,13 @@ export function Game() {
         if (timerRef.current) clearInterval(timerRef.current);
         setQuestionTimer(0);
       } else {
-        setQuestion(generateQuestion(d, currentMode));
+        const q = generateQuestion(d, currentMode);
+        setQuestion(q);
+        if (currentMode === 'memory') {
+          setMemoryPhase('show');
+          const showTime = d === 'easy' ? 2000 : d === 'medium' ? 1200 : 600;
+          setTimeout(() => setMemoryPhase('guess'), showTime);
+        }
         startTimer(d);
       }
     },
@@ -205,7 +219,7 @@ export function Game() {
       question &&
       !feedback &&
       total < TOTAL_QUESTIONS &&
-      (mode === 'locate' || mode === 'reverse')
+      (mode === 'locate' || mode === 'reverse' || mode === 'memory')
     ) {
       // Time's up for this question
       setTotal((n) => n + 1);
@@ -254,7 +268,7 @@ export function Game() {
       if (!question) return;
       if (mode === 'sprint' && sprintDone) return;
       if (mode === 'chain' && chainDone) return;
-      if ((mode === 'locate' || mode === 'reverse') && feedback) return;
+      if ((mode === 'locate' || mode === 'reverse' || mode === 'memory') && feedback) return;
 
       if (mode === 'sprint') {
         const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
@@ -287,6 +301,14 @@ export function Game() {
           setStreak(0);
           setShakeKey((k) => k + 1);
         }
+        return;
+      }
+
+      // Memory mode: must match exact voicing
+      if (mode === 'memory') {
+        setSelectedAnswer(chordKey);
+        const correct = voicingKey(question.voicing) === chordKey;
+        recordAnswer(correct, question);
         return;
       }
 
@@ -402,7 +424,7 @@ export function Game() {
 
             {/* Mode & Difficulty */}
             <div className="flex gap-1.5 px-5 pb-3 flex-wrap">
-              {(['locate', 'reverse', 'sprint', 'chain'] as GameMode[]).map((m) => (
+              {(['locate', 'reverse', 'sprint', 'chain', 'memory'] as GameMode[]).map((m) => (
                 <button
                   key={m}
                   onClick={() => {
@@ -418,10 +440,12 @@ export function Game() {
                       ? t('gameReverse')
                       : m === 'sprint'
                         ? t('gameSprint')
-                        : t('gameChain')}
+                        : m === 'memory'
+                          ? t('gameMemory')
+                          : t('gameChain')}
                 </button>
               ))}
-              {(mode === 'locate' || mode === 'reverse') && (
+              {(mode === 'locate' || mode === 'reverse' || mode === 'memory') && (
                 <>
                   <div className="w-px bg-surface0 mx-1" />
                   {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
@@ -486,7 +510,7 @@ export function Game() {
               ) : question ? (
                 <>
                   {/* Per-question timer bar (locate/reverse only) */}
-                  {(mode === 'locate' || mode === 'reverse') && (
+                  {(mode === 'locate' || mode === 'reverse' || mode === 'memory') && (
                     <div className="h-0.5 bg-surface0 rounded-full mb-3 overflow-hidden">
                       <div
                         className="h-full rounded-full"
@@ -549,6 +573,7 @@ export function Game() {
                         {mode === 'sprint' && t('gameSprintPrompt', { key: NOTE_DISPLAY[question.key] })}
                         {mode === 'chain' &&
                           t('gameChainPrompt', { key: NOTE_DISPLAY[question.key], degree: DEGREE_LABELS[chainTarget] })}
+                        {mode === 'memory' && t('gameMemoryPrompt', { key: NOTE_DISPLAY[question.key] })}
                       </div>
                     </div>
 
@@ -556,13 +581,25 @@ export function Game() {
                     <div className="overflow-x-auto">
                       <ShapeGrid
                         voicings={question.allVoicings}
-                        optimal={mode === 'reverse' ? [question.voicing] : question.optimal}
+                        optimal={
+                          mode === 'reverse'
+                            ? [question.voicing]
+                            : mode === 'memory'
+                              ? memoryPhase === 'show'
+                                ? [question.voicing]
+                                : []
+                              : question.optimal
+                        }
                         light={isLight}
                         totalFrets={12}
                         hoveredChord={selectedAnswer}
-                        onClickChord={mode !== 'reverse' ? handleGridClick : undefined}
+                        onClickChord={
+                          mode !== 'reverse' && !(mode === 'memory' && memoryPhase === 'show')
+                            ? handleGridClick
+                            : undefined
+                        }
                         hideLabels
-                        monoColor={mode === 'reverse' || difficulty !== 'easy'}
+                        monoColor={mode === 'reverse' || mode === 'memory' || difficulty !== 'easy'}
                       />
                     </div>
 
