@@ -164,7 +164,7 @@ function App() {
   const handleCustomProg = useCallback(
     (input: string) => {
       const degrees = input
-        .split(/[\s,\-]+/)
+        .split(/[\s,-]+/)
         .map(Number)
         .filter((n) => n >= 1 && n <= 6);
       setCustomInput(input);
