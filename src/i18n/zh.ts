@@ -47,6 +47,8 @@ export default {
   keyOf: '调',
   github: 'GitHub',
   mit: 'MIT',
+  customProg: '自定义',
+  customProgHint: '1-6，如 1 5 6 4',
   practice: '练习',
   gameFlash: '🃏 闪卡',
   gameReverse: '🔄 反向',

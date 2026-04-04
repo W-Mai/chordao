@@ -51,6 +51,8 @@ export default {
   keyOf: 'Key of',
   github: 'GitHub',
   mit: 'MIT',
+  customProg: 'Custom',
+  customProgHint: '1-6, e.g. 1 5 6 4',
   practice: 'Practice',
   gameFlash: '🃏 Flash',
   gameReverse: '🔄 Reverse',

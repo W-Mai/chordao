@@ -431,28 +431,68 @@ function App() {
                 );
               })}
             </div>
-            {/* Mobile: vertical roller */}
+            {/* Mobile: vertical roller + custom input */}
             <div className="md:hidden">
               <Roller
                 items={[{ name: '', degrees: [] as number[] }, ...PROGRESSIONS]}
                 activeKey={activeProg ?? ''}
                 getKey={(p) => p.name}
                 getLabel={(p) => (p.name ? `${t(p.name)} ${p.degrees.join('-')}` : t('none'))}
-                onSelect={(name) => setActiveProg(name || null)}
+                onSelect={(name) => {
+                  if (activeProg !== 'custom') setActiveProg(name || null);
+                }}
               />
+              <span className="text-[10px] text-overlay0 mb-0.5">{t('customProg')}</span>
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  placeholder={t('customProgHint')}
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  className="flex-1 text-[11px] px-2 py-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue min-w-0"
+                  style={{ transition: 'border-color var(--transition)' }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCustomProg(customInput)}
+                  className="text-[10px] px-3 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer shrink-0 active:bg-surface0"
+                  style={{ transition: 'all var(--transition)' }}
+                >
+                  {'→'}
+                </button>
+              </div>
             </div>
-            {/* Custom progression input */}
-            <input
-              type="text"
-              placeholder="1 4 5 1"
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              className="w-full text-[11px] px-2 py-1 mt-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue"
-              style={{ transition: 'border-color var(--transition)' }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
-              }}
-            />
+            {/* Desktop: custom progression input */}
+            <div className="hidden md:block mt-1">
+              <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block mb-1">
+                {t('customProg')}
+              </span>
+              <div className="flex gap-1">
+                <input
+                  type="text"
+                  placeholder="1 4 5 1"
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  className="flex-1 text-[11px] px-2 py-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue min-w-0"
+                  style={{ transition: 'border-color var(--transition)' }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCustomProg(customInput)}
+                  className="text-[10px] px-3 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer shrink-0 active:bg-surface0"
+                  style={{ transition: 'all var(--transition)' }}
+                >
+                  {'→'}
+                </button>
+              </div>
+              <p className="text-[9px] text-overlay0 mt-0.5 hidden md:block">{t('customProgHint')}</p>
+            </div>
           </div>
 
           <div className="hidden md:block mt-auto" />
