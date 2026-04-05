@@ -1,9 +1,9 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { voicingKey, NOTE_DISPLAY, type ChordVoicing, type NoteName } from './chordData';
+import { voicingKey, NOTE_DISPLAY, type ChordVoicing, type NoteName } from '../data/chordData';
 import { useTranslation } from 'react-i18next';
 import { ChordDiagram } from './ChordDiagram';
 import { ShapeGrid } from './ShapeGrid';
-import { generateQR } from './qr';
+import { generateQR } from '../utils/qr';
 
 interface ExportViewProps {
   selectedKey: NoteName;

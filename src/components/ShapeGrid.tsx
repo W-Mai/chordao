@@ -1,4 +1,4 @@
-import { voicingKey, type ChordVoicing } from './chordData';
+import { voicingKey, type ChordVoicing } from '../data/chordData';
 
 const DEGREE_LABELS: Record<number, string> = { 1: '1', 2: '2m', 3: '3m', 4: '4', 5: '5', 6: '6m' };
 const DEGREE_COLORS: Record<number, string> = {

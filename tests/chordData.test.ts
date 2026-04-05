@@ -9,7 +9,7 @@ import {
   voicingKey,
   PROGRESSIONS,
   type NoteName,
-} from '../src/chordData';
+} from '../src/data/chordData';
 
 describe('NOTES and NOTE_DISPLAY', () => {
   test('12 chromatic notes', () => {

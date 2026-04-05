@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { voicingKey, type ChordVoicing } from './chordData';
+import { voicingKey, type ChordVoicing } from '../data/chordData';
 
 const DEGREE_COLORS = [
   '',

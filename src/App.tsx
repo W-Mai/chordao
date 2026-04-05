@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { playChord } from './audio';
+import { playChord } from './utils/audio';
 import {
   NOTES,
   NOTE_DISPLAY,
@@ -13,17 +13,17 @@ import {
   type NoteName,
   type ChordVoicing,
   PROGRESSIONS,
-} from './chordData';
-import { ChordDiagram } from './ChordDiagram';
-import { Fretboard } from './Fretboard';
-import { ShapeGrid } from './ShapeGrid';
-import { FullscreenOverlay, useOverlayFullscreen } from './FullscreenOverlay';
+} from './data/chordData';
+import { ChordDiagram } from './components/ChordDiagram';
+import { Fretboard } from './components/Fretboard';
+import { ShapeGrid } from './components/ShapeGrid';
+import { FullscreenOverlay, useOverlayFullscreen } from './components/FullscreenOverlay';
 
-import { Roller } from './Roller';
+import { Roller } from './components/Roller';
 
-import { Guide } from './Guide';
-import { Game } from './Game';
-import { useExportImage } from './ExportView';
+import { Guide } from './components/Guide';
+import { Game } from './components/Game';
+import { useExportImage } from './components/ExportView';
 
 const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
 const THEMES = ['dark', 'light', 'cyber'] as const;

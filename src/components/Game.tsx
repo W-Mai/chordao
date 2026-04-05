@@ -9,7 +9,7 @@ import {
   voicingKey,
   type NoteName,
   type ChordVoicing,
-} from './chordData';
+} from '../data/chordData';
 import { ShapeGrid } from './ShapeGrid';
 
 type GameMode = 'locate' | 'reverse' | 'sprint' | 'chain' | 'memory';

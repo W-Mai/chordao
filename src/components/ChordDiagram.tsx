@@ -1,4 +1,4 @@
-import type { ChordVoicing } from './chordData';
+import type { ChordVoicing } from '../data/chordData';
 
 const STRINGS = 6;
 const FRETS_SHOWN = 4;
