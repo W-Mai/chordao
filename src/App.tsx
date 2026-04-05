@@ -279,6 +279,77 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen">
+      {/* Unified header bar */}
+      <header
+        className="w-full shrink-0 border-b border-surface0 bg-mantle px-3 py-2"
+        style={{ transition: 'background var(--transition), border-color var(--transition)' }}
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            className="w-7 h-7 rounded-lg bg-blue/15 flex items-center justify-center shrink-0"
+            style={{ boxShadow: theme === 'cyber' ? '0 0 10px var(--blue)' : 'none' }}
+          >
+            <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-4 h-4" />
+          </div>
+          <h1
+            className="text-sm font-bold tracking-wide text-txt mr-auto"
+            style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}
+          >
+            {t('appName')}
+          </h1>
+          <div className="flex gap-1 flex-wrap">
+            <button
+              onClick={toggleBarre}
+              className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
+              style={{ transition: 'all var(--transition)' }}
+            >
+              B
+            </button>
+            <button
+              onClick={toggleShapeSet}
+              className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${shapeSet === 'seventh' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
+              style={{ transition: 'all var(--transition)' }}
+            >
+              7
+            </button>
+            <button
+              onClick={toggleMute}
+              className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${muted ? 'border-red text-red' : 'border-surface0 text-overlay1'}`}
+              style={{ transition: 'all var(--transition)' }}
+            >
+              {muted ? '🔇' : '🔊'}
+            </button>
+            <button
+              onClick={toggleKeyOrder}
+              className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
+              style={{ transition: 'all var(--transition)' }}
+            >
+              {keyOrder === 'fifths' ? '⑤' : '♪'}
+            </button>
+            <button
+              onClick={cycleTheme}
+              className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
+              style={{ transition: 'all var(--transition)' }}
+            >
+              {THEME_ICONS[theme]}
+            </button>
+            <Guide />
+            <Game />
+            <button
+              onClick={() => {
+                const next = i18n.language === 'en' ? 'zh' : 'en';
+                i18n.changeLanguage(next);
+                localStorage.setItem('chordao:lang', next);
+              }}
+              className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
+              style={{ transition: 'all var(--transition)' }}
+            >
+              {i18n.language === 'en' ? '中' : 'En'}
+            </button>
+          </div>
+        </div>
+      </header>
+
       <div className="flex flex-col md:flex-row flex-1 min-h-0">
         {/* Sidebar */}
         <aside
@@ -286,128 +357,6 @@ function App() {
                           flex flex-col gap-3 md:gap-4 md:overflow-y-auto md:min-h-0"
           style={{ transition: 'background var(--transition), border-color var(--transition)' }}
         >
-          {/* Header: mobile=one row, desktop=two rows */}
-          <div>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-8 h-8 rounded-xl bg-blue/15 flex items-center justify-center shrink-0"
-                style={{ boxShadow: theme === 'cyber' ? '0 0 10px var(--blue)' : 'none' }}
-              >
-                <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h1
-                  className="text-sm font-bold tracking-wide leading-tight text-txt"
-                  style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}
-                >
-                  {t('appName')}
-                </h1>
-                <p className="text-[9px] text-overlay1 leading-tight hidden md:block">{t('subtitle')}</p>
-              </div>
-              {/* Mobile: buttons inline */}
-              <div className="flex gap-1 shrink-0 md:hidden">
-                <button
-                  onClick={toggleBarre}
-                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  B
-                </button>
-                <button
-                  onClick={toggleShapeSet}
-                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${shapeSet === 'seventh' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  7
-                </button>
-                <button
-                  onClick={toggleMute}
-                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${muted ? 'border-red text-red' : 'border-surface0 text-overlay1'}`}
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  {muted ? '🔇' : '🔊'}
-                </button>
-                <button
-                  onClick={toggleKeyOrder}
-                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  {keyOrder === 'fifths' ? '⑤' : '♪'}
-                </button>
-                <button
-                  onClick={cycleTheme}
-                  className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  {THEME_ICONS[theme]}
-                </button>
-                <Guide />
-                <Game />
-                <button
-                  onClick={() => {
-                    const next = i18n.language === 'en' ? 'zh' : 'en';
-                    i18n.changeLanguage(next);
-                    localStorage.setItem('chordao:lang', next);
-                  }}
-                  className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  {i18n.language === 'en' ? '中' : 'En'}
-                </button>
-              </div>
-            </div>
-            {/* Desktop: buttons second row */}
-            <div className="hidden md:grid grid-cols-7 gap-1 mt-2">
-              <button
-                onClick={toggleBarre}
-                className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-                style={{ transition: 'all var(--transition)' }}
-              >
-                Barre
-              </button>
-              <button
-                onClick={toggleShapeSet}
-                className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${shapeSet === 'seventh' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-                style={{ transition: 'all var(--transition)' }}
-              >
-                {shapeSet === 'seventh' ? t('shapeSeventh') : t('shapeTriad')}
-              </button>
-              <button
-                onClick={toggleMute}
-                className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${muted ? 'border-red text-red' : 'border-surface0 text-overlay1'}`}
-                style={{ transition: 'all var(--transition)' }}
-              >
-                {muted ? '🔇' : '🔊'}
-              </button>
-              <button
-                onClick={toggleKeyOrder}
-                className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-                style={{ transition: 'all var(--transition)' }}
-              >
-                {keyOrder === 'fifths' ? '⑤ 5ths' : '♪ Semi'}
-              </button>
-              <button
-                onClick={cycleTheme}
-                className="text-[11px] py-1.5 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer text-center"
-                style={{ transition: 'all var(--transition)' }}
-              >
-                {THEME_ICONS[theme]}
-              </button>
-              <Guide />
-              <Game />
-              <button
-                onClick={() => {
-                  const next = i18n.language === 'en' ? 'zh' : 'en';
-                  i18n.changeLanguage(next);
-                  localStorage.setItem('chordao:lang', next);
-                }}
-                className="text-[11px] py-1.5 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer text-center"
-                style={{ transition: 'all var(--transition)' }}
-              >
-                {i18n.language === 'en' ? '中' : 'En'}
-              </button>
-            </div>
-          </div>
           <div className="grid grid-cols-6 md:grid-cols-4 gap-1">
             {keyList.map((note) => (
               <button
