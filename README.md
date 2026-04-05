@@ -27,6 +27,7 @@ Pick a key, see all 6 diatonic chords (I, IIm, IIIm, IV, V, VIm) across the fret
 - [How It Works](#-how-it-works)
 - [Features](#-features)
 - [Views](#-views)
+- [Practice Game](#-practice-game)
 - [Dev](#-dev)
 - [Stack](#-stack)
 - [License](#-license)
@@ -53,13 +54,17 @@ Chordao finds the **optimal combination** of shapes that minimizes hand movement
 ## ✨ Features
 
 - **Shape derivation** — All chords derived from E/Em/A/Am via barre transposition, up to 17 frets
+- **7th chord shapes** — Toggle between triad (E/Em/A/Am) and seventh (E7/Em7/A7/Am7) shapes
 - **Optimal path** — Auto-highlights the most efficient 6-chord combination (minimum hand movement)
 - **Chord progressions** — Built-in presets (Pop Canon, Blues, C-Pop Ballad, etc.) with animated path visualization
-- **Interactive highlight** — Hover to preview, click to lock, all views sync simultaneously
+- **Custom progressions** — Type your own degree sequence (e.g. `1 4 5 1`), synced to URL
+- **Chord audio** — Click any chord to hear it (Web Audio API with harmonic series synthesis)
+- **Shareable URLs** — Current key, progression, and settings encoded in URL hash
+- **Interactive highlight** — Click to play, double-click to lock, all views sync simultaneously
 - **3 themes** — Catppuccin Mocha (dark), Latte (light), Cyber (neon) with system auto-detection
 - **Barre display** — Toggle barre line visualization on chord diagrams
 - **Circle of fifths / Chromatic** — Switch key ordering
-- **Export PNG** — Dedicated layout with QR codes, progression info, and legend
+- **Export PNG** — Dedicated layout with QR codes (linking to current state), progression info, and legend
 - **PWA** — Installable, works offline
 - **i18n** — English / 中文, auto-detected from browser
 - **Keyboard shortcuts** — ← → switch keys, 1-6 filter degrees, 0/Esc reset
@@ -82,7 +87,7 @@ Full 17-fret fretboard with all voicings plotted:
 - ⬤ **Circle** = E/Em shape
 - ◼ **Square** = A/Am shape
 - Consecutive same-fret dots merge into barre bars on hover
-- Hover/click any chord to highlight across all views
+- Click any chord to play, double-click to lock highlight across all views
 
 ### Chord Diagrams
 
@@ -92,7 +97,25 @@ Standard chord box notation for each voicing:
 - Horizontal lines = frets
 - Dots = finger placement, bar = barre
 - × = muted, ○ = open
-- Double-click to expand
+
+## 🎮 Practice Game
+
+5 game modes to train fretboard knowledge:
+
+| Mode | Description |
+|------|-------------|
+| 🎯 **Locate** | Given a degree, find it on the fretboard |
+| 🔮 **Identify** | Given a highlighted chord, guess its degree |
+| ⚡ **Sprint** | Find all 6 diatonic chords as fast as possible |
+| 🔗 **Chain** | Follow the circle-of-fifths order on the fretboard |
+| 👁 **Memory** | Chord flashes briefly, then find it from memory |
+
+3 difficulty levels per mode:
+- ⭐ Easy — colored hints, limited degrees
+- ⭐⭐ Medium — no colors, I/IV/V
+- ⭐⭐⭐ Hard — no colors, all 6 degrees, shorter timer
+
+Per-question countdown timer, streak tracking, and local best score leaderboard.
 
 ## 🛠 Dev
 
@@ -110,10 +133,21 @@ bun run dev
 | `bun run lint`       | ESLint (includes i18n string detection) |
 | `bun run format`     | Prettier format                         |
 | `bun run check-i18n` | Verify translation key consistency      |
+| `bun test`           | Unit tests (chord data layer)           |
+
+### Project Structure
+
+```
+src/
+  components/   — UI components (ShapeGrid, Fretboard, ChordDiagram, Game, Guide, etc.)
+  data/         — Chord data layer (shapes, derivation, optimal algorithm)
+  utils/        — Audio synthesis, QR code generation
+  i18n/         — Translation files (en/zh)
+```
 
 ## 🏗 Stack
 
-React + TypeScript + Vite + Tailwind CSS v4 + i18next + vite-plugin-pwa + Bun
+React + TypeScript + Vite + Tailwind CSS v4 + i18next + Web Audio API + vite-plugin-pwa + Bun
 
 ## 📄 License
 
