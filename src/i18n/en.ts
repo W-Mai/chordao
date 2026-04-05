@@ -51,6 +51,8 @@ export default {
   keyOf: 'Key of',
   github: 'GitHub',
   mit: 'MIT',
+  shapeTriad: 'Triad',
+  shapeSeventh: '7th',
   customProg: 'Custom',
   customProgHint: '1-6, e.g. 1 5 6 4',
   practice: 'Practice',

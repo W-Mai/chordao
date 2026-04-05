@@ -5,6 +5,7 @@ import {
   NOTE_DISPLAY,
   CIRCLE_OF_FIFTHS,
   generateVoicings,
+  type ShapeSet,
   groupByDegree,
   findOptimalCombination,
   voicingKey,
@@ -118,6 +119,17 @@ function App() {
   const light = theme === 'light';
 
   const [showBarre, setShowBarre] = useState(() => localStorage.getItem('chordao:showBarre') !== 'false');
+  const [shapeSet, setShapeSet] = useState<ShapeSet>(
+    () => (localStorage.getItem('chordao:shapeSet') as ShapeSet) || 'triad',
+  );
+  const toggleShapeSet = useCallback(() => {
+    setShapeSet((v) => {
+      const next = v === 'triad' ? 'seventh' : 'triad';
+      localStorage.setItem('chordao:shapeSet', next);
+      return next;
+    });
+    resetHover();
+  }, [resetHover]);
   const toggleBarre = useCallback(() => {
     setShowBarre((v) => {
       localStorage.setItem('chordao:showBarre', String(!v));
@@ -137,7 +149,7 @@ function App() {
   }, []);
   const keyList = keyOrder === 'fifths' ? CIRCLE_OF_FIFTHS : NOTES;
 
-  const voicings = useMemo(() => generateVoicings(selectedKey), [selectedKey]);
+  const voicings = useMemo(() => generateVoicings(selectedKey, 17, shapeSet), [selectedKey, shapeSet]);
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
 
   const [activeDegree, setActiveDegree] = useState<number | null>(null);
@@ -298,6 +310,13 @@ function App() {
                   B
                 </button>
                 <button
+                  onClick={toggleShapeSet}
+                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${shapeSet === 'seventh' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
+                  style={{ transition: 'all var(--transition)' }}
+                >
+                  7
+                </button>
+                <button
                   onClick={toggleKeyOrder}
                   className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
                   style={{ transition: 'all var(--transition)' }}
@@ -327,13 +346,20 @@ function App() {
               </div>
             </div>
             {/* Desktop: buttons second row */}
-            <div className="hidden md:grid grid-cols-5 gap-1 mt-2">
+            <div className="hidden md:grid grid-cols-6 gap-1 mt-2">
               <button
                 onClick={toggleBarre}
                 className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
                 style={{ transition: 'all var(--transition)' }}
               >
                 Barre
+              </button>
+              <button
+                onClick={toggleShapeSet}
+                className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${shapeSet === 'seventh' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {shapeSet === 'seventh' ? t('shapeSeventh') : t('shapeTriad')}
               </button>
               <button
                 onClick={toggleKeyOrder}
