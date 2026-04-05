@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { playChord } from './audio';
 import {
   NOTES,
   NOTE_DISPLAY,
@@ -213,9 +214,15 @@ function App() {
     return optimal;
   }, [optimal, activeDegree, activeProgDegrees]);
 
-  const handleClickChord = useCallback((key: string) => {
-    setLockedChord((prev) => (prev === key ? null : key));
-  }, []);
+  const handleClickChord = useCallback(
+    (key: string) => {
+      setLockedChord((prev) => (prev === key ? null : key));
+      // Play chord audio
+      const v = voicings.find((v) => voicingKey(v) === key);
+      if (v) playChord(v.frets);
+    },
+    [voicings],
+  );
 
   // Sync state to URL hash for sharing
   useEffect(() => {
