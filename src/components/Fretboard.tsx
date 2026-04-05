@@ -25,6 +25,7 @@ interface FretboardProps {
   hoveredChord?: string | null;
   onHoverChord?: (key: string | null) => void;
   onClickChord?: (key: string) => void;
+  onDblClickChord?: (key: string) => void;
 }
 
 export function Fretboard({
@@ -35,6 +36,7 @@ export function Fretboard({
   hoveredChord,
   onHoverChord,
   onClickChord,
+  onDblClickChord,
 }: FretboardProps) {
   const [localHover, setLocalHover] = useState<string | null>(null);
   const hovered = hoveredChord ?? localHover;
@@ -152,6 +154,7 @@ export function Fretboard({
                 onPointerEnter={() => handleEnter(key)}
                 onPointerLeave={handleLeave}
                 onClick={() => onClickChord?.(key)}
+                onDoubleClick={() => onDblClickChord?.(key)}
                 className="cursor-pointer"
               >
                 {/* Outline connecting played strings */}

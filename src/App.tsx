@@ -11,7 +11,6 @@ import {
   findOptimalCombination,
   voicingKey,
   type NoteName,
-  type ChordVoicing,
   PROGRESSIONS,
 } from './data/chordData';
 import { ChordDiagram } from './components/ChordDiagram';
@@ -214,17 +213,27 @@ function App() {
     return optimal;
   }, [optimal, activeDegree, activeProgDegrees]);
 
+  const [muted, setMuted] = useState(() => localStorage.getItem('chordao:muted') === 'true');
+  const toggleMute = useCallback(() => {
+    setMuted((v) => {
+      localStorage.setItem('chordao:muted', String(!v));
+      return !v;
+    });
+  }, []);
+
   const handleClickChord = useCallback(
     (key: string) => {
-      setLockedChord((prev) => {
-        if (prev === key) return null; // unlock, no sound
+      if (!muted) {
         const v = voicings.find((v) => voicingKey(v) === key);
         if (v) playChord(v.frets);
-        return key;
-      });
+      }
     },
-    [voicings],
+    [voicings, muted],
   );
+
+  const handleDblClickChord = useCallback((key: string) => {
+    setLockedChord((prev) => (prev === key ? null : key));
+  }, []);
 
   // Sync state to URL hash for sharing
   useEffect(() => {
@@ -267,20 +276,6 @@ function App() {
 
   const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();
   const [fretFS, openFret, closeFret] = useOverlayFullscreen();
-  const [chordFS, openChord, closeChord] = useOverlayFullscreen();
-  const [activeChord, setActiveChord] = useState<ChordVoicing | null>(null);
-
-  const handleChordDblClick = useCallback(
-    (v: ChordVoicing) => {
-      setActiveChord(v);
-      openChord();
-    },
-    [openChord],
-  );
-  const handleCloseChord = useCallback(() => {
-    closeChord();
-    setActiveChord(null);
-  }, [closeChord]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -326,6 +321,13 @@ function App() {
                   7
                 </button>
                 <button
+                  onClick={toggleMute}
+                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${muted ? 'border-red text-red' : 'border-surface0 text-overlay1'}`}
+                  style={{ transition: 'all var(--transition)' }}
+                >
+                  {muted ? '🔇' : '🔊'}
+                </button>
+                <button
                   onClick={toggleKeyOrder}
                   className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
                   style={{ transition: 'all var(--transition)' }}
@@ -355,7 +357,7 @@ function App() {
               </div>
             </div>
             {/* Desktop: buttons second row */}
-            <div className="hidden md:grid grid-cols-6 gap-1 mt-2">
+            <div className="hidden md:grid grid-cols-7 gap-1 mt-2">
               <button
                 onClick={toggleBarre}
                 className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
@@ -369,6 +371,13 @@ function App() {
                 style={{ transition: 'all var(--transition)' }}
               >
                 {shapeSet === 'seventh' ? t('shapeSeventh') : t('shapeTriad')}
+              </button>
+              <button
+                onClick={toggleMute}
+                className={`text-[11px] py-1.5 rounded border cursor-pointer text-center ${muted ? 'border-red text-red' : 'border-surface0 text-overlay1'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {muted ? '🔇' : '🔊'}
               </button>
               <button
                 onClick={toggleKeyOrder}
@@ -551,6 +560,7 @@ function App() {
                 hoveredChord={activeChordKey}
                 onHoverChord={handleHoverChord}
                 onClickChord={handleClickChord}
+                onDblClickChord={handleDblClickChord}
                 progressionDegrees={activeProgObj?.degrees}
               />
             </div>
@@ -569,6 +579,7 @@ function App() {
                 hoveredChord={activeChordKey}
                 onHoverChord={handleHoverChord}
                 onClickChord={handleClickChord}
+                onDblClickChord={handleDblClickChord}
               />
             </div>
           </section>
@@ -592,7 +603,7 @@ function App() {
                       dimmed={activeChordKey != null && activeChordKey !== voicingKey(v)}
                       light={light}
                       showBarre={showBarre}
-                      onDoubleClick={() => handleChordDblClick(v)}
+                      onDoubleClick={() => handleDblClickChord(voicingKey(v))}
                       onPointerEnter={() => handleHoverChord(voicingKey(v))}
                       onPointerLeave={() => handleHoverChord(null)}
                       onClick={() => handleClickChord(voicingKey(v))}
@@ -648,6 +659,7 @@ function App() {
               hoveredChord={activeChordKey}
               onHoverChord={handleHoverChord}
               onClickChord={handleClickChord}
+              onDblClickChord={handleDblClickChord}
               progressionDegrees={activeProgObj?.degrees}
             />
           </div>
@@ -666,22 +678,10 @@ function App() {
               hoveredChord={activeChordKey}
               onHoverChord={handleHoverChord}
               onClickChord={handleClickChord}
+              onDblClickChord={handleDblClickChord}
             />
           </div>
         </section>
-      </FullscreenOverlay>
-      <FullscreenOverlay active={chordFS} onClose={handleCloseChord}>
-        {activeChord && (
-          <div className="flex items-center justify-center w-full h-full">
-            <ChordDiagram
-              voicing={activeChord}
-              highlighted={optimalSet.has(voicingKey(activeChord))}
-              light={light}
-              showBarre={showBarre}
-              className="w-full max-w-[50vh]"
-            />
-          </div>
-        )}
       </FullscreenOverlay>
 
       {ExportContainer}

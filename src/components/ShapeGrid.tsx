@@ -18,6 +18,7 @@ interface ShapeGridProps {
   hoveredChord?: string | null;
   onHoverChord?: (key: string | null) => void;
   onClickChord?: (key: string) => void;
+  onDblClickChord?: (key: string) => void;
   progressionDegrees?: number[];
   animated?: boolean;
   hideLabels?: boolean;
@@ -32,6 +33,7 @@ export function ShapeGrid({
   hoveredChord,
   onHoverChord,
   onClickChord,
+  onDblClickChord,
   progressionDegrees,
   animated = true,
   hideLabels = false,
@@ -206,6 +208,7 @@ export function ShapeGrid({
                 onPointerEnter={() => onHoverChord?.(chordKey)}
                 onPointerLeave={() => onHoverChord?.(null)}
                 onClick={() => onClickChord?.(chordKey)}
+                onDoubleClick={() => onDblClickChord?.(chordKey)}
               >
                 <circle
                   cx={0}
