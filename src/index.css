@@ -110,7 +110,12 @@
 
 /* ── Panel component ── */
 @layer components {
-  .panel {
+  main, svg {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.panel {
     @apply flex flex-col overflow-hidden bg-panel-bg;
     border: 1px solid var(--panel-border);
     border-radius: var(--ui-radius);
