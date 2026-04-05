@@ -216,10 +216,12 @@ function App() {
 
   const handleClickChord = useCallback(
     (key: string) => {
-      setLockedChord((prev) => (prev === key ? null : key));
-      // Play chord audio
-      const v = voicings.find((v) => voicingKey(v) === key);
-      if (v) playChord(v.frets);
+      setLockedChord((prev) => {
+        if (prev === key) return null; // unlock, no sound
+        const v = voicings.find((v) => voicingKey(v) === key);
+        if (v) playChord(v.frets);
+        return key;
+      });
     },
     [voicings],
   );

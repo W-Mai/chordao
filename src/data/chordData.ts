@@ -95,7 +95,8 @@ export function generateVoicings(key: NoteName, maxFret = 17, shapeSet: ShapeSet
 
   for (const deg of SCALE_DEGREES) {
     const targetNote = noteName(noteIndex(key) + deg.interval);
-    const chordName = `${NOTE_DISPLAY[targetNote]}${deg.suffix}`;
+    const seventhSuffix = shapeSet === 'seventh' ? '7' : '';
+    const chordName = `${NOTE_DISPLAY[targetNote]}${deg.suffix}${seventhSuffix}`;
     const isMajor = deg.suffix === '';
     const quality = isMajor ? 'major' : 'minor';
     const shapeSuffix = isMajor ? '' : 'm';
