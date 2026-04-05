@@ -92,6 +92,7 @@ export function Game() {
   const [rotated, setRotated] = useState(false);
   const [questionTimer, setQuestionTimer] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Correct voicing keys for "show correct answer" on wrong
   const [correctHighlight, setCorrectHighlight] = useState<string[]>([]);
   // Sprint mode state
@@ -105,6 +106,15 @@ export function Game() {
   const [memoryPhase, setMemoryPhase] = useState<'show' | 'guess'>('show');
 
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+  const safeTimeout = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      pendingTimeouts.current = pendingTimeouts.current.filter((t) => t !== id);
+      fn();
+    }, ms);
+    pendingTimeouts.current.push(id);
+    return id;
+  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -123,6 +133,8 @@ export function Game() {
   const closeGame = useCallback(() => {
     setVisible(false);
     if (timerRef.current) clearInterval(timerRef.current);
+    pendingTimeouts.current.forEach(clearTimeout);
+    pendingTimeouts.current = [];
     setTimeout(() => {
       setMounted(false);
       setOpen(false);
@@ -169,7 +181,7 @@ export function Game() {
       if (mode === 'memory') {
         setMemoryPhase('show');
         const showTime = diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600;
-        setTimeout(() => setMemoryPhase('guess'), showTime);
+        safeTimeout(() => setMemoryPhase('guess'), showTime);
       }
       startTimer(diff);
     },
@@ -220,7 +232,7 @@ export function Game() {
         if (currentMode === 'memory') {
           setMemoryPhase('show');
           const showTime = d === 'easy' ? 2000 : d === 'medium' ? 1200 : 600;
-          setTimeout(() => setMemoryPhase('guess'), showTime);
+          safeTimeout(() => setMemoryPhase('guess'), showTime);
         }
         startTimer(d);
       }
@@ -253,7 +265,7 @@ export function Game() {
       const correctKeys = question.allVoicings.filter((v) => v.degree === question.degree).map(voicingKey);
       setCorrectHighlight(correctKeys);
       if (timerRef.current) clearInterval(timerRef.current);
-      setTimeout(() => nextQuestion(difficulty), 2500);
+      safeTimeout(() => nextQuestion(difficulty), 2500);
     }
   }, [questionTimer, question, feedback, total, difficulty, nextQuestion]);
 
@@ -269,7 +281,7 @@ export function Game() {
           return next;
         });
         setFeedback('correct');
-        setTimeout(() => nextQuestion(difficulty), 2500);
+        safeTimeout(() => nextQuestion(difficulty), 2500);
       } else {
         setStreak(0);
         setShakeKey((k) => k + 1);
@@ -277,7 +289,7 @@ export function Game() {
         // Show correct positions for 1.5s
         const correctKeys = q.allVoicings.filter((v) => v.degree === q.degree).map(voicingKey);
         setCorrectHighlight(correctKeys);
-        setTimeout(() => nextQuestion(difficulty), 2500);
+        safeTimeout(() => nextQuestion(difficulty), 2500);
       }
     },
     [nextQuestion, difficulty],
