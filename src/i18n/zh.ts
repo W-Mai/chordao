@@ -56,6 +56,7 @@ export default {
   gameReverse: '🔮 辨别',
   gameCorrect: '✓ 正确！',
   gameWrong: '✗ 错误',
+  gameBest: '最佳',
   gamePlayAgain: '再来一局',
   gameTimer: '⏱ {{time}}秒',
   gameLocatePrompt: '{{key}} 调 — 在指板上找到 {{degree}}',

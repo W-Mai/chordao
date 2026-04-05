@@ -59,6 +59,21 @@ function generateQuestion(difficulty: Difficulty, mode: GameMode): Question {
   return { key, degree, voicing, allVoicings: voicings, optimal, reverseOptions };
 }
 
+// Best score storage
+function bestKey(mode: GameMode, difficulty: Difficulty) {
+  return `chordao:best:${mode}:${difficulty}`;
+}
+function getBest(mode: GameMode, difficulty: Difficulty): number | null {
+  const v = localStorage.getItem(bestKey(mode, difficulty));
+  return v ? Number(v) : null;
+}
+function saveBest(mode: GameMode, difficulty: Difficulty, val: number) {
+  const prev = getBest(mode, difficulty);
+  // Sprint: lower is better; others: higher is better
+  const dominated = mode === 'sprint' ? prev !== null && prev <= val : prev !== null && prev >= val;
+  if (!dominated) localStorage.setItem(bestKey(mode, difficulty), String(val));
+}
+
 export function Game() {
   const { t } = useTranslation();
   const [, setOpen] = useState(false);
@@ -120,6 +135,14 @@ export function Game() {
     sprintDone ||
     chainDone ||
     ((mode === 'locate' || mode === 'reverse' || mode === 'memory') && total >= TOTAL_QUESTIONS && feedback === null);
+
+  // Save best score on game over
+  useEffect(() => {
+    if (!gameOver) return;
+    if (mode === 'sprint') saveBest(mode, difficulty, sprintElapsed);
+    else if (mode === 'chain') saveBest(mode, difficulty, chainStep);
+    else saveBest(mode, difficulty, score);
+  }, [gameOver, mode, difficulty, score, sprintElapsed, chainStep]);
 
   const startTimer = useCallback((diff: Difficulty) => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -499,6 +522,17 @@ export function Game() {
                       {'🔥'} {t('gameStreak', { count: bestStreak })}
                     </div>
                   )}
+                  {(() => {
+                    const best = getBest(mode, difficulty);
+                    if (best === null) return null;
+                    return (
+                      <div className="text-xs text-overlay1 mb-4">
+                        {mode === 'sprint'
+                          ? `⚡ ${t('gameBest')}: ${best}s`
+                          : `🏅 ${t('gameBest')}: ${best}/${TOTAL_QUESTIONS}`}
+                      </div>
+                    );
+                  })()}
                   <button
                     onClick={() => startGame()}
                     className="px-8 py-2.5 rounded-xl bg-blue text-crust font-semibold cursor-pointer hover:opacity-90 text-sm"

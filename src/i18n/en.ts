@@ -60,6 +60,7 @@ export default {
   gameReverse: '🔮 Identify',
   gameCorrect: '✓ Correct!',
   gameWrong: '✗ Wrong',
+  gameBest: 'Best',
   gamePlayAgain: 'Play Again',
   gameTimer: '⏱ {{time}}s',
   gameLocatePrompt: 'Key of {{key}} — find {{degree}} on the fretboard',
