@@ -36,12 +36,14 @@ export function useExportImage({
   const [qrChordao, setQrChordao] = useState<string>('');
   const [qrBlog, setQrBlog] = useState<string>('');
 
-  // Generate QR codes once
+  // Generate QR codes — chordao QR includes current state hash
   useEffect(() => {
     const logoUrl = `${window.location.origin}${import.meta.env.BASE_URL}logo.svg`;
-    generateQR('https://w-mai.github.io/chordao/', 200, logoUrl).then(setQrChordao);
+    const base = 'https://w-mai.github.io/chordao/';
+    const hash = window.location.hash || '';
+    generateQR(`${base}${hash}`, 200, logoUrl).then(setQrChordao);
     generateQR('https://benign.host', 200).then(setQrBlog);
-  }, []);
+  }, [selectedKey, activeProgObj]);
 
   const exportImage = useCallback(async () => {
     const el = containerRef.current;
