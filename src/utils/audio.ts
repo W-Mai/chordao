@@ -19,6 +19,14 @@ function getCtx() {
   return ctx;
 }
 
+// Cancel all scheduled audio by replacing the context
+export function resetAudio() {
+  if (ctx) {
+    ctx.close();
+    ctx = null;
+  }
+}
+
 function pluckString(ac: AudioContext, freq: number, startTime: number, dest: AudioNode, vol = 0.12) {
   const gain = ac.createGain();
   gain.gain.setValueAtTime(vol, startTime);
@@ -41,9 +49,19 @@ function pluckString(ac: AudioContext, freq: number, startTime: number, dest: Au
   }
 }
 
-// Strum direction: 'down' = low→high, 'up' = high→low
-function strumAt(ac: AudioContext, frets: number[], time: number, dir: 'down' | 'up', vol = 0.12) {
-  const order = dir === 'down' ? [0, 1, 2, 3, 4, 5] : [5, 4, 3, 2, 1, 0];
+// Strum with optional string range: [from, to] inclusive (0=low E, 5=high E)
+function strumAt(
+  ac: AudioContext,
+  frets: number[],
+  time: number,
+  dir: 'down' | 'up',
+  vol = 0.12,
+  strings: [number, number] = [0, 5],
+) {
+  const [lo, hi] = strings;
+  const indices = [];
+  for (let i = lo; i <= hi; i++) indices.push(i);
+  const order = dir === 'down' ? indices : [...indices].reverse();
   order.forEach((i, idx) => {
     if (frets[i] < 0) return;
     const freq = OPEN_FREQS[i] * Math.pow(2, frets[i] / 12);
@@ -61,167 +79,171 @@ function arpeggioAt(ac: AudioContext, frets: number[], time: number, beatDur: nu
 }
 
 // Rhythm pattern: strums within one bar (4/4 time)
-// Each entry: [beatOffset (0-4), direction, volume multiplier]
+// Each entry: [beatOffset, direction, volume, strings?]
+// strings: [from, to] — 0=lowE..5=highE, default all
+export interface RhythmStrum {
+  beat: number;
+  dir: 'down' | 'up' | 'arp';
+  vol: number;
+  strings?: [number, number]; // [lo, hi], default [0,5]
+}
+
 export interface RhythmPattern {
   name: string;
   label: string;
-  strums: [number, 'down' | 'up' | 'arp', number][];
+  strums: RhythmStrum[];
 }
 
-// D=down U=up -=rest x=mute
-// Beat positions: 1=0, 1+=0.5, 2=1, 2+=1.5, 3=2, 3+=2.5, 4=3, 4+=3.5
-export const RHYTHM_PATTERNS: RhythmPattern[] = [
-  // Whole note — one strum per bar
-  { name: 'whole', label: '𝅝', strums: [[0, 'down', 1.0]] },
+// S = helper to create strum entries concisely
+const S = (beat: number, dir: 'down' | 'up' | 'arp', vol: number, strings?: [number, number]): RhythmStrum => ({
+  beat,
+  dir,
+  vol,
+  strings,
+});
 
-  // Quarter — D D D D
+export const RHYTHM_PATTERNS: RhythmPattern[] = [
+  { name: 'whole', label: '𝅝', strums: [S(0, 'down', 1.0)] },
+
   {
     name: 'quarter',
     label: '♩♩♩♩',
-    strums: [
-      [0, 'down', 1.0],
-      [1, 'down', 0.7],
-      [2, 'down', 0.8],
-      [3, 'down', 0.7],
-    ],
+    strums: [S(0, 'down', 1.0), S(1, 'down', 0.7), S(2, 'down', 0.8), S(3, 'down', 0.7)],
   },
 
-  // Pop/Folk — D · D U · U D U (the universal pattern)
+  // Pop — D · DU · UDU, down=full, up=treble
   {
     name: 'pop',
     label: 'Pop',
     strums: [
-      [0, 'down', 1.0],
-      [1, 'down', 0.7],
-      [1.5, 'up', 0.5],
-      [2.5, 'up', 0.5],
-      [3, 'down', 0.7],
-      [3.5, 'up', 0.5],
+      S(0, 'down', 1.0),
+      S(1, 'down', 0.7),
+      S(1.5, 'up', 0.5, [2, 5]),
+      S(2.5, 'up', 0.5, [2, 5]),
+      S(3, 'down', 0.7),
+      S(3.5, 'up', 0.5, [2, 5]),
     ],
   },
 
-  // Pop Rock — D · D U D U D U
+  // Pop Rock — D · DUDUDU, up=treble
   {
     name: 'poprock',
     label: 'Pop Rock',
     strums: [
-      [0, 'down', 1.0],
-      [1, 'down', 0.7],
-      [1.5, 'up', 0.5],
-      [2, 'down', 0.8],
-      [2.5, 'up', 0.5],
-      [3, 'down', 0.7],
-      [3.5, 'up', 0.5],
+      S(0, 'down', 1.0),
+      S(1, 'down', 0.7),
+      S(1.5, 'up', 0.5, [2, 5]),
+      S(2, 'down', 0.8),
+      S(2.5, 'up', 0.5, [2, 5]),
+      S(3, 'down', 0.7),
+      S(3.5, 'up', 0.5, [2, 5]),
     ],
   },
 
-  // Ballad — D · · U · U D ·
+  // Ballad — bass note + treble up strums
   {
     name: 'ballad',
     label: 'Ballad',
     strums: [
-      [0, 'down', 1.0],
-      [1.5, 'up', 0.4],
-      [2.5, 'up', 0.5],
-      [3, 'down', 0.6],
+      S(0, 'down', 1.0, [0, 2]),
+      S(1, 'up', 0.4, [3, 5]),
+      S(1.5, 'up', 0.3, [3, 5]),
+      S(2, 'down', 0.6, [0, 2]),
+      S(2.5, 'up', 0.4, [3, 5]),
+      S(3, 'down', 0.5, [2, 5]),
     ],
   },
 
-  // Folk fingerpicking style — D · D U · U D U (accented 1 and 3)
+  // Folk — bass alternating + treble strums
   {
     name: 'folk',
     label: 'Folk',
     strums: [
-      [0, 'down', 1.0],
-      [1, 'down', 0.5],
-      [1.5, 'up', 0.4],
-      [2, 'down', 0.8],
-      [2.5, 'up', 0.4],
-      [3, 'down', 0.5],
-      [3.5, 'up', 0.4],
+      S(0, 'down', 1.0, [0, 2]),
+      S(0.5, 'up', 0.3, [3, 5]),
+      S(1, 'down', 0.6, [3, 5]),
+      S(1.5, 'up', 0.4, [3, 5]),
+      S(2, 'down', 0.8, [0, 2]),
+      S(2.5, 'up', 0.3, [3, 5]),
+      S(3, 'down', 0.6, [3, 5]),
+      S(3.5, 'up', 0.4, [3, 5]),
     ],
   },
 
-  // Rock — D D · U · U D ·
+  // Rock — heavy down, light up on treble
   {
     name: 'rock',
     label: 'Rock',
     strums: [
-      [0, 'down', 1.0],
-      [1, 'down', 0.8],
-      [1.5, 'up', 0.5],
-      [2.5, 'up', 0.6],
-      [3, 'down', 0.8],
+      S(0, 'down', 1.0),
+      S(1, 'down', 0.9),
+      S(1.5, 'up', 0.5, [2, 5]),
+      S(2.5, 'up', 0.5, [2, 5]),
+      S(3, 'down', 0.9),
     ],
   },
 
-  // Punk — D U D U D U D U (all eighth notes, aggressive)
+  // Punk — all eighth notes, full strum, aggressive
   {
     name: 'punk',
     label: 'Punk',
     strums: [
-      [0, 'down', 1.0],
-      [0.5, 'up', 0.7],
-      [1, 'down', 0.9],
-      [1.5, 'up', 0.7],
-      [2, 'down', 1.0],
-      [2.5, 'up', 0.7],
-      [3, 'down', 0.9],
-      [3.5, 'up', 0.7],
+      S(0, 'down', 1.0),
+      S(0.5, 'up', 0.8),
+      S(1, 'down', 0.9),
+      S(1.5, 'up', 0.8),
+      S(2, 'down', 1.0),
+      S(2.5, 'up', 0.8),
+      S(3, 'down', 0.9),
+      S(3.5, 'up', 0.8),
     ],
   },
 
-  // Reggae skank — · U · U · U · U (offbeat upstrokes)
+  // Reggae — offbeat upstrokes, treble only
   {
     name: 'reggae',
     label: 'Reggae',
     strums: [
-      [0.5, 'up', 0.8],
-      [1.5, 'up', 0.8],
-      [2.5, 'up', 0.8],
-      [3.5, 'up', 0.8],
+      S(0.5, 'up', 0.8, [2, 5]),
+      S(1.5, 'up', 0.8, [2, 5]),
+      S(2.5, 'up', 0.8, [2, 5]),
+      S(3.5, 'up', 0.8, [2, 5]),
     ],
   },
 
-  // Shuffle/Swing — D · U D · U D · U D · U (triplet feel)
+  // Shuffle — triplet feel
   {
     name: 'shuffle',
     label: 'Shuffle',
     strums: [
-      [0, 'down', 1.0],
-      [0.67, 'up', 0.5],
-      [1, 'down', 0.7],
-      [1.67, 'up', 0.5],
-      [2, 'down', 0.8],
-      [2.67, 'up', 0.5],
-      [3, 'down', 0.7],
-      [3.67, 'up', 0.5],
+      S(0, 'down', 1.0),
+      S(0.67, 'up', 0.5, [2, 5]),
+      S(1, 'down', 0.7),
+      S(1.67, 'up', 0.5, [2, 5]),
+      S(2, 'down', 0.8),
+      S(2.67, 'up', 0.5, [2, 5]),
+      S(3, 'down', 0.7),
+      S(3.67, 'up', 0.5, [2, 5]),
     ],
   },
 
-  // Country train beat — D x D U x U D U
+  // Country — bass-strum alternating
   {
     name: 'country',
     label: 'Country',
     strums: [
-      [0, 'down', 1.0],
-      [1, 'down', 0.7],
-      [1.5, 'up', 0.5],
-      [2.5, 'up', 0.5],
-      [3, 'down', 0.7],
-      [3.5, 'up', 0.4],
+      S(0, 'down', 1.0, [0, 2]),
+      S(1, 'down', 0.7, [2, 5]),
+      S(1.5, 'up', 0.4, [3, 5]),
+      S(2, 'down', 0.8, [0, 2]),
+      S(2.5, 'up', 0.4, [3, 5]),
+      S(3, 'down', 0.7, [2, 5]),
+      S(3.5, 'up', 0.4, [3, 5]),
     ],
   },
 
-  // Arpeggio — fingerpick across 4 beats
-  {
-    name: 'arpeggio',
-    label: 'Arp ♫',
-    strums: [
-      [0, 'arp', 1.0],
-      [2, 'arp', 0.8],
-    ],
-  },
+  // Arpeggio
+  { name: 'arpeggio', label: 'Arp ♫', strums: [S(0, 'arp', 1.0), S(2, 'arp', 0.8)] },
 ];
 
 // Play a single chord (click)
@@ -235,12 +257,12 @@ export function scheduleBar(frets: number[], bpm: number, pattern: RhythmPattern
   const ac = getCtx();
   const beatDur = 60 / bpm;
   const now = ac.currentTime;
-  for (const [beat, dir, vol] of pattern.strums) {
-    const t = now + beat * beatDur;
-    if (dir === 'arp') {
+  for (const s of pattern.strums) {
+    const t = now + s.beat * beatDur;
+    if (s.dir === 'arp') {
       arpeggioAt(ac, frets, t, beatDur);
     } else {
-      strumAt(ac, frets, t, dir, vol * 0.12);
+      strumAt(ac, frets, t, s.dir, s.vol * 0.12, s.strings);
     }
   }
 }

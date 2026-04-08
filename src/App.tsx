@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { playChord, scheduleBar, RHYTHM_PATTERNS, type RhythmPattern } from './utils/audio';
+import { playChord, scheduleBar, resetAudio, RHYTHM_PATTERNS, type RhythmPattern } from './utils/audio';
 import {
   NOTES,
   NOTE_DISPLAY,
@@ -265,6 +265,7 @@ function App() {
     playRef.current = setInterval(tick, ms);
     return () => {
       if (playRef.current) clearInterval(playRef.current);
+      resetAudio();
     };
   }, [playing, bpm, activeProgObj, optimal, muted, rhythm]);
 
