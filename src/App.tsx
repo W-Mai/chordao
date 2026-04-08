@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { playChord } from './utils/audio';
 import {
@@ -248,6 +248,30 @@ function App() {
     window.history.replaceState(null, '', `#${params.toString()}`);
   }, [selectedKey, activeProg, customDegrees]);
 
+  // Swipe on header to switch key
+  const headerRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const onStart = (e: TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+    };
+    const onEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      if (Math.abs(dx) < 80) return;
+      const idx = keyList.indexOf(selectedKey);
+      // Swipe left = next, swipe right = prev
+      setSelectedKey(keyList[(idx + (dx < 0 ? 1 : -1) + 12) % 12]);
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchend', onEnd);
+    };
+  }, [keyList, selectedKey, setSelectedKey]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -292,10 +316,13 @@ function App() {
             <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-4 h-4" />
           </div>
           <h1
-            className="text-sm font-bold tracking-wide text-txt mr-auto"
+            className="text-sm font-bold tracking-wide text-txt mr-auto flex items-center gap-1.5"
             style={{ textShadow: theme === 'cyber' ? '0 0 8px var(--blue)' : 'none' }}
           >
             {t('appName')}
+            <span key={selectedKey} className="text-blue text-xs font-mono" style={{ animation: 'slideIn 0.2s ease' }}>
+              {NOTE_DISPLAY[selectedKey]}
+            </span>
           </h1>
           <div className="flex gap-1 flex-wrap">
             <button
@@ -357,7 +384,7 @@ function App() {
                           flex flex-col gap-3 md:gap-4 md:overflow-y-auto md:min-h-0"
           style={{ transition: 'background var(--transition), border-color var(--transition)' }}
         >
-          <div className="grid grid-cols-6 md:grid-cols-4 gap-1">
+          <div ref={headerRef} className="grid grid-cols-6 md:grid-cols-4 gap-1">
             {keyList.map((note) => (
               <button
                 key={note}
