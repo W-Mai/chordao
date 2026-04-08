@@ -2,16 +2,14 @@
 // Standard tuning frequencies (E2 A2 D3 G3 B3 E4)
 const OPEN_FREQS = [82.41, 110.0, 146.83, 196.0, 246.94, 329.63];
 
-const HARMONICS = [
-  { n: 1, amp: 1.0 },
-  { n: 2, amp: 0.5 },
-  { n: 3, amp: 0.35 },
-  { n: 4, amp: 0.2 },
-  { n: 5, amp: 0.15 },
-  { n: 6, amp: 0.08 },
-  { n: 7, amp: 0.06 },
-  { n: 8, amp: 0.03 },
-];
+// Harmonic amplitudes based on plucked string physics
+// Reference: Perov et al. "The physics of guitar string vibrations"
+// American Journal of Physics 84(1):38-43, 2016
+// b_n = sin(n*pi*x1/L) / (n^2 * (x1/L) * (1 - x1/L) * pi^2)
+// x1/L ≈ 0.17 typical guitar pluck position (between bridge and soundhole)
+// Decay time for nth harmonic ∝ 1/n (Karplus-Strong model)
+const PLUCK_POS = 0.17; // x1/L ratio
+const NUM_HARMONICS = 12;
 
 let ctx: AudioContext | null = null;
 function getCtx() {
@@ -19,7 +17,6 @@ function getCtx() {
   return ctx;
 }
 
-// Cancel all scheduled audio by replacing the context
 export function resetAudio() {
   if (ctx) {
     ctx.close();
@@ -27,25 +24,35 @@ export function resetAudio() {
   }
 }
 
+function harmonicAmp(n: number): number {
+  const x = PLUCK_POS;
+  return Math.sin(n * Math.PI * x) / (n * n * x * (1 - x) * Math.PI * Math.PI);
+}
+
 function pluckString(ac: AudioContext, freq: number, startTime: number, dest: AudioNode, vol = 0.12) {
   const gain = ac.createGain();
   gain.gain.setValueAtTime(vol, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.0);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.5);
   gain.connect(dest);
 
-  for (const h of HARMONICS) {
-    const hFreq = freq * h.n;
-    if (hFreq > 8000) break;
+  const b1 = harmonicAmp(1);
+  for (let n = 1; n <= NUM_HARMONICS; n++) {
+    const hFreq = freq * n;
+    if (hFreq > 10000) break;
+    const amp = Math.abs(harmonicAmp(n) / b1); // normalize to fundamental
+    if (amp < 0.01) continue; // skip negligible harmonics
     const osc = ac.createOscillator();
     const hGain = ac.createGain();
     osc.type = 'sine';
     osc.frequency.value = hFreq;
-    hGain.gain.setValueAtTime(h.amp * 0.15, startTime);
-    hGain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.0 / h.n);
+    hGain.gain.setValueAtTime(amp * 0.15, startTime);
+    // Higher harmonics decay faster: τ_n ∝ 1/n
+    const decayTime = 2.5 / n;
+    hGain.gain.exponentialRampToValueAtTime(0.001, startTime + decayTime);
     osc.connect(hGain);
     hGain.connect(gain);
     osc.start(startTime);
-    osc.stop(startTime + 2.0 / h.n + 0.05);
+    osc.stop(startTime + decayTime + 0.05);
   }
 }
 
