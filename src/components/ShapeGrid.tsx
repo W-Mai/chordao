@@ -21,6 +21,8 @@ interface ShapeGridProps {
   onDblClickChord?: (key: string) => void;
   progressionDegrees?: number[];
   animated?: boolean;
+  animationDuration?: number; // total loop duration in seconds
+  activeStep?: number; // current step index for synced playback
   hideLabels?: boolean;
   monoColor?: boolean;
 }
@@ -36,6 +38,8 @@ export function ShapeGrid({
   onDblClickChord,
   progressionDegrees,
   animated = true,
+  animationDuration,
+  activeStep,
   hideLabels = false,
   monoColor = false,
 }: ShapeGridProps) {
@@ -68,7 +72,7 @@ export function ShapeGrid({
   const fretW = 52;
   const boardW = totalFrets * fretW;
   const stringGap = 70;
-  const padY = 16;
+  const padY = 22;
   const svgW = labelW + openW + nutW + boardW + 8;
   const svgH = padY + stringGap + padY + 20;
   const stringY = [padY, padY + stringGap];
@@ -282,16 +286,47 @@ export function ShapeGrid({
                 />
 
                 {/* Animated glow dot traveling along path */}
-                {animated && (
+                {animated && activeStep == null && (
                   <>
                     <circle r={5} fill="var(--blue)" opacity={0.8}>
-                      <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+                      <animateMotion
+                        dur={`${animationDuration ?? allPts.length * 0.8}s`}
+                        repeatCount="indefinite"
+                        path={pathD}
+                      />
                     </circle>
                     <circle r={10} fill="var(--blue)" opacity={0.15}>
-                      <animateMotion dur={`${allPts.length * 0.8}s`} repeatCount="indefinite" path={pathD} />
+                      <animateMotion
+                        dur={`${animationDuration ?? allPts.length * 0.8}s`}
+                        repeatCount="indefinite"
+                        path={pathD}
+                      />
                     </circle>
                   </>
                 )}
+
+                {/* Synced dot for playback */}
+                {activeStep != null &&
+                  steps[activeStep % steps.length] &&
+                  (() => {
+                    const p = steps[activeStep % steps.length];
+                    return (
+                      <circle
+                        cx={0}
+                        cy={0}
+                        r={dotR + 4}
+                        fill="none"
+                        stroke="var(--blue)"
+                        strokeWidth={2.5}
+                        opacity={0.9}
+                        style={{
+                          transform: `translate(${p.x}px, ${p.y}px)`,
+                          transition: 'transform 0.15s ease',
+                          willChange: 'transform',
+                        }}
+                      />
+                    );
+                  })()}
 
                 {/* Step numbers — group by position, spread horizontally */}
                 {(() => {

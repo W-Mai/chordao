@@ -190,12 +190,89 @@ function App() {
     [resetHover],
   );
 
+  const [muted, setMuted] = useState(() => localStorage.getItem('chordao:muted') === 'true');
+  const toggleMute = useCallback(() => {
+    setMuted((v) => {
+      localStorage.setItem('chordao:muted', String(!v));
+      return !v;
+    });
+  }, []);
+
   const activeProgObj = useMemo(() => {
     if (activeProg === 'custom' && customDegrees.length >= 2) return { name: 'custom', degrees: customDegrees };
     return activeProg ? (PROGRESSIONS.find((p) => p.name === activeProg) ?? null) : null;
   }, [activeProg, customDegrees]);
   const optimal = useMemo(() => findOptimalCombination(grouped, activeProgObj?.degrees), [grouped, activeProgObj]);
   const optimalSet = useMemo(() => new Set(optimal.map(voicingKey)), [optimal]);
+
+  // Auto-play progression
+  const [playing, setPlaying] = useState(false);
+  const [bpm, setBpm] = useState(() => Number(localStorage.getItem('chordao:bpm')) || 100);
+  const [playStep, setPlayStep] = useState(0);
+  const [beat, setBeat] = useState(false);
+  const playRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPlay = useCallback(() => {
+    setPlaying(false);
+    if (playRef.current) clearInterval(playRef.current);
+    playRef.current = null;
+    setBeat(false);
+  }, []);
+
+  const startPlay = useCallback(() => {
+    if (!activeProgObj || activeProgObj.degrees.length < 2) return;
+    setPlaying(true);
+    setPlayStep(0);
+  }, [activeProgObj]);
+
+  const togglePlay = useCallback(() => {
+    if (playing) stopPlay();
+    else startPlay();
+  }, [playing, stopPlay, startPlay]);
+
+  // Play loop
+  useEffect(() => {
+    if (!playing || !activeProgObj) return;
+    const ms = (60 / bpm) * 1000;
+    const degrees = activeProgObj.degrees;
+    const tick = () => {
+      setPlayStep((prev) => {
+        const step = (prev + 1) % degrees.length;
+        const deg = degrees[step];
+        const v = optimal.find((o) => o.degree === deg);
+        if (v) {
+          setLockedChord(voicingKey(v));
+          if (!muted) playChord(v.frets);
+        }
+        setBeat(true);
+        setTimeout(() => setBeat(false), 120);
+        return step;
+      });
+    };
+    // Play first step immediately
+    const v0 = optimal.find((o) => o.degree === degrees[0]);
+    if (v0) {
+      setLockedChord(voicingKey(v0));
+      if (!muted) playChord(v0.frets);
+    }
+    setBeat(true);
+    setTimeout(() => setBeat(false), 120);
+    setPlayStep(0);
+    playRef.current = setInterval(tick, ms);
+    return () => {
+      if (playRef.current) clearInterval(playRef.current);
+    };
+  }, [playing, bpm, activeProgObj, optimal, muted]);
+
+  // Stop when progression changes
+  useEffect(() => {
+    stopPlay();
+  }, [activeProg, stopPlay]);
+
+  const handleBpmChange = useCallback((v: number) => {
+    setBpm(v);
+    localStorage.setItem('chordao:bpm', String(v));
+  }, []);
 
   const activeProgDegrees = useMemo(() => {
     if (!activeProgObj) return null;
@@ -212,14 +289,6 @@ function App() {
     if (activeProgDegrees) return optimal.filter((v) => activeProgDegrees.has(v.degree));
     return optimal;
   }, [optimal, activeDegree, activeProgDegrees]);
-
-  const [muted, setMuted] = useState(() => localStorage.getItem('chordao:muted') === 'true');
-  const toggleMute = useCallback(() => {
-    setMuted((v) => {
-      localStorage.setItem('chordao:muted', String(!v));
-      return !v;
-    });
-  }, []);
 
   const handleClickChord = useCallback(
     (key: string) => {
@@ -346,6 +415,28 @@ function App() {
             >
               {muted ? '🔇' : '🔊'}
             </button>
+            {activeProgObj && (
+              <>
+                <button
+                  onClick={togglePlay}
+                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${playing ? 'border-green text-green' : 'border-surface0 text-overlay1'}`}
+                  style={{ transition: 'all var(--transition)', transform: beat ? 'scale(1.15)' : 'scale(1)' }}
+                >
+                  {playing ? '⏸' : '▶'}
+                </button>
+                {playing && (
+                  <input
+                    type="range"
+                    min={60}
+                    max={180}
+                    value={bpm}
+                    onChange={(e) => handleBpmChange(Number(e.target.value))}
+                    className="w-16 h-5 accent-blue"
+                    title={`${bpm} BPM`}
+                  />
+                )}
+              </>
+            )}
             <button
               onClick={toggleKeyOrder}
               className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
@@ -538,6 +629,8 @@ function App() {
                 onClickChord={handleClickChord}
                 onDblClickChord={handleDblClickChord}
                 progressionDegrees={activeProgObj?.degrees}
+                animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60) / bpm : undefined}
+                activeStep={playing ? playStep : undefined}
               />
             </div>
           </section>
@@ -637,6 +730,8 @@ function App() {
               onClickChord={handleClickChord}
               onDblClickChord={handleDblClickChord}
               progressionDegrees={activeProgObj?.degrees}
+              animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60) / bpm : undefined}
+              activeStep={playing ? playStep : undefined}
             />
           </div>
         </section>
