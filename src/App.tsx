@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { playChord } from './utils/audio';
+import { playChord, scheduleBar, RHYTHM_PATTERNS, type RhythmPattern } from './utils/audio';
 import {
   NOTES,
   NOTE_DISPLAY,
@@ -208,6 +208,10 @@ function App() {
   // Auto-play progression
   const [playing, setPlaying] = useState(false);
   const [bpm, setBpm] = useState(() => Number(localStorage.getItem('chordao:bpm')) || 100);
+  const [rhythm, setRhythm] = useState<RhythmPattern>(() => {
+    const saved = localStorage.getItem('chordao:rhythm');
+    return RHYTHM_PATTERNS.find((r) => r.name === saved) ?? RHYTHM_PATTERNS[0];
+  });
   const [playStep, setPlayStep] = useState(0);
   const [beat, setBeat] = useState(false);
   const playRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -233,7 +237,7 @@ function App() {
   // Play loop
   useEffect(() => {
     if (!playing || !activeProgObj) return;
-    const ms = ((60 / bpm) * 4) * 1000; // 4 beats per chord
+    const ms = (60 / bpm) * 4 * 1000; // 4 beats per chord
     const degrees = activeProgObj.degrees;
     const tick = () => {
       setPlayStep((prev) => {
@@ -242,7 +246,7 @@ function App() {
         const v = optimal.find((o) => o.degree === deg);
         if (v) {
           setLockedChord(voicingKey(v));
-          if (!muted) playChord(v.frets);
+          if (!muted) scheduleBar(v.frets, bpm, rhythm);
         }
         setBeat(true);
         setTimeout(() => setBeat(false), 120);
@@ -253,7 +257,7 @@ function App() {
     const v0 = optimal.find((o) => o.degree === degrees[0]);
     if (v0) {
       setLockedChord(voicingKey(v0));
-      if (!muted) playChord(v0.frets);
+      if (!muted) scheduleBar(v0.frets, bpm, rhythm);
     }
     setBeat(true);
     setTimeout(() => setBeat(false), 120);
@@ -262,7 +266,7 @@ function App() {
     return () => {
       if (playRef.current) clearInterval(playRef.current);
     };
-  }, [playing, bpm, activeProgObj, optimal, muted]);
+  }, [playing, bpm, activeProgObj, optimal, muted, rhythm]);
 
   // Stop when progression changes
   useEffect(() => {
@@ -586,33 +590,50 @@ function App() {
 
           {/* Play controls */}
           {activeProgObj && (
-            <div className="flex items-center gap-2 px-1">
-              <button
-                onClick={togglePlay}
-                className={`text-[14px] w-8 h-8 rounded-lg border cursor-pointer flex items-center justify-center shrink-0 ${playing ? 'border-green text-green bg-green/10' : 'border-surface0 text-overlay1'}`}
-                style={{ transition: 'all var(--transition)', transform: beat ? 'scale(1.1)' : 'scale(1)' }}
-              >
-                {playing ? '⏸' : '▶'}
-              </button>
-              <input
-                type="range"
-                min={60}
-                max={180}
-                value={bpm}
-                onChange={(e) => handleBpmChange(Number(e.target.value))}
-                className="flex-1 h-1 accent-blue min-w-0"
-              />
-              <input
-                type="number"
-                min={60}
-                max={180}
-                value={bpm}
-                onChange={(e) => handleBpmChange(Math.min(180, Math.max(60, Number(e.target.value) || 60)))}
-                className="w-12 text-[11px] text-center px-1 py-0.5 rounded border border-surface0 bg-base text-txt outline-none focus:border-blue"
-                style={{ transition: 'border-color var(--transition)' }}
-              />
-              <span className="text-[9px] text-overlay0 shrink-0">BPM</span>
-            </div>
+            <>
+              <div className="flex items-center gap-2 px-1">
+                <button
+                  onClick={togglePlay}
+                  className={`text-[14px] w-8 h-8 rounded-lg border cursor-pointer flex items-center justify-center shrink-0 ${playing ? 'border-green text-green bg-green/10' : 'border-surface0 text-overlay1'}`}
+                  style={{ transition: 'all var(--transition)', transform: beat ? 'scale(1.1)' : 'scale(1)' }}
+                >
+                  {playing ? '⏸' : '▶'}
+                </button>
+                <input
+                  type="range"
+                  min={60}
+                  max={180}
+                  value={bpm}
+                  onChange={(e) => handleBpmChange(Number(e.target.value))}
+                  className="flex-1 h-1 accent-blue min-w-0"
+                />
+                <input
+                  type="number"
+                  min={60}
+                  max={180}
+                  value={bpm}
+                  onChange={(e) => handleBpmChange(Math.min(180, Math.max(60, Number(e.target.value) || 60)))}
+                  className="w-12 text-[11px] text-center px-1 py-0.5 rounded border border-surface0 bg-base text-txt outline-none focus:border-blue"
+                  style={{ transition: 'border-color var(--transition)' }}
+                />
+                <span className="text-[9px] text-overlay0 shrink-0">BPM</span>
+              </div>
+              <div className="flex gap-1 flex-wrap mt-1.5">
+                {RHYTHM_PATTERNS.map((r) => (
+                  <button
+                    key={r.name}
+                    onClick={() => {
+                      setRhythm(r);
+                      localStorage.setItem('chordao:rhythm', r.name);
+                    }}
+                    className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer ${rhythm.name === r.name ? 'border-blue text-blue bg-blue/10' : 'border-surface0 text-overlay0'}`}
+                    style={{ transition: 'all var(--transition)' }}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
 
           <div className="hidden md:block mt-auto" />
