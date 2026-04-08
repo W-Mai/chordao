@@ -233,7 +233,7 @@ function App() {
   // Play loop
   useEffect(() => {
     if (!playing || !activeProgObj) return;
-    const ms = (60 / bpm) * 1000;
+    const ms = ((60 / bpm) * 4) * 1000; // 4 beats per chord
     const degrees = activeProgObj.degrees;
     const tick = () => {
       setPlayStep((prev) => {
@@ -638,7 +638,7 @@ function App() {
                 onClickChord={handleClickChord}
                 onDblClickChord={handleDblClickChord}
                 progressionDegrees={activeProgObj?.degrees}
-                animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60) / bpm : undefined}
+                animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
                 activeStep={playing ? playStep : undefined}
               />
             </div>
@@ -739,7 +739,7 @@ function App() {
               onClickChord={handleClickChord}
               onDblClickChord={handleDblClickChord}
               progressionDegrees={activeProgObj?.degrees}
-              animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60) / bpm : undefined}
+              animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
               activeStep={playing ? playStep : undefined}
             />
           </div>
