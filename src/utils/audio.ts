@@ -29,10 +29,10 @@ function harmonicAmp(n: number): number {
   return Math.sin(n * Math.PI * x) / (n * n * x * (1 - x) * Math.PI * Math.PI);
 }
 
-function pluckString(ac: AudioContext, freq: number, startTime: number, dest: AudioNode, vol = 0.12) {
+function pluckString(ac: AudioContext, freq: number, startTime: number, dest: AudioNode, vol = 0.12, decay = 2.5) {
   const gain = ac.createGain();
   gain.gain.setValueAtTime(vol, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.5);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + decay);
   gain.connect(dest);
 
   const b1 = harmonicAmp(1);
@@ -47,7 +47,7 @@ function pluckString(ac: AudioContext, freq: number, startTime: number, dest: Au
     osc.frequency.value = hFreq;
     hGain.gain.setValueAtTime(amp * 0.15, startTime);
     // Higher harmonics decay faster: τ_n ∝ 1/n
-    const decayTime = 2.5 / n;
+    const decayTime = decay / n;
     hGain.gain.exponentialRampToValueAtTime(0.001, startTime + decayTime);
     osc.connect(hGain);
     hGain.connect(gain);
@@ -76,12 +76,16 @@ function strumAt(
   });
 }
 
-// Arpeggio: play strings one by one
-function arpeggioAt(ac: AudioContext, frets: number[], time: number, beatDur: number) {
-  const playable = frets.map((f, i) => ({ f, i })).filter((x) => x.f >= 0);
-  playable.forEach((x, idx) => {
-    const freq = OPEN_FREQS[x.i] * Math.pow(2, x.f / 12);
-    pluckString(ac, freq, time + idx * (beatDur / playable.length), ac.destination, 0.1);
+// Classic fingerpicking: 53231323 (string numbers, 1=high e, 6=low E)
+// Maps to array indices: 5→1(A), 3→3(G), 2→4(B), 1→5(e)
+const ARPEGGIO_PATTERN = [1, 3, 4, 3, 5, 3, 4, 3]; // 53231323: string5=A,3=G,2=B,3=G,1=e,3=G,2=B,3=G
+
+function arpeggioAt(ac: AudioContext, frets: number[], time: number, barDur: number) {
+  const step = barDur / ARPEGGIO_PATTERN.length;
+  ARPEGGIO_PATTERN.forEach((si, idx) => {
+    if (frets[si] < 0) return;
+    const freq = OPEN_FREQS[si] * Math.pow(2, frets[si] / 12);
+    pluckString(ac, freq, time + idx * step, ac.destination, 0.1);
   });
 }
 
@@ -250,7 +254,7 @@ export const RHYTHM_PATTERNS: RhythmPattern[] = [
   },
 
   // Arpeggio
-  { name: 'arpeggio', label: 'Arp ♫', strums: [S(0, 'arp', 1.0), S(2, 'arp', 0.8)] },
+  { name: 'arpeggio', label: '53231323', strums: [S(0, 'arp', 1.0)] },
 ];
 
 // Play a single chord (click)
@@ -260,16 +264,20 @@ export function playChord(frets: number[]) {
 }
 
 // Schedule a full bar of rhythm for a chord
-export function scheduleBar(frets: number[], bpm: number, pattern: RhythmPattern) {
+export function scheduleBar(frets: number[], bpm: number, pattern: RhythmPattern, startTime?: number) {
   const ac = getCtx();
   const beatDur = 60 / bpm;
-  const now = ac.currentTime;
+  const now = startTime ?? ac.currentTime;
   for (const s of pattern.strums) {
     const t = now + s.beat * beatDur;
     if (s.dir === 'arp') {
-      arpeggioAt(ac, frets, t, beatDur);
+      arpeggioAt(ac, frets, t, beatDur * 4);
     } else {
       strumAt(ac, frets, t, s.dir, s.vol * 0.12, s.strings);
     }
   }
+}
+
+export function audioNow(): number {
+  return getCtx().currentTime;
 }

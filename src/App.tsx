@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { playChord, scheduleBar, resetAudio, RHYTHM_PATTERNS, type RhythmPattern } from './utils/audio';
+import { playChord, scheduleBar, resetAudio, audioNow, RHYTHM_PATTERNS, type RhythmPattern } from './utils/audio';
 import {
   NOTES,
   NOTE_DISPLAY,
@@ -234,35 +234,38 @@ function App() {
     else startPlay();
   }, [playing, stopPlay, startPlay]);
 
-  // Play loop
+  // Play loop — use absolute audio time to prevent overlap
+  const nextBarTimeRef = useRef(0);
   useEffect(() => {
     if (!playing || !activeProgObj) return;
-    const ms = (60 / bpm) * 4 * 1000; // 4 beats per chord
+    const barDur = (60 / bpm) * 4; // 4 beats per bar in seconds
     const degrees = activeProgObj.degrees;
-    const tick = () => {
-      setPlayStep((prev) => {
-        const step = (prev + 1) % degrees.length;
-        const deg = degrees[step];
-        const v = optimal.find((o) => o.degree === deg);
-        if (v) {
-          setLockedChord(voicingKey(v));
-          if (!muted) scheduleBar(v.frets, bpm, rhythm);
-        }
-        setBeat(true);
-        setTimeout(() => setBeat(false), 120);
-        return step;
-      });
+
+    const scheduleStep = (step: number, time: number) => {
+      const deg = degrees[step % degrees.length];
+      const v = optimal.find((o) => o.degree === deg);
+      if (v) {
+        setLockedChord(voicingKey(v));
+        if (!muted) scheduleBar(v.frets, bpm, rhythm, time);
+      }
+      setBeat(true);
+      setTimeout(() => setBeat(false), 120);
+      setPlayStep(step % degrees.length);
     };
-    // Play first step immediately
-    const v0 = optimal.find((o) => o.degree === degrees[0]);
-    if (v0) {
-      setLockedChord(voicingKey(v0));
-      if (!muted) scheduleBar(v0.frets, bpm, rhythm);
-    }
-    setBeat(true);
-    setTimeout(() => setBeat(false), 120);
-    setPlayStep(0);
-    playRef.current = setInterval(tick, ms);
+
+    // Schedule first bar at current audio time
+    const startTime = audioNow();
+    nextBarTimeRef.current = startTime + barDur;
+    scheduleStep(0, startTime);
+
+    // Use setInterval to advance steps, but schedule at absolute times
+    let step = 0;
+    playRef.current = setInterval(() => {
+      step++;
+      scheduleStep(step, nextBarTimeRef.current);
+      nextBarTimeRef.current += barDur;
+    }, barDur * 1000);
+
     return () => {
       if (playRef.current) clearInterval(playRef.current);
       resetAudio();
