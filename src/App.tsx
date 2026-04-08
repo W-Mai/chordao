@@ -415,28 +415,6 @@ function App() {
             >
               {muted ? '🔇' : '🔊'}
             </button>
-            {activeProgObj && (
-              <>
-                <button
-                  onClick={togglePlay}
-                  className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${playing ? 'border-green text-green' : 'border-surface0 text-overlay1'}`}
-                  style={{ transition: 'all var(--transition)', transform: beat ? 'scale(1.15)' : 'scale(1)' }}
-                >
-                  {playing ? '⏸' : '▶'}
-                </button>
-                {playing && (
-                  <input
-                    type="range"
-                    min={60}
-                    max={180}
-                    value={bpm}
-                    onChange={(e) => handleBpmChange(Number(e.target.value))}
-                    className="w-16 h-5 accent-blue"
-                    title={`${bpm} BPM`}
-                  />
-                )}
-              </>
-            )}
             <button
               onClick={toggleKeyOrder}
               className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
@@ -605,6 +583,36 @@ function App() {
               <p className="text-[9px] text-overlay0 mt-0.5 hidden md:block">{t('customProgHint')}</p>
             </div>
           </div>
+
+          {/* Play controls */}
+          {activeProgObj && (
+            <div className="flex items-center gap-2 px-1">
+              <button
+                onClick={togglePlay}
+                className={`text-[14px] w-8 h-8 rounded-lg border cursor-pointer flex items-center justify-center shrink-0 ${playing ? 'border-green text-green bg-green/10' : 'border-surface0 text-overlay1'}`}
+                style={{ transition: 'all var(--transition)', transform: beat ? 'scale(1.1)' : 'scale(1)' }}
+              >
+                {playing ? '⏸' : '▶'}
+              </button>
+              <input
+                type="range"
+                min={60}
+                max={180}
+                value={bpm}
+                onChange={(e) => handleBpmChange(Number(e.target.value))}
+                className="flex-1 h-1 accent-blue min-w-0"
+              />
+              <input
+                type="number"
+                min={60}
+                max={180}
+                value={bpm}
+                onChange={(e) => handleBpmChange(Math.min(180, Math.max(60, Number(e.target.value) || 60)))}
+                className="w-12 text-[11px] text-center px-1 py-0.5 rounded border border-surface0 bg-base text-txt outline-none focus:border-blue"
+                style={{ transition: 'border-color var(--transition)' }}
+              />
+            </div>
+          )}
 
           <div className="hidden md:block mt-auto" />
         </aside>
