@@ -313,6 +313,7 @@ function App() {
   }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // Sync state to URL hash for sharing
   useEffect(() => {
@@ -420,6 +421,44 @@ function App() {
             </button>
             <Guide />
             <Game />
+            <div className="relative">
+              <button
+                onClick={() => setShareOpen((v) => !v)}
+                className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {'↗'}
+              </button>
+              {shareOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShareOpen(false)} />
+                  <div className="absolute right-0 top-9 bg-mantle border border-surface0 rounded-xl shadow-xl p-3 flex flex-col gap-2 z-50 min-w-48">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        setShareOpen(false);
+                      }}
+                      className="text-[11px] px-3 py-1.5 rounded-lg bg-surface0 text-txt hover:bg-surface1 cursor-pointer text-left"
+                      style={{ transition: 'all var(--transition)' }}
+                    >
+                      {'🔗 '}
+                      {t('copyLink')}
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportImage();
+                        setShareOpen(false);
+                      }}
+                      className="text-[11px] px-3 py-1.5 rounded-lg bg-surface0 text-txt hover:bg-surface1 cursor-pointer text-left"
+                      style={{ transition: 'all var(--transition)' }}
+                    >
+                      {'📷 '}
+                      {t('export')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -782,14 +821,6 @@ function App() {
           </a>
           <span className="text-surface1">·</span>
           <span>MIT</span>
-          <span className="text-surface1">·</span>
-          <button
-            onClick={exportImage}
-            className="px-2.5 py-0.5 rounded-md bg-blue/15 text-blue font-semibold cursor-pointer hover:bg-blue/25 text-[11px]"
-            style={{ transition: 'all var(--transition)' }}
-          >
-            📷 {t('export')}
-          </button>
         </div>
       </footer>
 
