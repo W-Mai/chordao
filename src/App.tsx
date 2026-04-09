@@ -661,7 +661,8 @@ function App() {
                     min={60}
                     max={180}
                     value={bpm}
-                    onChange={(e) => handleBpmChange(Math.min(180, Math.max(60, Number(e.target.value) || 60)))}
+                    onChange={(e) => handleBpmChange(Number(e.target.value) || 0)}
+                    onBlur={() => handleBpmChange(Math.min(180, Math.max(60, bpm || 100)))}
                     className="w-12 text-[11px] text-center px-1 py-0.5 rounded border border-surface0 bg-base text-txt outline-none focus:border-blue"
                     style={{ transition: 'border-color var(--transition)' }}
                   />
