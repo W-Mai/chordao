@@ -221,6 +221,7 @@ function App() {
     if (playRef.current) clearInterval(playRef.current);
     playRef.current = null;
     setBeat(false);
+    setLockedChord(null);
   }, []);
 
   const startPlay = useCallback(() => {
