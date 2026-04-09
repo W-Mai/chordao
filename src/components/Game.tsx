@@ -378,7 +378,7 @@ export function Game() {
           openGame();
           startGame();
         }}
-        className="text-[11px] py-1.5 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer text-center w-7 h-7 md:w-auto md:h-auto flex items-center justify-center"
+        className="text-[11px] rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer text-center w-7 h-7 flex items-center justify-center"
         style={{ transition: 'all var(--transition)' }}
         title={t('practice')}
       >
