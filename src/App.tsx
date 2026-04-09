@@ -314,6 +314,15 @@ function App() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
+  const openShare = useCallback(() => {
+    setShareOpen(true);
+    requestAnimationFrame(() => setShareVisible(true));
+  }, []);
+  const closeShare = useCallback(() => {
+    setShareVisible(false);
+    setTimeout(() => setShareOpen(false), 150);
+  }, []);
 
   // Sync state to URL hash for sharing
   useEffect(() => {
@@ -423,7 +432,7 @@ function App() {
             <Game />
             <div className="relative">
               <button
-                onClick={() => setShareOpen((v) => !v)}
+                onClick={() => (shareOpen ? closeShare() : openShare())}
                 className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
                 style={{ transition: 'all var(--transition)' }}
               >
@@ -431,8 +440,15 @@ function App() {
               </button>
               {shareOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShareOpen(false)} />
-                  <div className="absolute right-0 top-9 bg-mantle border border-surface0 rounded-xl shadow-xl p-3 flex flex-col gap-2 z-50 min-w-48">
+                  <div className="fixed inset-0 z-40" onClick={closeShare} />
+                  <div
+                    className="absolute right-0 top-9 bg-mantle border border-surface0 rounded-xl shadow-xl p-3 flex flex-col gap-2 z-50 min-w-48"
+                    style={{
+                      opacity: shareVisible ? 1 : 0,
+                      transform: shareVisible ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.95)',
+                      transition: 'opacity 0.15s ease, transform 0.15s ease',
+                    }}
+                  >
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(window.location.href);
