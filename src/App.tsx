@@ -312,6 +312,8 @@ function App() {
     setLockedChord((prev) => (prev === key ? null : key));
   }, []);
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   // Sync state to URL hash for sharing
   useEffect(() => {
     const params = new URLSearchParams();
@@ -403,32 +405,11 @@ function App() {
           </h1>
           <div className="flex gap-1 flex-wrap">
             <button
-              onClick={toggleBarre}
-              className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${showBarre ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-              style={{ transition: 'all var(--transition)' }}
-            >
-              B
-            </button>
-            <button
-              onClick={toggleShapeSet}
-              className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${shapeSet === 'seventh' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-              style={{ transition: 'all var(--transition)' }}
-            >
-              7
-            </button>
-            <button
               onClick={toggleMute}
               className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${muted ? 'border-red text-red' : 'border-surface0 text-overlay1'}`}
               style={{ transition: 'all var(--transition)' }}
             >
               {muted ? '🔇' : '🔊'}
-            </button>
-            <button
-              onClick={toggleKeyOrder}
-              className={`text-[10px] w-7 h-7 rounded border cursor-pointer flex items-center justify-center ${keyOrder === 'fifths' ? 'border-blue text-blue' : 'border-surface0 text-overlay1'}`}
-              style={{ transition: 'all var(--transition)' }}
-            >
-              {keyOrder === 'fifths' ? '⑤' : '♪'}
             </button>
             <button
               onClick={cycleTheme}
@@ -439,213 +420,276 @@ function App() {
             </button>
             <Guide />
             <Game />
-            <button
-              onClick={() => {
-                const next = i18n.language === 'en' ? 'zh' : 'en';
-                i18n.changeLanguage(next);
-                localStorage.setItem('chordao:lang', next);
-              }}
-              className="text-[10px] w-7 h-7 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer flex items-center justify-center"
-              style={{ transition: 'all var(--transition)' }}
-            >
-              {i18n.language === 'en' ? '中' : 'En'}
-            </button>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-col md:flex-row flex-1 min-h-0">
-        {/* Sidebar */}
+      <div className="flex flex-1 min-h-0">
+        {/* Floating sidebar overlay */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-40 bg-crust/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+        )}
         <aside
-          className="w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-surface0 bg-mantle p-3 md:p-4
-                          flex flex-col gap-3 md:gap-4 md:overflow-y-auto md:min-h-0"
-          style={{ transition: 'background var(--transition), border-color var(--transition)' }}
+          onClick={sidebarOpen ? undefined : () => setSidebarOpen(true)}
+          className={`fixed z-50 bottom-16 left-4 bg-mantle/95 backdrop-blur-xl shadow-2xl border border-surface0 overflow-hidden ${
+            sidebarOpen ? 'cursor-default' : 'cursor-pointer'
+          }`}
+          style={{
+            borderRadius: sidebarOpen ? 44 : 24,
+            width: sidebarOpen ? 'min(85vw, 320px)' : 48,
+            height: sidebarOpen ? 'min(80vh, 600px)' : 48,
+            transition:
+              'width 0.35s cubic-bezier(0.4, 0, 0.2, 1), height 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.35s ease',
+            willChange: 'width, height',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+          }}
         >
-          <div ref={headerRef} className="grid grid-cols-6 md:grid-cols-4 gap-1">
-            {keyList.map((note) => (
-              <button
-                key={note}
-                onClick={() => setSelectedKey(note)}
-                className={`px-1 py-1.5 rounded text-xs cursor-pointer ${
-                  selectedKey === note
-                    ? 'bg-blue text-crust font-bold'
-                    : 'border border-surface0 text-overlay1 hover:border-blue'
-                }`}
-                style={{
-                  transition: 'all var(--transition)',
-                  boxShadow: selectedKey === note ? '0 0 8px var(--blue)' : 'none',
-                }}
-              >
-                {NOTE_DISPLAY[note]}
-              </button>
-            ))}
+          {/* Logo visible when collapsed */}
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              opacity: sidebarOpen ? 0 : 1,
+              transition: 'opacity 0.15s ease',
+              pointerEvents: sidebarOpen ? 'none' : 'auto',
+            }}
+          >
+            <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="w-6 h-6" />
           </div>
-
-          {/* Degree filter */}
-          <div className="grid grid-cols-6 md:grid-cols-3 gap-1.5">
-            {DEGREE_LABELS.slice(1).map((label, i) => {
-              const deg = i + 1;
-              const isActive = activeDegree === deg;
-              const dimmed = activeDegree !== null && !isActive;
-              return (
+          {/* Panel content visible when expanded */}
+          <div
+            className="flex flex-col gap-3 p-5 overflow-y-auto h-full"
+            style={{
+              opacity: sidebarOpen ? 1 : 0,
+              transition: 'opacity 0.2s ease 0.15s',
+              pointerEvents: sidebarOpen ? 'auto' : 'none',
+            }}
+          >
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="self-end w-8 h-8 rounded-full bg-surface0 text-overlay1 hover:text-txt flex items-center justify-center cursor-pointer shrink-0 mb-1"
+              style={{ transition: 'all var(--transition)' }}
+            >
+              {'✕'}
+            </button>
+            {/* Settings row */}
+            <div className="flex gap-1.5 flex-wrap mb-1">
+              <button
+                onClick={toggleBarre}
+                className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${showBarre ? 'bg-blue/20 text-blue font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                Barre
+              </button>
+              <button
+                onClick={toggleShapeSet}
+                className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${shapeSet === 'seventh' ? 'bg-blue/20 text-blue font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {shapeSet === 'seventh' ? t('shapeSeventh') : t('shapeTriad')}
+              </button>
+              <button
+                onClick={toggleKeyOrder}
+                className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${keyOrder === 'fifths' ? 'bg-blue/20 text-blue font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {keyOrder === 'fifths' ? '⑤ 5ths' : '♪ Semi'}
+              </button>
+              <button
+                onClick={() => {
+                  const next = i18n.language === 'en' ? 'zh' : 'en';
+                  i18n.changeLanguage(next);
+                  localStorage.setItem('chordao:lang', next);
+                }}
+                className="text-[11px] px-2.5 py-1 rounded-lg cursor-pointer text-overlay0 hover:text-subtext0"
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {i18n.language === 'en' ? '中文' : 'En'}
+              </button>
+            </div>
+            <div ref={headerRef} className="grid grid-cols-6 md:grid-cols-4 gap-1">
+              {keyList.map((note) => (
                 <button
-                  key={label}
-                  onClick={() => toggleDegree(deg)}
-                  className={`px-2 py-1 rounded-full text-xs font-bold text-white cursor-pointer ${dimmed ? 'opacity-20' : ''}`}
+                  key={note}
+                  onClick={() => setSelectedKey(note)}
+                  className={`px-1 py-1.5 rounded text-xs cursor-pointer ${
+                    selectedKey === note
+                      ? 'bg-blue text-crust font-bold'
+                      : 'border border-surface0 text-overlay1 hover:border-blue'
+                  }`}
                   style={{
-                    background: `var(--color-deg-${deg})`,
                     transition: 'all var(--transition)',
-                    boxShadow: isActive ? `0 0 12px var(--color-deg-${deg})` : 'none',
-                    transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                    boxShadow: selectedKey === note ? '0 0 8px var(--blue)' : 'none',
                   }}
                 >
-                  {label}
+                  {NOTE_DISPLAY[note]}
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
 
-          {/* Progressions */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block">
-              {t('progressions')}
-            </span>
-            {/* Desktop: vertical list */}
-            <div className="hidden md:flex md:flex-col gap-1 max-h-40 overflow-y-auto">
-              {PROGRESSIONS.map((p) => {
-                const isActive = activeProg === p.name;
+            {/* Degree filter */}
+            <div className="grid grid-cols-6 md:grid-cols-3 gap-1.5">
+              {DEGREE_LABELS.slice(1).map((label, i) => {
+                const deg = i + 1;
+                const isActive = activeDegree === deg;
+                const dimmed = activeDegree !== null && !isActive;
                 return (
                   <button
-                    key={p.name}
-                    onClick={() => toggleProg(p.name)}
-                    className={`text-left text-[11px] px-2 py-1 rounded cursor-pointer whitespace-nowrap ${
-                      isActive ? 'bg-blue/15 text-blue' : 'text-subtext0 hover:text-txt hover:bg-surface0/30'
-                    }`}
-                    style={{ transition: 'all var(--transition)' }}
+                    key={label}
+                    onClick={() => toggleDegree(deg)}
+                    className={`px-2 py-1 rounded-full text-xs font-bold text-white cursor-pointer ${dimmed ? 'opacity-20' : ''}`}
+                    style={{
+                      background: `var(--color-deg-${deg})`,
+                      transition: 'all var(--transition)',
+                      boxShadow: isActive ? `0 0 12px var(--color-deg-${deg})` : 'none',
+                      transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                    }}
                   >
-                    {t(p.name)} <span className="text-overlay0">{p.degrees.join('-')}</span>
+                    {label}
                   </button>
                 );
               })}
             </div>
-            {/* Mobile: vertical roller + custom input */}
-            <div className="md:hidden">
-              <Roller
-                items={[{ name: '', degrees: [] as number[] }, ...PROGRESSIONS]}
-                activeKey={activeProg ?? ''}
-                getKey={(p) => p.name}
-                getLabel={(p) => (p.name ? `${t(p.name)} ${p.degrees.join('-')}` : t('none'))}
-                onSelect={(name) => {
-                  if (activeProg !== 'custom') setActiveProg(name || null);
-                }}
-              />
-              <span className="text-[10px] text-overlay0 mb-0.5">{t('customProg')}</span>
-              <div className="flex gap-1">
-                <input
-                  type="text"
-                  placeholder={t('customProgHint')}
-                  value={customInput}
-                  onChange={(e) => setCustomInput(e.target.value)}
-                  className="flex-1 text-[11px] px-2 py-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue min-w-0"
-                  style={{ transition: 'border-color var(--transition)' }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleCustomProg(customInput)}
-                  className="text-[10px] px-3 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer shrink-0 active:bg-surface0"
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  {'→'}
-                </button>
-              </div>
-            </div>
-            {/* Desktop: custom progression input */}
-            <div className="hidden md:block mt-1">
-              <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block mb-1">
-                {t('customProg')}
-              </span>
-              <div className="flex gap-1">
-                <input
-                  type="text"
-                  placeholder="1 4 5 1"
-                  value={customInput}
-                  onChange={(e) => setCustomInput(e.target.value)}
-                  className="flex-1 text-[11px] px-2 py-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue min-w-0"
-                  style={{ transition: 'border-color var(--transition)' }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleCustomProg(customInput)}
-                  className="text-[10px] px-3 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer shrink-0 active:bg-surface0"
-                  style={{ transition: 'all var(--transition)' }}
-                >
-                  {'→'}
-                </button>
-              </div>
-              <p className="text-[9px] text-overlay0 mt-0.5 hidden md:block">{t('customProgHint')}</p>
-            </div>
-          </div>
 
-          {/* Play controls */}
-          {activeProgObj && (
-            <>
-              <div className="flex items-center gap-2 px-1">
-                <button
-                  onClick={togglePlay}
-                  className={`text-[14px] w-8 h-8 rounded-lg border cursor-pointer flex items-center justify-center shrink-0 ${playing ? 'border-green text-green bg-green/10' : 'border-surface0 text-overlay1'}`}
-                  style={{ transition: 'all var(--transition)', transform: beat ? 'scale(1.1)' : 'scale(1)' }}
-                >
-                  {playing ? '⏸' : '▶'}
-                </button>
-                <input
-                  type="range"
-                  min={60}
-                  max={180}
-                  value={bpm}
-                  onChange={(e) => handleBpmChange(Number(e.target.value))}
-                  className="flex-1 h-1 accent-blue min-w-0"
-                />
-                <input
-                  type="number"
-                  min={60}
-                  max={180}
-                  value={bpm}
-                  onChange={(e) => handleBpmChange(Math.min(180, Math.max(60, Number(e.target.value) || 60)))}
-                  className="w-12 text-[11px] text-center px-1 py-0.5 rounded border border-surface0 bg-base text-txt outline-none focus:border-blue"
-                  style={{ transition: 'border-color var(--transition)' }}
-                />
-                <span className="text-[9px] text-overlay0 shrink-0">BPM</span>
+            {/* Progressions */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block">
+                {t('progressions')}
+              </span>
+              {/* Desktop: vertical list */}
+              <div className="hidden md:flex md:flex-col gap-1 max-h-40 overflow-y-auto">
+                {PROGRESSIONS.map((p) => {
+                  const isActive = activeProg === p.name;
+                  return (
+                    <button
+                      key={p.name}
+                      onClick={() => toggleProg(p.name)}
+                      className={`text-left text-[11px] px-2 py-1 rounded cursor-pointer whitespace-nowrap ${
+                        isActive ? 'bg-blue/15 text-blue' : 'text-subtext0 hover:text-txt hover:bg-surface0/30'
+                      }`}
+                      style={{ transition: 'all var(--transition)' }}
+                    >
+                      {t(p.name)} <span className="text-overlay0">{p.degrees.join('-')}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex gap-1 flex-wrap mt-1.5">
-                {RHYTHM_PATTERNS.map((r) => (
-                  <button
-                    key={r.name}
-                    onClick={() => {
-                      setRhythm(r);
-                      localStorage.setItem('chordao:rhythm', r.name);
+              {/* Mobile: vertical roller + custom input */}
+              <div className="md:hidden">
+                <Roller
+                  items={[{ name: '', degrees: [] as number[] }, ...PROGRESSIONS]}
+                  activeKey={activeProg ?? ''}
+                  getKey={(p) => p.name}
+                  getLabel={(p) => (p.name ? `${t(p.name)} ${p.degrees.join('-')}` : t('none'))}
+                  onSelect={(name) => {
+                    if (activeProg !== 'custom') setActiveProg(name || null);
+                  }}
+                />
+                <span className="text-[10px] text-overlay0 mb-0.5">{t('customProg')}</span>
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    placeholder={t('customProgHint')}
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    className="flex-1 text-[11px] px-2 py-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue min-w-0"
+                    style={{ transition: 'border-color var(--transition)' }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
                     }}
-                    className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer ${rhythm.name === r.name ? 'border-blue text-blue bg-blue/10' : 'border-surface0 text-overlay0'}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCustomProg(customInput)}
+                    className="text-[10px] px-3 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer shrink-0 active:bg-surface0"
                     style={{ transition: 'all var(--transition)' }}
                   >
-                    {r.label}
+                    {'→'}
                   </button>
-                ))}
+                </div>
               </div>
-            </>
-          )}
+              {/* Desktop: custom progression input */}
+              <div className="hidden md:block mt-1">
+                <span className="text-[10px] text-overlay0 uppercase tracking-wider hidden md:block mb-1">
+                  {t('customProg')}
+                </span>
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    placeholder="1 4 5 1"
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    className="flex-1 text-[11px] px-2 py-1 rounded border border-surface0 bg-base text-txt placeholder-overlay0 outline-none focus:border-blue min-w-0"
+                    style={{ transition: 'border-color var(--transition)' }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCustomProg(e.currentTarget.value);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleCustomProg(customInput)}
+                    className="text-[10px] px-3 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer shrink-0 active:bg-surface0"
+                    style={{ transition: 'all var(--transition)' }}
+                  >
+                    {'→'}
+                  </button>
+                </div>
+                <p className="text-[9px] text-overlay0 mt-0.5 hidden md:block">{t('customProgHint')}</p>
+              </div>
+            </div>
 
-          <div className="hidden md:block mt-auto" />
+            {/* Play controls */}
+            {activeProgObj && (
+              <>
+                <div className="flex items-center gap-2 px-1">
+                  <button
+                    onClick={togglePlay}
+                    className={`text-[14px] w-8 h-8 rounded-lg border cursor-pointer flex items-center justify-center shrink-0 ${playing ? 'border-green text-green bg-green/10' : 'border-surface0 text-overlay1'}`}
+                    style={{ transition: 'all var(--transition)', transform: beat ? 'scale(1.1)' : 'scale(1)' }}
+                  >
+                    {playing ? '⏸' : '▶'}
+                  </button>
+                  <input
+                    type="range"
+                    min={60}
+                    max={180}
+                    value={bpm}
+                    onChange={(e) => handleBpmChange(Number(e.target.value))}
+                    className="flex-1 h-1 accent-blue min-w-0"
+                  />
+                  <input
+                    type="number"
+                    min={60}
+                    max={180}
+                    value={bpm}
+                    onChange={(e) => handleBpmChange(Math.min(180, Math.max(60, Number(e.target.value) || 60)))}
+                    className="w-12 text-[11px] text-center px-1 py-0.5 rounded border border-surface0 bg-base text-txt outline-none focus:border-blue"
+                    style={{ transition: 'border-color var(--transition)' }}
+                  />
+                  <span className="text-[9px] text-overlay0 shrink-0">BPM</span>
+                </div>
+                <div className="flex gap-1 flex-wrap mt-1.5">
+                  {RHYTHM_PATTERNS.map((r) => (
+                    <button
+                      key={r.name}
+                      onClick={() => {
+                        setRhythm(r);
+                        localStorage.setItem('chordao:rhythm', r.name);
+                      }}
+                      className={`text-[10px] px-1.5 py-0.5 rounded border cursor-pointer ${rhythm.name === r.name ? 'border-blue text-blue bg-blue/10' : 'border-surface0 text-overlay0'}`}
+                      style={{ transition: 'all var(--transition)' }}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </aside>
 
         {/* Main */}
         <main
-          className="flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust"
+          className="flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust w-full"
           style={{ transition: 'background var(--transition)' }}
         >
           <section className="panel mb-2 md:mb-6">
