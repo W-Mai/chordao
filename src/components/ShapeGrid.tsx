@@ -20,6 +20,7 @@ interface ShapeGridProps {
   onClickChord?: (key: string) => void;
   onDblClickChord?: (key: string) => void;
   progressionDegrees?: number[];
+  allCombos?: ChordVoicing[][]; // all combo sets for multi-path display
   animated?: boolean;
   animationDuration?: number; // total loop duration in seconds
   activeStep?: number; // current step index for synced playback
@@ -37,6 +38,7 @@ export function ShapeGrid({
   onClickChord,
   onDblClickChord,
   progressionDegrees,
+  allCombos,
   animated = true,
   animationDuration,
   activeStep,
@@ -293,67 +295,92 @@ export function ShapeGrid({
             });
           }),
         )}
-        {/* Progression path with animated dot */}
+        {/* Progression paths */}
         {progressionDegrees &&
           progressionDegrees.length > 1 &&
           (() => {
-            const optMap = new Map(optimal.map((v) => [v.degree, v]));
-            const steps: { x: number; y: number; deg: number; multi: boolean }[] = [];
-            for (const deg of progressionDegrees) {
-              const v = optMap.get(deg);
-              if (!v) continue;
-              const rowIdx = rows.findIndex((r) => r.shapes.includes(v.shapeOrigin));
-              if (rowIdx < 0) continue;
-              const fret = v.barrePosition;
-              const cellsAtPos = fret >= 0 && fret <= totalFrets ? grid[rowIdx][fret] : [];
-              const ci = cellsAtPos.findIndex((c) => c.key === voicingKey(v));
-              const smallR = dotR - 3;
-              const xOff = cellsAtPos.length > 1 ? (ci - (cellsAtPos.length - 1) / 2) * (smallR * 2 + 2) : 0;
-              steps.push({ x: cellX(fret) + xOff, y: stringY[rowIdx], deg, multi: cellsAtPos.length > 1 });
-            }
-            if (steps.length < 2) return null;
+            const PATH_COLORS = [
+              'var(--blue)',
+              'var(--green)',
+              'var(--peach)',
+              'var(--mauve)',
+              'var(--red)',
+              'var(--teal)',
+            ];
 
-            // Build closed loop path (last → first to close)
-            const allPts = [...steps, steps[0]];
-            const pathD = allPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+            // Build steps for a given combo
+            const buildSteps = (combo: ChordVoicing[]) => {
+              const optMap = new Map(combo.map((v) => [v.degree, v]));
+              const steps: { x: number; y: number; deg: number; multi: boolean }[] = [];
+              for (const deg of progressionDegrees!) {
+                const v = optMap.get(deg);
+                if (!v) continue;
+                const rowIdx = rows.findIndex((r) => r.shapes.includes(v.shapeOrigin));
+                if (rowIdx < 0) continue;
+                const fret = v.barrePosition;
+                const cellsAtPos = fret >= 0 && fret <= totalFrets ? grid[rowIdx][fret] : [];
+                const ci = cellsAtPos.findIndex((c) => c.key === voicingKey(v));
+                const smallR = dotR - 3;
+                const xOff = cellsAtPos.length > 1 ? (ci - (cellsAtPos.length - 1) / 2) * (smallR * 2 + 2) : 0;
+                steps.push({ x: cellX(fret) + xOff, y: stringY[rowIdx], deg, multi: cellsAtPos.length > 1 });
+              }
+              return steps;
+            };
+
+            const combosToRender = allCombos && allCombos.length > 1 ? allCombos : [optimal];
+            const isMulti = combosToRender.length > 1;
+
+            // Primary steps (first combo or single) for animated dot and step numbers
+            const primarySteps = buildSteps(combosToRender[0]);
+            if (primarySteps.length < 2) return null;
 
             return (
               <g>
-                {/* Path line */}
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke="var(--blue)"
-                  strokeWidth={1.5}
-                  opacity={0.2}
-                  strokeDasharray="4 3"
-                />
-
-                {/* Animated glow dot traveling along path */}
-                {animated && activeStep == null && (
-                  <>
-                    <circle r={5} fill="var(--blue)" opacity={0.8}>
-                      <animateMotion
-                        dur={`${animationDuration ?? allPts.length * 0.8}s`}
-                        repeatCount="indefinite"
-                        path={pathD}
+                {/* Path lines */}
+                {combosToRender.map((combo, ci) => {
+                  const steps = buildSteps(combo);
+                  if (steps.length < 2) return null;
+                  const allPts = [...steps, steps[0]];
+                  const pathD = allPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+                  const color = isMulti ? PATH_COLORS[ci % PATH_COLORS.length] : 'var(--blue)';
+                  return (
+                    <g key={`path-${ci}`}>
+                      <path
+                        d={pathD}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth={1.5}
+                        opacity={isMulti ? 0.3 : 0.2}
+                        strokeDasharray="4 3"
                       />
-                    </circle>
-                    <circle r={10} fill="var(--blue)" opacity={0.15}>
-                      <animateMotion
-                        dur={`${animationDuration ?? allPts.length * 0.8}s`}
-                        repeatCount="indefinite"
-                        path={pathD}
-                      />
-                    </circle>
-                  </>
-                )}
+                      {/* Animated dot only on first path when not playing */}
+                      {ci === 0 && animated && activeStep == null && (
+                        <>
+                          <circle r={5} fill={color} opacity={0.8}>
+                            <animateMotion
+                              dur={`${animationDuration ?? allPts.length * 0.8}s`}
+                              repeatCount="indefinite"
+                              path={pathD}
+                            />
+                          </circle>
+                          <circle r={10} fill={color} opacity={0.15}>
+                            <animateMotion
+                              dur={`${animationDuration ?? allPts.length * 0.8}s`}
+                              repeatCount="indefinite"
+                              path={pathD}
+                            />
+                          </circle>
+                        </>
+                      )}
+                    </g>
+                  );
+                })}
 
-                {/* Synced dot for playback */}
+                {/* Synced dot for playback (primary path only) */}
                 {activeStep != null &&
-                  steps[activeStep % steps.length] &&
+                  primarySteps[activeStep % primarySteps.length] &&
                   (() => {
-                    const p = steps[activeStep % steps.length];
+                    const p = primarySteps[activeStep % primarySteps.length];
                     const circleR = p.multi ? dotR - 3 + 4 : dotR + 4;
                     return (
                       <circle
@@ -373,11 +400,11 @@ export function ShapeGrid({
                     );
                   })()}
 
-                {/* Step numbers — group by position, spread horizontally */}
+                {/* Step numbers (primary path) */}
                 {(() => {
                   const posKey = (s: { x: number; y: number }) => `${s.x},${s.y}`;
                   const groups = new Map<string, number[]>();
-                  steps.forEach((s, i) => {
+                  primarySteps.forEach((s, i) => {
                     const k = posKey(s);
                     const arr = groups.get(k) ?? [];
                     arr.push(i);
@@ -386,7 +413,7 @@ export function ShapeGrid({
                   const midY = (stringY[0] + stringY[rowCount - 1]) / 2;
                   const elements: React.ReactNode[] = [];
                   for (const [, indices] of groups) {
-                    const s = steps[indices[0]];
+                    const s = primarySteps[indices[0]];
                     const isTop = s.y < midY;
                     const numY = isTop ? s.y + dotR + 10 : s.y - dotR - 10;
                     const numTextY = isTop ? s.y + dotR + 13 : s.y - dotR - 7;

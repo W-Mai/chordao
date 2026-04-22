@@ -853,6 +853,7 @@ function App() {
                 onClickChord={handleClickChord}
                 onDblClickChord={handleDblClickChord}
                 progressionDegrees={activeProgObj?.degrees}
+                allCombos={comboIdx === -1 ? allCombos : undefined}
                 animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
                 activeStep={playing ? playStep : undefined}
               />
@@ -946,6 +947,7 @@ function App() {
               onClickChord={handleClickChord}
               onDblClickChord={handleDblClickChord}
               progressionDegrees={activeProgObj?.degrees}
+              allCombos={comboIdx === -1 ? allCombos : undefined}
               animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
               activeStep={playing ? playStep : undefined}
             />
