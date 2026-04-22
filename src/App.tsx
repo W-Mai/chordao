@@ -10,6 +10,7 @@ import {
   type ShapeSystem,
   groupByDegree,
   findAllCombinations,
+  getFretboardIntervals,
   type ChordVoicing,
   type BassPrefer,
   voicingKey,
@@ -368,6 +369,20 @@ function App() {
   }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [intervalMode, setIntervalMode] = useState(false);
+  const [visibleIntervals, setVisibleIntervals] = useState(
+    () => new Set(JSON.parse(localStorage.getItem('chordao:intervals') || '["R","3","b3","5","b7","7"]') as string[]),
+  );
+  const toggleInterval = useCallback((iv: string) => {
+    setVisibleIntervals((s) => {
+      const n = new Set(s);
+      if (n.has(iv)) n.delete(iv);
+      else n.add(iv);
+      localStorage.setItem('chordao:intervals', JSON.stringify([...n]));
+      return n;
+    });
+  }, []);
+  const intervalMap = useMemo(() => getFretboardIntervals(selectedKey), [selectedKey]);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareVisible, setShareVisible] = useState(false);
   const openShare = useCallback(() => {
@@ -863,6 +878,24 @@ function App() {
           <section className="panel mb-2 md:mb-6">
             <div className="panel-header">
               <span className="panel-title flex-1">{t('fretboardOverview')}</span>
+              <button
+                onClick={() => setIntervalMode((v) => !v)}
+                className={`text-[9px] px-1.5 h-5 rounded-full cursor-pointer flex items-center justify-center mr-1 ${intervalMode ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {'♫'}
+              </button>
+              {intervalMode &&
+                ['R', 'b3', '3', '4', '5', 'b7', '7'].map((iv) => (
+                  <button
+                    key={iv}
+                    onClick={() => toggleInterval(iv)}
+                    className={`text-[8px] px-1 h-5 rounded-full cursor-pointer flex items-center justify-center ${visibleIntervals.has(iv) ? 'bg-blue/20 text-blue font-bold' : 'text-overlay0 opacity-40'}`}
+                    style={{ transition: 'all var(--transition)' }}
+                  >
+                    {iv}
+                  </button>
+                ))}
               <ExpandBtn onClick={openFret} />
             </div>
             <div className="panel-body">
@@ -874,6 +907,9 @@ function App() {
                 onHoverChord={handleHoverChord}
                 onClickChord={handleClickChord}
                 onDblClickChord={handleDblClickChord}
+                intervalMode={intervalMode}
+                intervalMap={intervalMap}
+                visibleIntervals={visibleIntervals}
               />
             </div>
           </section>
@@ -968,6 +1004,9 @@ function App() {
               onHoverChord={handleHoverChord}
               onClickChord={handleClickChord}
               onDblClickChord={handleDblClickChord}
+              intervalMode={intervalMode}
+              intervalMap={intervalMap}
+              visibleIntervals={visibleIntervals}
             />
           </div>
         </section>

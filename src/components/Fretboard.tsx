@@ -26,6 +26,9 @@ interface FretboardProps {
   onHoverChord?: (key: string | null) => void;
   onClickChord?: (key: string) => void;
   onDblClickChord?: (key: string) => void;
+  intervalMode?: boolean;
+  intervalMap?: string[][]; // [string][fret] = interval label
+  visibleIntervals?: Set<string>;
 }
 
 export function Fretboard({
@@ -37,6 +40,9 @@ export function Fretboard({
   onHoverChord,
   onClickChord,
   onDblClickChord,
+  intervalMode = false,
+  intervalMap,
+  visibleIntervals,
 }: FretboardProps) {
   const [localHover, setLocalHover] = useState<string | null>(null);
   const hovered = hoveredChord ?? localHover;
@@ -88,7 +94,7 @@ export function Fretboard({
         <g transform={`translate(${labelW}, ${padY})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (
-            <text key={l} x={-6} y={i * ss + 4} fontSize={10} fill={txt} textAnchor="end" fontFamily="monospace">
+            <text key={l} x={intervalMode ? -24 : -6} y={i * ss + 4} fontSize={10} fill={txt} textAnchor="end" fontFamily="monospace">
               {l}
             </text>
           ))}
@@ -137,142 +143,56 @@ export function Fretboard({
           ))}
 
           {/* Chord outline + dots */}
-          {voicings.map((v) => {
-            const key = vKey(v);
-            const isHov = hovered === key;
-            const dimmed = hovered != null && !isHov;
-            const color = DEGREE_COLORS[v.degree];
-            const pts = getPoints(v);
-            const isEShape = v.shapeOrigin.startsWith('E');
-            const isGShape = v.shapeOrigin.startsWith('G');
-            const isDShape = v.shapeOrigin.startsWith('D');
-            // circle=6th string root (E/G), rect=5th string root (A/C), diamond=4th string root (D)
-            const dotShape = isEShape || isGShape ? 'circle' : isDShape ? 'diamond' : 'rect';
-            const active = isHov;
+          {!intervalMode &&
+            voicings.map((v) => {
+              const key = vKey(v);
+              const isHov = hovered === key;
+              const dimmed = hovered != null && !isHov;
+              const color = DEGREE_COLORS[v.degree];
+              const pts = getPoints(v);
+              const isEShape = v.shapeOrigin.startsWith('E');
+              const isGShape = v.shapeOrigin.startsWith('G');
+              const isDShape = v.shapeOrigin.startsWith('D');
+              // circle=6th string root (E/G), rect=5th string root (A/C), diamond=4th string root (D)
+              const dotShape = isEShape || isGShape ? 'circle' : isDShape ? 'diamond' : 'rect';
+              const active = isHov;
 
-            return (
-              <g
-                key={vKey(v)}
-                opacity={dimmed ? 0.12 : 1}
-                style={{ transition: 'opacity 0.2s' }}
-                onPointerEnter={() => handleEnter(key)}
-                onPointerLeave={handleLeave}
-                onClick={() => onClickChord?.(key)}
-                onDoubleClick={() => onDblClickChord?.(key)}
-                className="cursor-pointer"
-              >
-                {/* Outline connecting played strings */}
-                {active && pts.length >= 2 && (
-                  <polyline
-                    points={pts.map((p) => `${p.x},${p.y}`).join(' ')}
-                    fill="none"
-                    stroke={color}
-                    strokeWidth={1.5}
-                    opacity={0.4}
-                    strokeLinejoin="round"
-                  />
-                )}
+              return (
+                <g
+                  key={vKey(v)}
+                  opacity={dimmed ? 0.12 : 1}
+                  style={{ transition: 'opacity 0.2s' }}
+                  onPointerEnter={() => handleEnter(key)}
+                  onPointerLeave={handleLeave}
+                  onClick={() => onClickChord?.(key)}
+                  onDoubleClick={() => onDblClickChord?.(key)}
+                  className="cursor-pointer"
+                >
+                  {/* Outline connecting played strings */}
+                  {active && pts.length >= 2 && (
+                    <polyline
+                      points={pts.map((p) => `${p.x},${p.y}`).join(' ')}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={1.5}
+                      opacity={0.4}
+                      strokeLinejoin="round"
+                    />
+                  )}
 
-                {/* Dots: circle for E shape, rounded rect for A shape, barre bar only when active */}
-                {(() => {
-                  type Dot = { fret: number; si: number; x: number; y: number };
-                  const dots: Dot[] = [];
-                  const intervals = active ? getVoicingIntervals(v) : null;
-                  v.frets.forEach((fret, si) => {
-                    if (fret <= 0) return;
-                    dots.push({ fret, si, x: nutW + (fret - 0.5) * fw, y: (STRINGS - 1 - si) * ss });
-                  });
+                  {/* Dots: circle for E shape, rounded rect for A shape, barre bar only when active */}
+                  {(() => {
+                    type Dot = { fret: number; si: number; x: number; y: number };
+                    const dots: Dot[] = [];
+                    const intervals = active ? getVoicingIntervals(v) : null;
+                    v.frets.forEach((fret, si) => {
+                      if (fret <= 0) return;
+                      dots.push({ fret, si, x: nutW + (fret - 0.5) * fw, y: (STRINGS - 1 - si) * ss });
+                    });
 
-                  if (!active) {
-                    // Non-active: just draw individual small dots
-                    return dots.map((d, i) => (
-                      <g
-                        key={`dot-${i}`}
-                        style={{
-                          transform: `translate(${d.x}px, ${d.y}px)`,
-                          transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
-                        }}
-                      >
-                        {dotShape === 'circle' ? (
-                          <circle cx={0} cy={0} r={r} fill={boardBg} stroke={color} strokeWidth={1.5} opacity={0.5} />
-                        ) : dotShape === 'diamond' ? (
-                          <polygon
-                            points={`0,${-r} ${r},0 0,${r} ${-r},0`}
-                            fill={boardBg}
-                            stroke={color}
-                            strokeWidth={1.5}
-                            opacity={0.5}
-                          />
-                        ) : (
-                          <rect
-                            x={-r}
-                            y={-r}
-                            width={r * 2}
-                            height={r * 2}
-                            rx={2.5}
-                            fill={boardBg}
-                            stroke={color}
-                            strokeWidth={1.5}
-                            opacity={0.5}
-                          />
-                        )}
-                      </g>
-                    ));
-                  }
-
-                  // Active: merge consecutive same-fret into barre bars
-                  const rendered = new Set<number>();
-                  const elements: React.ReactNode[] = [];
-
-                  for (let i = 0; i < dots.length; i++) {
-                    if (rendered.has(i)) continue;
-                    let j = i + 1;
-                    while (j < dots.length && dots[j].fret === dots[i].fret && dots[j].si === dots[j - 1].si + 1) {
-                      j++;
-                    }
-                    const span = j - i;
-                    if (span >= 2) {
-                      const first = dots[i];
-                      const last = dots[j - 1];
-                      const barX = first.x;
-                      const y1 = Math.min(first.y, last.y);
-                      const y2 = Math.max(first.y, last.y);
-                      elements.push(
-                        <g
-                          key={`bar-${i}`}
-                          style={{
-                            transform: `translate(${barX}px, ${y1}px)`,
-                            transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
-                          }}
-                        >
-                          <rect
-                            x={-r}
-                            y={-r}
-                            width={r * 2}
-                            height={y2 - y1 + r * 2}
-                            rx={r}
-                            fill={color}
-                            opacity={0.9}
-                          />
-                          <text
-                            x={0}
-                            y={(y2 - y1) / 2 + 0.5}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fontSize={7}
-                            fontWeight="bold"
-                            fill="#fff"
-                            fontFamily="monospace"
-                          >
-                            {DEGREE_LABELS[v.degree]}
-                          </text>
-                        </g>,
-                      );
-                      for (let k = i; k < j; k++) rendered.add(k);
-                    } else {
-                      const d = dots[i];
-                      rendered.add(i);
-                      elements.push(
+                    if (!active) {
+                      // Non-active: just draw individual small dots
+                      return dots.map((d, i) => (
                         <g
                           key={`dot-${i}`}
                           style={{
@@ -281,34 +201,162 @@ export function Fretboard({
                           }}
                         >
                           {dotShape === 'circle' ? (
-                            <circle cx={0} cy={0} r={r} fill={color} opacity={0.9} />
+                            <circle cx={0} cy={0} r={r} fill={boardBg} stroke={color} strokeWidth={1.5} opacity={0.5} />
                           ) : dotShape === 'diamond' ? (
-                            <polygon points={`0,${-r} ${r},0 0,${r} ${-r},0`} fill={color} opacity={0.9} />
+                            <polygon
+                              points={`0,${-r} ${r},0 0,${r} ${-r},0`}
+                              fill={boardBg}
+                              stroke={color}
+                              strokeWidth={1.5}
+                              opacity={0.5}
+                            />
                           ) : (
-                            <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5} fill={color} opacity={0.9} />
+                            <rect
+                              x={-r}
+                              y={-r}
+                              width={r * 2}
+                              height={r * 2}
+                              rx={2.5}
+                              fill={boardBg}
+                              stroke={color}
+                              strokeWidth={1.5}
+                              opacity={0.5}
+                            />
                           )}
-                          <text
-                            x={0}
-                            y={0.5}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            fontSize={7}
-                            fontWeight="bold"
-                            fill="#fff"
-                            fontFamily="monospace"
-                          >
-                            {intervals?.[d.si] ?? DEGREE_LABELS[v.degree]}
-                          </text>
-                        </g>,
-                      );
+                        </g>
+                      ));
                     }
-                  }
-                  return elements;
-                })()}
-              </g>
-            );
-          })}
+
+                    // Active: merge consecutive same-fret into barre bars
+                    const rendered = new Set<number>();
+                    const elements: React.ReactNode[] = [];
+
+                    for (let i = 0; i < dots.length; i++) {
+                      if (rendered.has(i)) continue;
+                      let j = i + 1;
+                      while (j < dots.length && dots[j].fret === dots[i].fret && dots[j].si === dots[j - 1].si + 1) {
+                        j++;
+                      }
+                      const span = j - i;
+                      if (span >= 2) {
+                        const first = dots[i];
+                        const last = dots[j - 1];
+                        const barX = first.x;
+                        const y1 = Math.min(first.y, last.y);
+                        const y2 = Math.max(first.y, last.y);
+                        elements.push(
+                          <g
+                            key={`bar-${i}`}
+                            style={{
+                              transform: `translate(${barX}px, ${y1}px)`,
+                              transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+                            }}
+                          >
+                            <rect
+                              x={-r}
+                              y={-r}
+                              width={r * 2}
+                              height={y2 - y1 + r * 2}
+                              rx={r}
+                              fill={color}
+                              opacity={0.9}
+                            />
+                            <text
+                              x={0}
+                              y={(y2 - y1) / 2 + 0.5}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fontSize={7}
+                              fontWeight="bold"
+                              fill="#fff"
+                              fontFamily="monospace"
+                            >
+                              {DEGREE_LABELS[v.degree]}
+                            </text>
+                          </g>,
+                        );
+                        for (let k = i; k < j; k++) rendered.add(k);
+                      } else {
+                        const d = dots[i];
+                        rendered.add(i);
+                        elements.push(
+                          <g
+                            key={`dot-${i}`}
+                            style={{
+                              transform: `translate(${d.x}px, ${d.y}px)`,
+                              transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+                            }}
+                          >
+                            {dotShape === 'circle' ? (
+                              <circle cx={0} cy={0} r={r} fill={color} opacity={0.9} />
+                            ) : dotShape === 'diamond' ? (
+                              <polygon points={`0,${-r} ${r},0 0,${r} ${-r},0`} fill={color} opacity={0.9} />
+                            ) : (
+                              <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5} fill={color} opacity={0.9} />
+                            )}
+                            <text
+                              x={0}
+                              y={0.5}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fontSize={7}
+                              fontWeight="bold"
+                              fill="#fff"
+                              fontFamily="monospace"
+                            >
+                              {intervals?.[d.si] ?? DEGREE_LABELS[v.degree]}
+                            </text>
+                          </g>,
+                        );
+                      }
+                    }
+                    return elements;
+                  })()}
+                </g>
+              );
+            })}
         </g>
+
+        {/* Interval mode overlay */}
+        {intervalMode && intervalMap && (
+          <g transform={`translate(${labelW}, ${padY})`}>
+            {intervalMap.map((stringIntervals, si) =>
+              stringIntervals.map((label, fret) => {
+                const visible = !visibleIntervals || visibleIntervals.has(label);
+                if (!visible) return null;
+                const x = fret === 0 ? -12 : nutW + (fret - 0.5) * fw;
+                const y = (STRINGS - 1 - si) * ss;
+                const isRoot = label === 'R';
+                const color = isRoot
+                  ? 'var(--red)'
+                  : label === '3' || label === 'b3'
+                    ? 'var(--blue)'
+                    : label === '5'
+                      ? 'var(--green)'
+                      : label === 'b7' || label === '7'
+                        ? 'var(--peach)'
+                        : 'var(--overlay0)';
+                return (
+                  <g key={`iv-${si}-${fret}`}>
+                    <circle cx={x} cy={y} r={r} fill={color} opacity={isRoot ? 0.9 : 0.6} />
+                    <text
+                      x={x}
+                      y={y + 0.5}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={6}
+                      fontWeight="bold"
+                      fill="#fff"
+                      fontFamily="monospace"
+                    >
+                      {label}
+                    </text>
+                  </g>
+                );
+              }),
+            )}
+          </g>
+        )}
       </svg>
     </div>
   );

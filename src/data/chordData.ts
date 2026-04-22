@@ -301,3 +301,19 @@ export function getVoicingIntervals(v: ChordVoicing): (string | null)[] {
     return INTERVAL_LABELS[interval] ?? null;
   });
 }
+
+// Generate interval map for entire fretboard given a root note
+// Returns [string][fret] = interval label
+export function getFretboardIntervals(root: NoteName, maxFret = 17): string[][] {
+  const rootIdx = NOTES.indexOf(root);
+  return OPEN_STRING_NOTES.map((open) => {
+    const openIdx = NOTES.indexOf(open);
+    return Array.from({ length: maxFret + 1 }, (_, fret) => {
+      const noteIdx = (openIdx + fret) % 12;
+      const interval = (((noteIdx - rootIdx) % 12) + 12) % 12;
+      return INTERVAL_LABELS[interval];
+    });
+  });
+}
+
+export { OPEN_STRING_NOTES, INTERVAL_LABELS };
