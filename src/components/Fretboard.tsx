@@ -94,7 +94,15 @@ export function Fretboard({
         <g transform={`translate(${labelW}, ${padY})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (
-            <text key={l} x={intervalMode ? -24 : -6} y={i * ss + 4} fontSize={10} fill={txt} textAnchor="end" fontFamily="monospace">
+            <text
+              key={l}
+              x={intervalMode ? -24 : -6}
+              y={i * ss + 4}
+              fontSize={10}
+              fill={txt}
+              textAnchor="end"
+              fontFamily="monospace"
+            >
               {l}
             </text>
           ))}

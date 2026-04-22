@@ -4,6 +4,19 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.22.3]
+
+### Added
+- **Interval labels on active chord** — Fretboard shows R/3/5/b3/b7 on each dot when chord is hovered/locked
+- **Interval map mode** — Toggle ♫ on fretboard to show all intervals for current key across entire neck
+- **Selectable intervals** — Filter which intervals to display (R/b3/3/4/5/b7/7), persisted to localStorage
+- **Open string intervals** — Interval map includes fret 0 positions
+
+### Fixed
+- Interval map overlay uses correct transform offset (was misaligned)
+- String labels shift left in interval mode to avoid overlap with open string dots
+- Fullscreen fretboard preserves interval mode state
+
 ## [2026.4.22.2]
 
 ### Added
