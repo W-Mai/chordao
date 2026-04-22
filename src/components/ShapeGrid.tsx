@@ -66,19 +66,19 @@ export function ShapeGrid({
       ];
 
   type Cell = { degree: number; name: string; isOptimal: boolean; key: string };
-  const grid: (Cell | null)[][] = rows.map(() => Array.from({ length: totalFrets + 1 }, () => null));
+  const grid: Cell[][][] = rows.map(() => Array.from({ length: totalFrets + 1 }, () => []));
 
   for (const v of voicings) {
     const rowIdx = rows.findIndex((r) => r.shapes.includes(v.shapeOrigin));
     if (rowIdx < 0) continue;
     const fret = v.barrePosition;
     if (fret >= 0 && fret <= totalFrets) {
-      grid[rowIdx][fret] = {
+      grid[rowIdx][fret].push({
         degree: v.degree,
         name: v.name,
         isOptimal: optimalSet.has(voicingKey(v)),
         key: voicingKey(v),
-      };
+      });
     }
   }
 
@@ -221,70 +221,76 @@ export function ShapeGrid({
 
         {/* Chord markers */}
         {rows.map((_row, ri) =>
-          grid[ri].map((cell, fret) => {
-            if (!cell) return null;
+          grid[ri].map((cells, fret) => {
+            if (cells.length === 0) return null;
             const x = cellX(fret);
-            const y = stringY[ri];
-            const color = monoColor ? 'var(--overlay0)' : DEGREE_COLORS[cell.degree];
-            const isOpt = cell.isOptimal;
-            const r = dotR;
-            const chordKey = cell.key;
-            const isHov = hoveredChord === chordKey;
-            const dimmed = hoveredChord != null && !isHov;
+            const baseY = stringY[ri];
 
-            return (
-              <g
-                key={cell.key}
-                opacity={dimmed ? 0.15 : 1}
-                style={{
-                  transform: `translate(${x}px, ${y}px)`,
-                  transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s',
-                  cursor: 'pointer',
-                }}
-                onPointerEnter={() => onHoverChord?.(chordKey)}
-                onPointerLeave={() => onHoverChord?.(null)}
-                onClick={() => onClickChord?.(chordKey)}
-                onDoubleClick={() => onDblClickChord?.(chordKey)}
-              >
-                <circle
-                  cx={0}
-                  cy={0}
-                  r={r}
-                  fill={(hoveredChord == null ? isOpt : isHov) ? (monoColor ? 'var(--blue)' : color) : boardBg}
-                  stroke={color}
-                  strokeWidth={(hoveredChord == null ? isOpt : isHov) ? 0 : 2}
-                  opacity={(hoveredChord == null ? isOpt : isHov) ? 0.9 : 0.7}
-                />
-                {!hideLabels && (
-                  <>
-                    <text
-                      x={0}
-                      y={-3}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={10}
-                      fontWeight="bold"
-                      fill={(hoveredChord == null ? isOpt : isHov) ? '#fff' : color}
-                      fontFamily="monospace"
-                    >
-                      {DEGREE_LABELS[cell.degree]}
-                    </text>
-                    <text
-                      x={0}
-                      y={7}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={6.5}
-                      fontWeight="bold"
-                      fill={(hoveredChord == null ? isOpt : isHov) ? 'rgba(255,255,255,0.8)' : color}
-                      opacity={isOpt || isHov ? 1 : 0.7}
-                    >
-                      {cell.name}
-                    </text>
-                  </>
-                )}
-              </g>
-            );
+            return cells.map((cell, ci) => {
+              const smallR = dotR - 3;
+              const xOffset = cells.length > 1 ? (ci - (cells.length - 1) / 2) * (smallR * 2 + 2) : 0;
+              const y = baseY;
+              const color = monoColor ? 'var(--overlay0)' : DEGREE_COLORS[cell.degree];
+              const isOpt = cell.isOptimal;
+              const r = cells.length > 1 ? smallR : dotR;
+              const chordKey = cell.key;
+              const isHov = hoveredChord === chordKey;
+              const dimmed = hoveredChord != null && !isHov;
+
+              return (
+                <g
+                  key={cell.key}
+                  opacity={dimmed ? 0.15 : 1}
+                  style={{
+                    transform: `translate(${x + xOffset}px, ${y}px)`,
+                    transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.2s',
+                    cursor: 'pointer',
+                  }}
+                  onPointerEnter={() => onHoverChord?.(chordKey)}
+                  onPointerLeave={() => onHoverChord?.(null)}
+                  onClick={() => onClickChord?.(chordKey)}
+                  onDoubleClick={() => onDblClickChord?.(chordKey)}
+                >
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={r}
+                    fill={(hoveredChord == null ? isOpt : isHov) ? (monoColor ? 'var(--blue)' : color) : boardBg}
+                    stroke={color}
+                    strokeWidth={(hoveredChord == null ? isOpt : isHov) ? 0 : 2}
+                    opacity={(hoveredChord == null ? isOpt : isHov) ? 0.9 : 0.7}
+                  />
+                  {!hideLabels && (
+                    <>
+                      <text
+                        x={0}
+                        y={-3}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={cells.length > 1 ? 8 : 10}
+                        fontWeight="bold"
+                        fill={(hoveredChord == null ? isOpt : isHov) ? '#fff' : color}
+                        fontFamily="monospace"
+                      >
+                        {DEGREE_LABELS[cell.degree]}
+                      </text>
+                      <text
+                        x={0}
+                        y={7}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={cells.length > 1 ? 5 : 6.5}
+                        fontWeight="bold"
+                        fill={(hoveredChord == null ? isOpt : isHov) ? 'rgba(255,255,255,0.8)' : color}
+                        opacity={isOpt || isHov ? 1 : 0.7}
+                      >
+                        {cell.name}
+                      </text>
+                    </>
+                  )}
+                </g>
+              );
+            });
           }),
         )}
         {/* Progression path with animated dot */}
@@ -296,7 +302,7 @@ export function ShapeGrid({
             for (const deg of progressionDegrees) {
               const v = optMap.get(deg);
               if (!v) continue;
-              const rowIdx = rows[0].shapes.includes(v.shapeOrigin) ? 0 : 1;
+              const rowIdx = rows.findIndex((r) => r.shapes.includes(v.shapeOrigin));
               steps.push({ x: cellX(v.barrePosition), y: stringY[rowIdx], deg });
             }
             if (steps.length < 2) return null;
