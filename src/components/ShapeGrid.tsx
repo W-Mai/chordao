@@ -45,16 +45,32 @@ export function ShapeGrid({
 }: ShapeGridProps) {
   const optimalSet = new Set(optimal.map(voicingKey));
 
-  const rows = [
-    { label: 'A / Am', shapes: ['A', 'Am'] },
-    { label: 'E / Em', shapes: ['E', 'Em'] },
-  ];
+  // Determine rows dynamically based on shapes present
+  const shapeNames = new Set(voicings.map((v) => v.shapeOrigin));
+  const hasCaged =
+    shapeNames.has('C') ||
+    shapeNames.has('Cm') ||
+    shapeNames.has('G') ||
+    shapeNames.has('Gm') ||
+    shapeNames.has('D') ||
+    shapeNames.has('Dm');
+  const rows = hasCaged
+    ? [
+        { label: 'A / C', shapes: ['A', 'Am', 'C', 'Cm'] },
+        { label: 'E / G', shapes: ['E', 'Em', 'G', 'Gm'] },
+        { label: 'D', shapes: ['D', 'Dm'] },
+      ]
+    : [
+        { label: 'A / Am', shapes: ['A', 'Am'] },
+        { label: 'E / Em', shapes: ['E', 'Em'] },
+      ];
 
   type Cell = { degree: number; name: string; isOptimal: boolean; key: string };
   const grid: (Cell | null)[][] = rows.map(() => Array.from({ length: totalFrets + 1 }, () => null));
 
   for (const v of voicings) {
-    const rowIdx = rows[0].shapes.includes(v.shapeOrigin) ? 0 : 1;
+    const rowIdx = rows.findIndex((r) => r.shapes.includes(v.shapeOrigin));
+    if (rowIdx < 0) continue;
     const fret = v.barrePosition;
     if (fret >= 0 && fret <= totalFrets) {
       grid[rowIdx][fret] = {
@@ -73,9 +89,10 @@ export function ShapeGrid({
   const boardW = totalFrets * fretW;
   const stringGap = 70;
   const padY = 22;
+  const rowCount = rows.length;
   const svgW = labelW + openW + nutW + boardW + 8;
-  const svgH = padY + stringGap + padY + 20;
-  const stringY = [padY, padY + stringGap];
+  const svgH = padY + stringGap * (rowCount - 1) + padY + 20;
+  const stringY = Array.from({ length: rowCount }, (_, i) => padY + i * stringGap);
   const boardX = labelW + openW + nutW;
 
   const fretLine = light ? '#b0b8c4' : '#2a3a5a';
@@ -102,19 +119,34 @@ export function ShapeGrid({
           x={boardX - nutW}
           y={stringY[0] - 20}
           width={nutW + boardW}
-          height={stringGap + 40}
+          height={stringGap * (rowCount - 1) + 40}
           rx={3}
           fill={boardBg}
         />
 
         {/* Nut */}
-        <rect x={boardX - nutW} y={stringY[0] - 20} width={nutW} height={stringGap + 40} rx={1.5} fill={nutColor} />
+        <rect
+          x={boardX - nutW}
+          y={stringY[0] - 20}
+          width={nutW}
+          height={stringGap * (rowCount - 1) + 40}
+          rx={1.5}
+          fill={nutColor}
+        />
 
         {/* Fret wires */}
         {Array.from({ length: totalFrets }, (_, f) => {
           const x = boardX + (f + 1) * fretW;
           return (
-            <line key={f} x1={x} y1={stringY[0] - 20} x2={x} y2={stringY[1] + 20} stroke={fretLine} strokeWidth={1.5} />
+            <line
+              key={f}
+              x1={x}
+              y1={stringY[0] - 20}
+              x2={x}
+              y2={stringY[rowCount - 1] + 20}
+              stroke={fretLine}
+              strokeWidth={1.5}
+            />
           );
         })}
 

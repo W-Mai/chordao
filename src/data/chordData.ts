@@ -33,27 +33,52 @@ export interface ChordShape {
 // Base open chord shapes (frets relative to nut)
 // String order: E2 A D G B E4
 const BASE_SHAPES: Record<string, { major: number[]; minor: number[] }> = {
-  E: {
-    major: [0, 2, 2, 1, 0, 0], // E major
-    minor: [0, 2, 2, 0, 0, 0], // E minor
+  C: {
+    major: [-1, 3, 2, 0, 1, 0], // C major, root on 5th string
+    minor: [-1, 3, 1, 0, 1, 0], // C minor
   },
   A: {
-    major: [-1, 0, 2, 2, 2, 0], // A major
+    major: [-1, 0, 2, 2, 2, 0], // A major, root on 5th string
     minor: [-1, 0, 2, 2, 1, 0], // A minor
+  },
+  G: {
+    major: [3, 2, 0, 0, 0, 3], // G major, root on 6th string
+    minor: [3, 1, 0, 0, 0, 3], // G minor
+  },
+  E: {
+    major: [0, 2, 2, 1, 0, 0], // E major, root on 6th string
+    minor: [0, 2, 2, 0, 0, 0], // E minor
+  },
+  D: {
+    major: [-1, -1, 0, 2, 3, 2], // D major, root on 4th string
+    minor: [-1, -1, 0, 2, 3, 1], // D minor
   },
 };
 
 const BASE_SHAPES_7TH: Record<string, { major: number[]; minor: number[] }> = {
-  E: {
-    major: [0, 2, 0, 1, 0, 0], // E7
-    minor: [0, 2, 0, 0, 0, 0], // Em7
+  C: {
+    major: [-1, 3, 2, 3, 1, 0], // C7
+    minor: [-1, 3, 1, 3, 1, 0], // Cm7
   },
   A: {
     major: [-1, 0, 2, 0, 2, 0], // A7
     minor: [-1, 0, 2, 0, 1, 0], // Am7
   },
+  G: {
+    major: [3, 2, 0, 0, 0, 1], // G7
+    minor: [3, 1, 0, 0, 0, 1], // Gm7
+  },
+  E: {
+    major: [0, 2, 0, 1, 0, 0], // E7
+    minor: [0, 2, 0, 0, 0, 0], // Em7
+  },
+  D: {
+    major: [-1, -1, 0, 2, 1, 2], // D7
+    minor: [-1, -1, 0, 2, 1, 1], // Dm7
+  },
 };
 
+export type ShapeSystem = 'ea' | 'caged';
 export type ShapeSet = 'triad' | 'seventh';
 
 export interface ChordVoicing {
@@ -89,9 +114,18 @@ const SCALE_DEGREES = [
 ];
 
 // Generate all voicings for a given key
-export function generateVoicings(key: NoteName, maxFret = 17, shapeSet: ShapeSet = 'triad'): ChordVoicing[] {
+// Shape root notes for offset calculation
+const SHAPE_ROOTS: Record<string, NoteName> = { C: 'C', A: 'A', G: 'G', E: 'E', D: 'D' };
+
+export function generateVoicings(
+  key: NoteName,
+  maxFret = 17,
+  shapeSet: ShapeSet = 'triad',
+  shapeSystem: ShapeSystem = 'ea',
+): ChordVoicing[] {
   const voicings: ChordVoicing[] = [];
   const shapes = shapeSet === 'seventh' ? BASE_SHAPES_7TH : BASE_SHAPES;
+  const shapeKeys = shapeSystem === 'caged' ? ['C', 'A', 'G', 'E', 'D'] : ['E', 'A'];
 
   for (const deg of SCALE_DEGREES) {
     const targetNote = noteName(noteIndex(key) + deg.interval);
@@ -101,10 +135,10 @@ export function generateVoicings(key: NoteName, maxFret = 17, shapeSet: ShapeSet
     const quality = isMajor ? 'major' : 'minor';
     const shapeSuffix = isMajor ? '' : 'm';
 
-    for (const [baseRoot, baseFrets, shapeLabel] of [
-      ['E', shapes.E[quality], `E${shapeSuffix}`],
-      ['A', shapes.A[quality], `A${shapeSuffix}`],
-    ] as [NoteName, number[], string][]) {
+    for (const sk of shapeKeys) {
+      const baseFrets = shapes[sk][quality];
+      const baseRoot = SHAPE_ROOTS[sk];
+      const shapeLabel = `${sk}${shapeSuffix}`;
       const offset = semitoneOffset(baseRoot, targetNote);
       // Generate base position and +12 octave
       for (const o of [offset, offset + 12]) {

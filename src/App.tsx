@@ -7,6 +7,7 @@ import {
   CIRCLE_OF_FIFTHS,
   generateVoicings,
   type ShapeSet,
+  type ShapeSystem,
   groupByDegree,
   findOptimalCombination,
   voicingKey,
@@ -130,6 +131,17 @@ function App() {
     });
     resetHover();
   }, [resetHover]);
+  const [shapeSystem, setShapeSystem] = useState<ShapeSystem>(
+    () => (localStorage.getItem('chordao:shapeSystem') as ShapeSystem) || 'ea',
+  );
+  const toggleShapeSystem = useCallback(() => {
+    setShapeSystem((v) => {
+      const next = v === 'ea' ? 'caged' : 'ea';
+      localStorage.setItem('chordao:shapeSystem', next);
+      return next;
+    });
+    resetHover();
+  }, [resetHover]);
   const toggleBarre = useCallback(() => {
     setShowBarre((v) => {
       localStorage.setItem('chordao:showBarre', String(!v));
@@ -149,7 +161,10 @@ function App() {
   }, []);
   const keyList = keyOrder === 'fifths' ? CIRCLE_OF_FIFTHS : NOTES;
 
-  const voicings = useMemo(() => generateVoicings(selectedKey, 17, shapeSet), [selectedKey, shapeSet]);
+  const voicings = useMemo(
+    () => generateVoicings(selectedKey, 17, shapeSet, shapeSystem),
+    [selectedKey, shapeSet, shapeSystem],
+  );
   const grouped = useMemo(() => groupByDegree(voicings), [voicings]);
 
   const [activeDegree, setActiveDegree] = useState<number | null>(null);
@@ -542,6 +557,13 @@ function App() {
                 style={{ transition: 'all var(--transition)' }}
               >
                 {shapeSet === 'seventh' ? t('shapeSeventh') : t('shapeTriad')}
+              </button>
+              <button
+                onClick={toggleShapeSystem}
+                className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${shapeSystem === 'caged' ? 'bg-blue/20 text-blue font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {shapeSystem === 'caged' ? 'CAGED' : 'E/A'}
               </button>
               <button
                 onClick={toggleKeyOrder}
