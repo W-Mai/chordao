@@ -175,14 +175,21 @@ export function groupByDegree(voicings: ChordVoicing[]): Map<number, ChordVoicin
 }
 
 // Find the optimal 6-chord combination (one per degree) minimizing total fret movement
-export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, degreeOrder?: number[]): ChordVoicing[] {
-  return findAllCombinations(grouped, degreeOrder)[0] ?? [];
+export type BassPrefer = 'none' | 'ascending' | 'descending';
+
+export function findOptimalCombination(
+  grouped: Map<number, ChordVoicing[]>,
+  degreeOrder?: number[],
+  prefer: BassPrefer = 'none',
+): ChordVoicing[] {
+  return findAllCombinations(grouped, degreeOrder, prefer)[0] ?? [];
 }
 
-// Return multiple optimal combinations sorted by score, deduplicated by position range
+// Return multiple optimal combinations sorted by score, deduplicated by root position
 export function findAllCombinations(
   grouped: Map<number, ChordVoicing[]>,
   degreeOrder?: number[],
+  prefer: BassPrefer = 'none',
 ): ChordVoicing[][] {
   const order = degreeOrder ?? [4, 1, 5, 2, 6, 3];
   const seen = new Set<number>();
@@ -202,10 +209,15 @@ export function findAllCombinations(
       const highCount = positions.filter((p) => p >= 12).length;
       const span = Math.max(...positions) - Math.min(...positions);
       let move = 0;
+      let directionPenalty = 0;
       for (let i = 0; i < current.length - 1; i++) {
-        move += Math.abs(current[i].barrePosition - current[i + 1].barrePosition);
+        const diff = current[i + 1].barrePosition - current[i].barrePosition;
+        move += Math.abs(diff);
+        // Penalize wrong direction steps
+        if (prefer === 'ascending' && diff < 0) directionPenalty += Math.abs(diff) * 10;
+        if (prefer === 'descending' && diff > 0) directionPenalty += Math.abs(diff) * 10;
       }
-      const score = highCount * 1000 + span * 100 + move;
+      const score = highCount * 1000 + directionPenalty + span * 100 + move;
       results.push({ combo: [...current], score });
       return;
     }

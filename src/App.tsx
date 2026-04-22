@@ -11,6 +11,7 @@ import {
   groupByDegree,
   findAllCombinations,
   type ChordVoicing,
+  type BassPrefer,
   voicingKey,
   type NoteName,
   PROGRESSIONS,
@@ -143,6 +144,18 @@ function App() {
     });
     resetHover();
   }, [resetHover]);
+  const [positionPrefer, setPositionPrefer] = useState<BassPrefer>(
+    () => (localStorage.getItem('chordao:prefer') as BassPrefer) || 'none',
+  );
+  const togglePrefer = useCallback(() => {
+    setPositionPrefer((v) => {
+      const order: BassPrefer[] = ['none', 'ascending', 'descending'];
+      const next = order[(order.indexOf(v) + 1) % order.length];
+      localStorage.setItem('chordao:prefer', next);
+      return next;
+    });
+    resetHover();
+  }, [resetHover]);
   const toggleBarre = useCallback(() => {
     setShowBarre((v) => {
       localStorage.setItem('chordao:showBarre', String(!v));
@@ -218,7 +231,10 @@ function App() {
     if (activeProg === 'custom' && customDegrees.length >= 2) return { name: 'custom', degrees: customDegrees };
     return activeProg ? (PROGRESSIONS.find((p) => p.name === activeProg) ?? null) : null;
   }, [activeProg, customDegrees]);
-  const allCombos = useMemo(() => findAllCombinations(grouped, activeProgObj?.degrees), [grouped, activeProgObj]);
+  const allCombos = useMemo(
+    () => findAllCombinations(grouped, activeProgObj?.degrees, positionPrefer),
+    [grouped, activeProgObj, positionPrefer],
+  );
   const [comboIdx, setComboIdx] = useState(0);
   // Reset combo index when combos change
   useEffect(() => setComboIdx(0), [allCombos]);
@@ -818,6 +834,13 @@ function App() {
                   ))}
                 </div>
               )}
+              <button
+                onClick={togglePrefer}
+                className={`text-[9px] px-1.5 h-5 rounded-full cursor-pointer flex items-center justify-center mr-1 ${positionPrefer !== 'none' ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {positionPrefer === 'ascending' ? '↗' : positionPrefer === 'descending' ? '↘' : '—'}
+              </button>
               <ExpandBtn onClick={openGrid} />
             </div>
             <div className="panel-body">
