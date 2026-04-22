@@ -46,6 +46,8 @@ export function Fretboard({
 }: FretboardProps) {
   const [localHover, setLocalHover] = useState<string | null>(null);
   const hovered = hoveredChord ?? localHover;
+  // Interval geometry: selected root position [stringIndex, fret]
+  const [selectedRoot, setSelectedRoot] = useState<[number, number] | null>(null);
 
   const vKey = voicingKey;
 
@@ -64,7 +66,7 @@ export function Fretboard({
   const labelW = 56;
   const nutW = 5;
   const fw = 52;
-  const ss = 18;
+  const ss = intervalMode ? 32 : 18;
   const bw = fw * totalFrets;
   const bh = ss * (STRINGS - 1);
   const padY = 16;
@@ -90,7 +92,11 @@ export function Fretboard({
 
   return (
     <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-auto md:w-full" style={{ height: 'auto', minWidth: svgW }}>
+      <svg
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        className="w-auto md:w-full"
+        style={{ minWidth: svgW }}
+      >
         <g transform={`translate(${labelW}, ${padY})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (
@@ -344,9 +350,17 @@ export function Fretboard({
                       : label === 'b7' || label === '7'
                         ? 'var(--peach)'
                         : 'var(--overlay0)';
+                const isSelected = selectedRoot?.[0] === si && selectedRoot?.[1] === fret;
                 return (
-                  <g key={`iv-${si}-${fret}`}>
+                  <g
+                    key={`iv-${si}-${fret}`}
+                    onClick={() => setSelectedRoot(isSelected ? null : [si, fret])}
+                    className="cursor-pointer"
+                  >
                     <circle cx={x} cy={y} r={r} fill={color} opacity={isRoot ? 0.9 : 0.6} />
+                    {isSelected && (
+                      <circle cx={x} cy={y} r={r + 3} fill="none" stroke="var(--red)" strokeWidth={2} opacity={0.9} />
+                    )}
                     <text
                       x={x}
                       y={y + 0.5}
@@ -363,6 +377,100 @@ export function Fretboard({
                 );
               }),
             )}
+
+            {/* Geometry arrows from selected root */}
+            {selectedRoot &&
+              intervalMap &&
+              (() => {
+                const [rsi, rfret] = selectedRoot;
+                const rx = rfret === 0 ? -12 : nutW + (rfret - 0.5) * fw;
+                const ry = (STRINGS - 1 - rsi) * ss;
+
+                const arrows: React.ReactNode[] = [];
+                if (visibleIntervals && intervalMap) {
+                  for (const iv of visibleIntervals) {
+                    if (iv === 'R') continue;
+                    // Find closest position on fretboard with this interval
+                    let bestDist = Infinity;
+                    let bestSi = -1;
+                    let bestFret = -1;
+                    for (let si = 0; si < STRINGS; si++) {
+                      for (let f = 0; f <= totalFrets; f++) {
+                        if (si === rsi && f === rfret) continue;
+                        if (intervalMap[si][f] !== iv) continue;
+                        const dx = (f - rfret) * fw;
+                        const dy = (si - rsi) * ss;
+                        const dist = dx * dx + dy * dy;
+                        if (dist < bestDist) {
+                          bestDist = dist;
+                          bestSi = si;
+                          bestFret = f;
+                        }
+                      }
+                    }
+                    if (bestSi < 0) continue;
+
+                    const tx = bestFret === 0 ? -12 : nutW + (bestFret - 0.5) * fw;
+                    const ty = (STRINGS - 1 - bestSi) * ss;
+                    const fretShift = bestFret - rfret;
+                    const stringShift = bestSi - rsi;
+                    const shiftLabel = `${fretShift > 0 ? '→' + fretShift : fretShift < 0 ? '←' + Math.abs(fretShift) : ''}${stringShift !== 0 ? (stringShift > 0 ? '↓' + stringShift : '↑' + Math.abs(stringShift)) : ''}`;
+
+                    const lx = (rx + tx) / 2;
+                    const ly = (ry + ty) / 2 - 1;
+                    const labelW = (shiftLabel.length + iv.length + 1) * 3.5 + 6;
+
+                    arrows.push(
+                      <g key={`arr-${iv}`}>
+                        <line
+                          x1={rx}
+                          y1={ry}
+                          x2={tx}
+                          y2={ty}
+                          stroke="var(--blue)"
+                          strokeWidth={1.5}
+                          opacity={0.35}
+                          strokeDasharray="3 2"
+                          markerEnd="url(#arrowhead)"
+                        />
+                        <rect
+                          x={lx - labelW / 2}
+                          y={ly - 5}
+                          width={labelW}
+                          height={10}
+                          rx={5}
+                          fill="var(--mantle)"
+                          stroke="var(--surface0)"
+                          strokeWidth={0.5}
+                          opacity={0.95}
+                        />
+                        <text
+                          x={lx}
+                          y={ly + 0.5}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          fontSize={5.5}
+                          fontWeight="bold"
+                          fontFamily="monospace"
+                        >
+                          <tspan fill="var(--peach)">{shiftLabel}</tspan>
+                          <tspan fill="var(--blue)"> {iv}</tspan>
+                        </text>
+                      </g>,
+                    );
+                  }
+                }
+                return (
+                  <g>
+                    <defs>
+                      <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                        <polygon points="0 0, 6 2, 0 4" fill="var(--blue)" opacity="0.6" />
+                      </marker>
+                    </defs>
+                    {arrows}
+                  </g>
+                );
+              })()}
           </g>
         )}
       </svg>
