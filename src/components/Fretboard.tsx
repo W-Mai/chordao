@@ -29,6 +29,8 @@ interface FretboardProps {
   intervalMode?: boolean;
   intervalMap?: string[][]; // [string][fret] = interval label
   visibleIntervals?: Set<string>;
+  onFretClick?: (si: number, fret: number) => void;
+  markers?: { si: number; fret: number; label: string; color: string }[];
 }
 
 export function Fretboard({
@@ -43,6 +45,8 @@ export function Fretboard({
   intervalMode = false,
   intervalMap,
   visibleIntervals,
+  onFretClick,
+  markers,
 }: FretboardProps) {
   const [localHover, setLocalHover] = useState<string | null>(null);
   const hovered = hoveredChord ?? localHover;
@@ -92,11 +96,7 @@ export function Fretboard({
 
   return (
     <div className="overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${svgW} ${svgH}`}
-        className="w-auto md:w-full"
-        style={{ minWidth: svgW }}
-      >
+      <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-auto md:w-full" style={{ minWidth: svgW }}>
         <g transform={`translate(${labelW}, ${padY})`}>
           {/* String labels */}
           {STRING_LABELS.map((l, i) => (
@@ -471,6 +471,53 @@ export function Fretboard({
                   </g>
                 );
               })()}
+          </g>
+        )}
+
+        {/* Custom markers */}
+        {markers && (
+          <g transform={`translate(${labelW}, ${padY})`}>
+            {markers.map((m, i) => {
+              const mx = m.fret === 0 ? -12 : nutW + (m.fret - 0.5) * fw;
+              const my = (STRINGS - 1 - m.si) * ss;
+              return (
+                <g key={`mk-${i}`}>
+                  <circle cx={mx} cy={my} r={r + 1} fill={m.color} opacity={0.9} />
+                  <text
+                    x={mx}
+                    y={my + 0.5}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={6}
+                    fontWeight="bold"
+                    fill="#fff"
+                    fontFamily="monospace"
+                  >
+                    {m.label}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        )}
+
+        {/* Clickable fret areas */}
+        {onFretClick && (
+          <g transform={`translate(${labelW}, ${padY})`}>
+            {Array.from({ length: STRINGS }, (_, si) =>
+              Array.from({ length: totalFrets + 1 }, (_, f) => (
+                <rect
+                  key={`click-${si}-${f}`}
+                  x={f === 0 ? -25 : nutW + (f - 1) * fw}
+                  y={(STRINGS - 1 - si) * ss - ss / 2}
+                  width={f === 0 ? 25 : fw}
+                  height={ss}
+                  fill="transparent"
+                  className="cursor-pointer"
+                  onClick={() => onFretClick(si, f)}
+                />
+              )),
+            )}
           </g>
         )}
       </svg>

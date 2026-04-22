@@ -61,6 +61,8 @@ export default {
   gameReverse: '🔮 Identify',
   gameCorrect: '✓ Correct!',
   gameWrong: '✗ Wrong',
+  gameInterval: '🎵 Interval',
+  gameIntervalPrompt: 'Find {{interval}} from {{note}} (string {{string}}, fret {{fret}})',
   gameBest: 'Best',
   gamePlayAgain: 'Play Again',
   gameTimer: '⏱ {{time}}s',

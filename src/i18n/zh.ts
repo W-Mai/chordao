@@ -57,6 +57,8 @@ export default {
   gameReverse: '🔮 辨别',
   gameCorrect: '✓ 正确！',
   gameWrong: '✗ 错误',
+  gameInterval: '🎵 音程',
+  gameIntervalPrompt: '从 {{note}}（{{string}}弦{{fret}}品）找到 {{interval}}',
   gameBest: '最佳',
   gamePlayAgain: '再来一局',
   gameTimer: '⏱ {{time}}秒',

@@ -7,12 +7,14 @@ import {
   groupByDegree,
   findOptimalCombination,
   voicingKey,
+  INTERVAL_LABELS,
   type NoteName,
   type ChordVoicing,
 } from '../data/chordData';
 import { ShapeGrid } from './ShapeGrid';
+import { Fretboard } from './Fretboard';
 
-type GameMode = 'locate' | 'reverse' | 'sprint' | 'chain' | 'memory';
+type GameMode = 'locate' | 'reverse' | 'sprint' | 'chain' | 'memory' | 'interval';
 type Difficulty = 'easy' | 'medium' | 'hard';
 
 const DEGREE_LABELS: Record<number, string> = { 1: 'I', 2: 'IIm', 3: 'IIIm', 4: 'IV', 5: 'V', 6: 'VIm' };
@@ -24,6 +26,34 @@ const DIFFICULTY_DEGREES: Record<Difficulty, number[]> = {
 const DIFFICULTY_TIME: Record<Difficulty, number> = { easy: 10, medium: 7, hard: 5 };
 const ALL_DEGREES = [1, 2, 3, 4, 5, 6];
 const TOTAL_QUESTIONS = 10;
+
+const OPEN_NOTES: NoteName[] = ['E', 'A', 'D', 'G', 'B', 'E'];
+const STRING_NAMES = ['⑥', '⑤', '④', '③', '②', '①'];
+const PRACTICE_INTERVALS = ['b3', '3', '4', '5', 'b7', '7'];
+
+function generateIntervalQuestion(difficulty: Difficulty) {
+  const rootSi = Math.floor(Math.random() * 6);
+  const maxFret = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 9 : 12;
+  const rootFret = Math.floor(Math.random() * (maxFret + 1));
+  const openIdx = NOTES.indexOf(OPEN_NOTES[rootSi]);
+  const rootNoteIdx = (openIdx + rootFret) % 12;
+  const rootNote = NOTE_DISPLAY[NOTES[rootNoteIdx]];
+  const pool =
+    difficulty === 'easy' ? ['3', '5'] : difficulty === 'medium' ? ['b3', '3', '5', 'b7'] : PRACTICE_INTERVALS;
+  const targetInterval = pool[Math.floor(Math.random() * pool.length)];
+  const targetSemitones = Number(Object.entries(INTERVAL_LABELS).find(([, v]) => v === targetInterval)![0]);
+
+  // Find all valid positions on fretboard
+  const targets: [number, number][] = [];
+  for (let si = 0; si < 6; si++) {
+    for (let f = 0; f <= 17; f++) {
+      const noteIdx = (NOTES.indexOf(OPEN_NOTES[si]) + f) % 12;
+      const interval = (((noteIdx - rootNoteIdx) % 12) + 12) % 12;
+      if (interval === targetSemitones) targets.push([si, f]);
+    }
+  }
+  return { rootSi, rootFret, rootNote, targetInterval, targetPositions: targets };
+}
 
 function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -104,6 +134,14 @@ export function Game() {
   const [chainStep, setChainStep] = useState(0);
   // Memory mode: show chord briefly then hide
   const [memoryPhase, setMemoryPhase] = useState<'show' | 'guess'>('show');
+  // Interval mode question
+  const [intervalQ, setIntervalQ] = useState<{
+    rootSi: number;
+    rootFret: number;
+    rootNote: string;
+    targetInterval: string;
+    targetPositions: [number, number][]; // valid [si, fret] answers
+  } | null>(null);
 
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
@@ -146,7 +184,9 @@ export function Game() {
   const gameOver =
     sprintDone ||
     chainDone ||
-    ((mode === 'locate' || mode === 'reverse' || mode === 'memory') && total >= TOTAL_QUESTIONS && feedback === null);
+    ((mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval') &&
+      total >= TOTAL_QUESTIONS &&
+      feedback === null);
 
   // Save best score on game over
   useEffect(() => {
@@ -176,16 +216,21 @@ export function Game() {
       setFeedback(null);
       setSelectedAnswer(null);
       setCorrectHighlight([]);
-      const q = generateQuestion(diff, mode);
-      setQuestion(q);
-      if (mode === 'memory') {
-        setMemoryPhase('show');
-        const showTime = diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600;
-        safeTimeout(() => setMemoryPhase('guess'), showTime);
+      if (mode === 'interval') {
+        setIntervalQ(generateIntervalQuestion(diff));
+        setQuestion(null);
+      } else {
+        const q = generateQuestion(diff, mode);
+        setQuestion(q);
+        if (mode === 'memory') {
+          setMemoryPhase('show');
+          const showTime = diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600;
+          safeTimeout(() => setMemoryPhase('guess'), showTime);
+        }
       }
       startTimer(diff);
     },
-    [startTimer, mode],
+    [startTimer, mode, safeTimeout],
   );
 
   const startGame = useCallback(
@@ -227,12 +272,17 @@ export function Game() {
         if (timerRef.current) clearInterval(timerRef.current);
         setQuestionTimer(0);
       } else {
-        const q = generateQuestion(d, currentMode);
-        setQuestion(q);
-        if (currentMode === 'memory') {
-          setMemoryPhase('show');
-          const showTime = d === 'easy' ? 2000 : d === 'medium' ? 1200 : 600;
-          safeTimeout(() => setMemoryPhase('guess'), showTime);
+        if (currentMode === 'interval') {
+          setIntervalQ(generateIntervalQuestion(d));
+          setQuestion(null);
+        } else {
+          const q = generateQuestion(d, currentMode);
+          setQuestion(q);
+          if (currentMode === 'memory') {
+            setMemoryPhase('show');
+            const showTime = d === 'easy' ? 2000 : d === 'medium' ? 1200 : 600;
+            safeTimeout(() => setMemoryPhase('guess'), showTime);
+          }
         }
         startTimer(d);
       }
@@ -254,7 +304,7 @@ export function Game() {
       question &&
       !feedback &&
       total < TOTAL_QUESTIONS &&
-      (mode === 'locate' || mode === 'reverse' || mode === 'memory')
+      (mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval')
     ) {
       // Time's up for this question
       setTotal((n) => n + 1);
@@ -270,7 +320,7 @@ export function Game() {
   }, [questionTimer, question, feedback, total, difficulty, nextQuestion]);
 
   const recordAnswer = useCallback(
-    (correct: boolean, q: Question) => {
+    (correct: boolean, _q?: Question | null) => {
       if (timerRef.current) clearInterval(timerRef.current);
       setTotal((n) => n + 1);
       if (correct) {
@@ -287,7 +337,8 @@ export function Game() {
         setShakeKey((k) => k + 1);
         setFeedback('wrong');
         // Show correct positions for 1.5s
-        const correctKeys = q.allVoicings.filter((v) => v.degree === q.degree).map(voicingKey);
+        const correctKeys =
+          question?.allVoicings.filter((v: ChordVoicing) => v.degree === question.degree).map(voicingKey) ?? [];
         setCorrectHighlight(correctKeys);
         safeTimeout(() => nextQuestion(difficulty), 2500);
       }
@@ -303,7 +354,7 @@ export function Game() {
       if (!question) return;
       if (mode === 'sprint' && sprintDone) return;
       if (mode === 'chain' && chainDone) return;
-      if ((mode === 'locate' || mode === 'reverse' || mode === 'memory') && feedback) return;
+      if ((mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval') && feedback) return;
 
       if (mode === 'sprint') {
         const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
@@ -459,7 +510,7 @@ export function Game() {
 
             {/* Mode & Difficulty */}
             <div className="flex gap-1.5 px-5 pb-3 flex-wrap">
-              {(['locate', 'reverse', 'sprint', 'chain', 'memory'] as GameMode[]).map((m) => (
+              {(['locate', 'reverse', 'sprint', 'chain', 'memory', 'interval'] as GameMode[]).map((m) => (
                 <button
                   key={m}
                   onClick={() => {
@@ -477,10 +528,12 @@ export function Game() {
                         ? t('gameSprint')
                         : m === 'memory'
                           ? t('gameMemory')
-                          : t('gameChain')}
+                          : m === 'interval'
+                            ? t('gameInterval')
+                            : t('gameChain')}
                 </button>
               ))}
-              {(mode === 'locate' || mode === 'reverse' || mode === 'memory') && (
+              {(mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval') && (
                 <>
                   <div className="w-px bg-surface0 mx-1" />
                   {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
@@ -556,7 +609,7 @@ export function Game() {
               ) : question ? (
                 <>
                   {/* Per-question timer bar (locate/reverse only) */}
-                  {(mode === 'locate' || mode === 'reverse' || mode === 'memory') && (
+                  {(mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval') && (
                     <div className="h-0.5 bg-surface0 rounded-full mb-3 overflow-hidden">
                       <div
                         className="h-full rounded-full"
@@ -685,6 +738,61 @@ export function Game() {
                       ))}
                     </div>
                   )}
+                </>
+              ) : intervalQ && mode === 'interval' ? (
+                <>
+                  <div
+                    key={shakeKey}
+                    className={`rounded-xl border bg-base p-4 mb-3 ${
+                      feedback === 'correct'
+                        ? 'border-green/50 bg-green/5'
+                        : feedback === 'wrong'
+                          ? 'border-red/50 bg-red/5'
+                          : 'border-surface0'
+                    }`}
+                    style={{
+                      transition: 'border-color 0.2s, background 0.2s',
+                      animation: feedback === 'wrong' ? 'shake 0.4s ease' : undefined,
+                    }}
+                  >
+                    <div className="text-center mb-3">
+                      <div className="text-xl font-bold text-blue">{intervalQ.targetInterval}</div>
+                      <div className="text-xs text-overlay1 mt-1">
+                        {t('gameIntervalPrompt', {
+                          interval: intervalQ.targetInterval,
+                          note: intervalQ.rootNote,
+                          string: STRING_NAMES[intervalQ.rootSi],
+                          fret: intervalQ.rootFret,
+                        })}
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Fretboard
+                        voicings={[]}
+                        optimal={[]}
+                        light={isLight}
+                        totalFrets={12}
+                        markers={[
+                          { si: intervalQ.rootSi, fret: intervalQ.rootFret, label: 'R', color: 'var(--red)' },
+                          ...(feedback
+                            ? intervalQ.targetPositions
+                                .filter(([, f]) => f <= 12)
+                                .map(([si, f]) => ({
+                                  si,
+                                  fret: f,
+                                  label: intervalQ.targetInterval,
+                                  color: 'var(--green)',
+                                }))
+                            : []),
+                        ]}
+                        onFretClick={(si, f) => {
+                          if (feedback) return;
+                          const correct = intervalQ.targetPositions.some(([ts, tf]) => ts === si && tf === f);
+                          recordAnswer(correct);
+                        }}
+                      />
+                    </div>
+                  </div>
                 </>
               ) : null}
             </div>
