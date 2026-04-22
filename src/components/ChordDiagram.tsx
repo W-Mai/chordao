@@ -83,7 +83,7 @@ export function ChordDiagram({
           {voicing.name}
         </text>
         <text x={VB_W / 2} y={26} textAnchor="middle" fontSize={9} fill={muted}>
-          {DEGREE_LABELS[voicing.degree]} · {voicing.shapeOrigin}
+          {DEGREE_LABELS[voicing.degree]} · {voicing.shapeOrigin} @ {voicing.barrePosition}
         </text>
         <g transform={`translate(${pad.left}, ${pad.top})`}>
           {startFret === 1 ? (

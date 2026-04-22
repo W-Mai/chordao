@@ -144,6 +144,10 @@ export function Fretboard({
             const color = DEGREE_COLORS[v.degree];
             const pts = getPoints(v);
             const isEShape = v.shapeOrigin.startsWith('E');
+            const isGShape = v.shapeOrigin.startsWith('G');
+            const isDShape = v.shapeOrigin.startsWith('D');
+            // circle=6th string root (E/G), rect=5th string root (A/C), diamond=4th string root (D)
+            const dotShape = isEShape || isGShape ? 'circle' : isDShape ? 'diamond' : 'rect';
             const active = isHov;
 
             return (
@@ -188,8 +192,16 @@ export function Fretboard({
                           transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
                         }}
                       >
-                        {isEShape ? (
+                        {dotShape === 'circle' ? (
                           <circle cx={0} cy={0} r={r} fill={boardBg} stroke={color} strokeWidth={1.5} opacity={0.5} />
+                        ) : dotShape === 'diamond' ? (
+                          <polygon
+                            points={`0,${-r} ${r},0 0,${r} ${-r},0`}
+                            fill={boardBg}
+                            stroke={color}
+                            strokeWidth={1.5}
+                            opacity={0.5}
+                          />
                         ) : (
                           <rect
                             x={-r}
@@ -267,8 +279,10 @@ export function Fretboard({
                             transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
                           }}
                         >
-                          {isEShape ? (
+                          {dotShape === 'circle' ? (
                             <circle cx={0} cy={0} r={r} fill={color} opacity={0.9} />
+                          ) : dotShape === 'diamond' ? (
+                            <polygon points={`0,${-r} ${r},0 0,${r} ${-r},0`} fill={color} opacity={0.9} />
                           ) : (
                             <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={2.5} fill={color} opacity={0.9} />
                           )}
