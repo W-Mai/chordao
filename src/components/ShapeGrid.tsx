@@ -303,6 +303,7 @@ export function ShapeGrid({
               const v = optMap.get(deg);
               if (!v) continue;
               const rowIdx = rows.findIndex((r) => r.shapes.includes(v.shapeOrigin));
+              if (rowIdx < 0) continue;
               const fret = v.barrePosition;
               const cellsAtPos = fret >= 0 && fret <= totalFrets ? grid[rowIdx][fret] : [];
               const ci = cellsAtPos.findIndex((c) => c.key === voicingKey(v));
