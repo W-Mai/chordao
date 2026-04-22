@@ -98,7 +98,7 @@ export function ShapeGrid({
   const fretLine = light ? '#b0b8c4' : '#2a3a5a';
   const boardBg = light ? '#e6e1d6' : '#1a1408';
   const nutColor = light ? '#c8c0b0' : '#e0d6c2';
-  const stringColors = light ? ['#999', '#777'] : ['#999', '#bbb'];
+  const stringColors = light ? ['#999', '#777', '#888'] : ['#999', '#bbb', '#aaa'];
   const txt = light ? '#6c6f85' : '#7f849c';
   const dotMarker = light ? '#b0a488' : '#4a3c20';
 
@@ -199,7 +199,7 @@ export function ShapeGrid({
               x2={boardX + boardW}
               y2={stringY[ri]}
               stroke={stringColors[ri]}
-              strokeWidth={ri === 1 ? 2.2 : 1.2}
+              strokeWidth={ri === rowCount - 1 ? 2.2 : 1.2}
             />
           </g>
         ))}
@@ -382,7 +382,7 @@ export function ShapeGrid({
                     arr.push(i);
                     groups.set(k, arr);
                   });
-                  const midY = (stringY[0] + stringY[1]) / 2;
+                  const midY = (stringY[0] + stringY[rowCount - 1]) / 2;
                   const elements: React.ReactNode[] = [];
                   for (const [, indices] of groups) {
                     const s = steps[indices[0]];
