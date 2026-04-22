@@ -183,7 +183,6 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, deg
 export function findAllCombinations(
   grouped: Map<number, ChordVoicing[]>,
   degreeOrder?: number[],
-  maxResults = 5,
 ): ChordVoicing[][] {
   const order = degreeOrder ?? [4, 1, 5, 2, 6, 3];
   const seen = new Set<number>();
@@ -221,17 +220,14 @@ export function findAllCombinations(
   search(0, []);
   results.sort((a, b) => a.score - b.score);
 
-  // Deduplicate by average position range (keep distinct position groups)
+  // Deduplicate by root position of first chord (one combo per root position)
   const filtered: ChordVoicing[][] = [];
-  const seenRanges = new Set<string>();
+  const seenRoots = new Set<number>();
   for (const r of results) {
-    const min = Math.min(...r.combo.map((c) => c.barrePosition));
-    const max = Math.max(...r.combo.map((c) => c.barrePosition));
-    const rangeKey = `${min}-${max}`;
-    if (seenRanges.has(rangeKey)) continue;
-    seenRanges.add(rangeKey);
+    const root = r.combo[0]?.barrePosition ?? 0;
+    if (seenRoots.has(root)) continue;
+    seenRoots.add(root);
     filtered.push(r.combo);
-    if (filtered.length >= maxResults) break;
   }
   return filtered;
 }
