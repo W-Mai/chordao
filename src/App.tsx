@@ -9,7 +9,8 @@ import {
   type ShapeSet,
   type ShapeSystem,
   groupByDegree,
-  findOptimalCombination,
+  findAllCombinations,
+  type ChordVoicing,
   voicingKey,
   type NoteName,
   PROGRESSIONS,
@@ -217,7 +218,28 @@ function App() {
     if (activeProg === 'custom' && customDegrees.length >= 2) return { name: 'custom', degrees: customDegrees };
     return activeProg ? (PROGRESSIONS.find((p) => p.name === activeProg) ?? null) : null;
   }, [activeProg, customDegrees]);
-  const optimal = useMemo(() => findOptimalCombination(grouped, activeProgObj?.degrees), [grouped, activeProgObj]);
+  const allCombos = useMemo(() => findAllCombinations(grouped, activeProgObj?.degrees), [grouped, activeProgObj]);
+  const [comboIdx, setComboIdx] = useState(0);
+  // Reset combo index when combos change
+  useEffect(() => setComboIdx(0), [allCombos]);
+  const optimal = useMemo(() => {
+    if (comboIdx === -1) {
+      // All: merge all combos, deduplicate by voicingKey
+      const seen = new Set<string>();
+      const merged: ChordVoicing[] = [];
+      for (const combo of allCombos) {
+        for (const v of combo) {
+          const k = voicingKey(v);
+          if (!seen.has(k)) {
+            seen.add(k);
+            merged.push(v);
+          }
+        }
+      }
+      return merged;
+    }
+    return allCombos[comboIdx] ?? allCombos[0] ?? [];
+  }, [allCombos, comboIdx]);
   const optimalSet = useMemo(() => new Set(optimal.map(voicingKey)), [optimal]);
 
   // Auto-play progression
@@ -241,9 +263,10 @@ function App() {
 
   const startPlay = useCallback(() => {
     if (!activeProgObj || activeProgObj.degrees.length < 2) return;
+    if (comboIdx === -1) setComboIdx(0);
     setPlaying(true);
     setPlayStep(0);
-  }, [activeProgObj]);
+  }, [activeProgObj, comboIdx]);
 
   const togglePlay = useCallback(() => {
     if (playing) stopPlay();
@@ -774,6 +797,27 @@ function App() {
           <section className="panel mb-2 md:mb-6">
             <div className="panel-header">
               <span className="panel-title flex-1">{t('shapeGrid')}</span>
+              {allCombos.length > 1 && (
+                <div className="flex gap-0.5 mr-2">
+                  <button
+                    onClick={() => setComboIdx(-1)}
+                    className={`text-[9px] px-1.5 h-5 rounded-full cursor-pointer flex items-center justify-center ${comboIdx === -1 ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
+                    style={{ transition: 'all var(--transition)' }}
+                  >
+                    All
+                  </button>
+                  {allCombos.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setComboIdx(i)}
+                      className={`text-[9px] w-5 h-5 rounded-full cursor-pointer flex items-center justify-center ${comboIdx === i ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
+                      style={{ transition: 'all var(--transition)' }}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
               <ExpandBtn onClick={openGrid} />
             </div>
             <div className="panel-body">

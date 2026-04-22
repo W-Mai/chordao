@@ -176,9 +176,16 @@ export function groupByDegree(voicings: ChordVoicing[]): Map<number, ChordVoicin
 
 // Find the optimal 6-chord combination (one per degree) minimizing total fret movement
 export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, degreeOrder?: number[]): ChordVoicing[] {
-  // Default: circle of fifths order
+  return findAllCombinations(grouped, degreeOrder)[0] ?? [];
+}
+
+// Return multiple optimal combinations sorted by score, deduplicated by position range
+export function findAllCombinations(
+  grouped: Map<number, ChordVoicing[]>,
+  degreeOrder?: number[],
+  maxResults = 5,
+): ChordVoicing[][] {
   const order = degreeOrder ?? [4, 1, 5, 2, 6, 3];
-  // Deduplicate while preserving order
   const seen = new Set<number>();
   const uniqueOrder = order.filter((d) => {
     if (seen.has(d)) return false;
@@ -186,12 +193,9 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, deg
     return true;
   });
   const options = uniqueOrder.map((d) => grouped.get(d) ?? []);
-
-  // Prefer voicings below fret 12, minimize span, tiebreak on movement
-  let bestCombo: ChordVoicing[] = [];
-  let bestScore = Infinity;
-
   const n = uniqueOrder.length;
+
+  const results: { combo: ChordVoicing[]; score: number }[] = [];
 
   function search(idx: number, current: ChordVoicing[]) {
     if (idx === n) {
@@ -203,10 +207,7 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, deg
         move += Math.abs(current[i].barrePosition - current[i + 1].barrePosition);
       }
       const score = highCount * 1000 + span * 100 + move;
-      if (score < bestScore) {
-        bestScore = score;
-        bestCombo = [...current];
-      }
+      results.push({ combo: [...current], score });
       return;
     }
     if (options[idx].length === 0) return;
@@ -218,7 +219,21 @@ export function findOptimalCombination(grouped: Map<number, ChordVoicing[]>, deg
   }
 
   search(0, []);
-  return bestCombo;
+  results.sort((a, b) => a.score - b.score);
+
+  // Deduplicate by average position range (keep distinct position groups)
+  const filtered: ChordVoicing[][] = [];
+  const seenRanges = new Set<string>();
+  for (const r of results) {
+    const min = Math.min(...r.combo.map((c) => c.barrePosition));
+    const max = Math.max(...r.combo.map((c) => c.barrePosition));
+    const rangeKey = `${min}-${max}`;
+    if (seenRanges.has(rangeKey)) continue;
+    seenRanges.add(rangeKey);
+    filtered.push(r.combo);
+    if (filtered.length >= maxResults) break;
+  }
+  return filtered;
 }
 
 export { NOTES, NOTE_DISPLAY, CIRCLE_OF_FIFTHS, type NoteName };
