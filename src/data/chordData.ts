@@ -18,6 +18,9 @@ const NOTE_DISPLAY: Record<string, string> = {
   B: 'B',
 };
 
+// Standard tuning open string notes (E2 A2 D3 G3 B3 E4)
+const OPEN_STRING_NOTES: NoteName[] = ['E', 'A', 'D', 'G', 'B', 'E'];
+
 // Circle of fifths order for key selection UI
 const CIRCLE_OF_FIFTHS: NoteName[] = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#', 'F'];
 
@@ -264,3 +267,37 @@ export const PROGRESSIONS = [
   { name: 'progAndalusian', degrees: [6, 5, 4, 3] },
   { name: 'progJazz251', degrees: [2, 5, 1] },
 ];
+
+// Interval labels by semitone distance from root
+const INTERVAL_LABELS: Record<number, string> = {
+  0: 'R',
+  1: 'b2',
+  2: '2',
+  3: 'b3',
+  4: '3',
+  5: '4',
+  6: 'b5',
+  7: '5',
+  8: '#5',
+  9: '6',
+  10: 'b7',
+  11: '7',
+};
+
+// Get interval label for each string in a voicing
+export function getVoicingIntervals(v: ChordVoicing): (string | null)[] {
+  const rootMatch = v.name.match(/^([A-G][#b]?)/);
+  if (!rootMatch) return v.frets.map(() => null);
+  const rootDisplay = rootMatch[1];
+  const rootEntry = Object.entries(NOTE_DISPLAY).find(([, d]) => d === rootDisplay || d.split('/')[0] === rootDisplay);
+  if (!rootEntry) return v.frets.map(() => null);
+  const rootIdx = NOTES.indexOf(rootEntry[0] as NoteName);
+
+  return v.frets.map((fret, si) => {
+    if (fret < 0) return null;
+    const openIdx = NOTES.indexOf(OPEN_STRING_NOTES[si]);
+    const noteIdx = (openIdx + fret) % 12;
+    const interval = (((noteIdx - rootIdx) % 12) + 12) % 12;
+    return INTERVAL_LABELS[interval] ?? null;
+  });
+}

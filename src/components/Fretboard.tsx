@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { voicingKey, type ChordVoicing } from '../data/chordData';
+import { voicingKey, getVoicingIntervals, type ChordVoicing } from '../data/chordData';
 
 const DEGREE_COLORS = [
   '',
@@ -177,6 +177,7 @@ export function Fretboard({
                 {(() => {
                   type Dot = { fret: number; si: number; x: number; y: number };
                   const dots: Dot[] = [];
+                  const intervals = active ? getVoicingIntervals(v) : null;
                   v.frets.forEach((fret, si) => {
                     if (fret <= 0) return;
                     dots.push({ fret, si, x: nutW + (fret - 0.5) * fw, y: (STRINGS - 1 - si) * ss });
@@ -296,7 +297,7 @@ export function Fretboard({
                             fill="#fff"
                             fontFamily="monospace"
                           >
-                            {DEGREE_LABELS[v.degree]}
+                            {intervals?.[d.si] ?? DEGREE_LABELS[v.degree]}
                           </text>
                         </g>,
                       );
