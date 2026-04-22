@@ -1,7 +1,7 @@
 {
   "name": "chordao",
   "private": true,
-  "version": "2026.4.22",
+  "version": "2026.4.22.2",
   "type": "module",
   "scripts": {
     "dev": "vite",

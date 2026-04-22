@@ -4,6 +4,23 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.22.2]
+
+### Added
+- **CAGED system** — Full C/A/G/E/D shapes (major, minor, 7th), toggle E/A ↔ CAGED
+- **Shape Grid 3-row layout** — A/C row, E/G row, D row for CAGED mode
+- **Fretboard diamond markers** — ⬤ circle=6th string root (E/G), ◼ square=5th (A/C), ◆ diamond=4th (D)
+- **Multiple position combos** — Switch between optimal voicing sets with numbered buttons + All view
+- **Bass direction preference** — ↗ ascending / ↘ descending / — none toggle on Shape Grid
+- **Multi-path progression lines** — All mode shows each combo's path in distinct colors
+- **Chord diagram shape label** — Shows `I · E @ 8` format (degree · shape · fret)
+
+### Fixed
+- Shape Grid overlapping voicings at same position — horizontal offset with smaller dots
+- Playback blue circle aligns with actual voicing position in overlapping cells
+- String lines and colors support dynamic row count
+- Guard rowIdx in progression path to prevent crash
+
 ## [2026.4.22]
 
 ### Added
