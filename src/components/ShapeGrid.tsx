@@ -298,12 +298,17 @@ export function ShapeGrid({
           progressionDegrees.length > 1 &&
           (() => {
             const optMap = new Map(optimal.map((v) => [v.degree, v]));
-            const steps: { x: number; y: number; deg: number }[] = [];
+            const steps: { x: number; y: number; deg: number; multi: boolean }[] = [];
             for (const deg of progressionDegrees) {
               const v = optMap.get(deg);
               if (!v) continue;
               const rowIdx = rows.findIndex((r) => r.shapes.includes(v.shapeOrigin));
-              steps.push({ x: cellX(v.barrePosition), y: stringY[rowIdx], deg });
+              const fret = v.barrePosition;
+              const cellsAtPos = fret >= 0 && fret <= totalFrets ? grid[rowIdx][fret] : [];
+              const ci = cellsAtPos.findIndex((c) => c.key === voicingKey(v));
+              const smallR = dotR - 3;
+              const xOff = cellsAtPos.length > 1 ? (ci - (cellsAtPos.length - 1) / 2) * (smallR * 2 + 2) : 0;
+              steps.push({ x: cellX(fret) + xOff, y: stringY[rowIdx], deg, multi: cellsAtPos.length > 1 });
             }
             if (steps.length < 2) return null;
 
@@ -348,11 +353,12 @@ export function ShapeGrid({
                   steps[activeStep % steps.length] &&
                   (() => {
                     const p = steps[activeStep % steps.length];
+                    const circleR = p.multi ? dotR - 3 + 4 : dotR + 4;
                     return (
                       <circle
                         cx={0}
                         cy={0}
-                        r={dotR + 4}
+                        r={circleR}
                         fill="none"
                         stroke="var(--blue)"
                         strokeWidth={2.5}
