@@ -44,6 +44,8 @@ export default {
   fifths: '五度圈',
   semi: '半音',
   derivation: 'E/Em/A/Am 指型推导',
+  eaDerivation: 'E/Em/A/Am 指型推导',
+  cagedDerivation: 'CAGED 指型推导',
   keyOf: '调',
   github: 'GitHub',
   mit: 'MIT',

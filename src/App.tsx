@@ -433,6 +433,7 @@ function App() {
     activeProgObj,
     filteredVoicings,
     filteredOptimal,
+    shapeSystem,
   });
 
   const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();

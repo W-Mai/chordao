@@ -48,6 +48,8 @@ export default {
   fifths: '5ths',
   semi: 'Semi',
   derivation: 'E/Em/A/Am shape derivation',
+  eaDerivation: 'E/Em/A/Am shape derivation',
+  cagedDerivation: 'CAGED shape derivation',
   keyOf: 'Key of',
   github: 'GitHub',
   mit: 'MIT',

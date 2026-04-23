@@ -15,6 +15,7 @@ interface ExportViewProps {
   activeProgObj?: { name: string; degrees: number[] } | null;
   filteredVoicings: ChordVoicing[];
   filteredOptimal: ChordVoicing[];
+  shapeSystem: 'ea' | 'caged';
 }
 
 export function useExportImage({
@@ -27,6 +28,7 @@ export function useExportImage({
   activeProgObj,
   filteredVoicings,
   filteredOptimal,
+  shapeSystem,
 }: ExportViewProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,7 +113,8 @@ export function useExportImage({
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>{t('appName')}</div>
             <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>
-              {t('keyOf')} {NOTE_DISPLAY[selectedKey]} · {t('derivation')}
+              {t('keyOf')} {NOTE_DISPLAY[selectedKey]} ·{' '}
+              {t(shapeSystem === 'caged' ? 'cagedDerivation' : 'eaDerivation')}
             </div>
           </div>
           {activeProgObj && (
