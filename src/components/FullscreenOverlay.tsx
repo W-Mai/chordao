@@ -11,19 +11,19 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
   const [rotated, setRotated] = useState(false);
   const [visible, setVisible] = useState(false);
   const [animating, setAnimating] = useState(false);
-  // Open: mount then animate in
+  // Open: mount then animate in. Close: fade out then unmount after transition.
   useEffect(() => {
     if (active) {
       requestAnimationFrame(() => {
         setAnimating(true);
         requestAnimationFrame(() => setVisible(true));
       });
-    } else if (visible) {
+    } else {
       setVisible(false);
       const t = setTimeout(() => setAnimating(false), 250);
       return () => clearTimeout(t);
     }
-  }, [active, visible]);
+  }, [active]);
 
   useEffect(() => {
     if (!animating) return;
