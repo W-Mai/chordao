@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 interface FullscreenOverlayProps {
@@ -24,7 +23,7 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
       const t = setTimeout(() => setAnimating(false), 250);
       return () => clearTimeout(t);
     }
-  }, [active]);
+  }, [active, visible]);
 
   useEffect(() => {
     if (!animating) return;
@@ -95,7 +94,7 @@ export function FullscreenOverlay({ active, onClose, children }: FullscreenOverl
         className="absolute top-4 right-4 text-overlay1 hover:text-txt text-2xl cursor-pointer
                    "
       >
-        ✕
+        {'✕'}
       </button>
     </div>
   );

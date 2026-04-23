@@ -21,6 +21,7 @@ import { ChordDiagram } from './components/ChordDiagram';
 import { Fretboard } from './components/Fretboard';
 import { ShapeGrid } from './components/ShapeGrid';
 import { FullscreenOverlay, useOverlayFullscreen } from './components/FullscreenOverlay';
+import { parseHash, useHashSync } from './hooks/useHashState';
 
 import { Roller } from './components/Roller';
 
@@ -33,14 +34,15 @@ const THEMES = ['dark', 'light', 'cyber'] as const;
 const THEME_ICONS: Record<string, string> = { dark: '🌙', light: '☀️', cyber: '⚡' };
 
 function ExpandBtn({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
   return (
     <button
       onClick={onClick}
       className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer transition-all"
       style={{ transition: 'all var(--transition)' }}
-      title="Expand"
+      title={t('expand')}
     >
-      ⛶
+      {'⛶'}
     </button>
   );
 }
@@ -49,20 +51,6 @@ function App() {
   const { t, i18n } = useTranslation();
 
   // Parse URL hash for shared state: #key=C&prog=progPopCanon
-  const parseHash = useCallback(() => {
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    return {
-      key: (params.get('key') as NoteName) || null,
-      prog: params.get('prog') || null,
-      degrees:
-        params
-          .get('degrees')
-          ?.split('-')
-          .map(Number)
-          .filter((n) => n >= 1 && n <= 6) || [],
-    };
-  }, []);
-
   const initial = parseHash();
   const [selectedKey, _setSelectedKey] = useState<NoteName>(initial.key || 'C');
 
@@ -395,17 +383,7 @@ function App() {
   }, []);
 
   // Sync state to URL hash for sharing
-  useEffect(() => {
-    const params = new URLSearchParams();
-    params.set('key', selectedKey);
-    if (activeProg === 'custom' && customDegrees.length >= 2) {
-      params.set('prog', 'custom');
-      params.set('degrees', customDegrees.join('-'));
-    } else if (activeProg) {
-      params.set('prog', activeProg);
-    }
-    window.history.replaceState(null, '', `#${params.toString()}`);
-  }, [selectedKey, activeProg, customDegrees]);
+  useHashSync({ key: selectedKey, activeProg, customDegrees });
 
   // Swipe on header to switch key
   const headerRef = useRef<HTMLDivElement>(null);
@@ -443,7 +421,7 @@ function App() {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [selectedKey, toggleDegree]);
+  }, [keyList, selectedKey, setSelectedKey, toggleDegree]);
 
   const { exportImage, ExportContainer, PreviewModal } = useExportImage({
     selectedKey,
@@ -603,7 +581,7 @@ function App() {
                 className={`text-[11px] px-2.5 py-1 rounded-lg cursor-pointer ${showBarre ? 'bg-blue/20 text-blue font-semibold' : 'text-overlay0 hover:text-subtext0'}`}
                 style={{ transition: 'all var(--transition)' }}
               >
-                Barre
+                {t('barre')}
               </button>
               <button
                 onClick={toggleShapeSet}
@@ -835,7 +813,7 @@ function App() {
                     className={`text-[9px] px-1.5 h-5 rounded-full cursor-pointer flex items-center justify-center ${comboIdx === -1 ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
                     style={{ transition: 'all var(--transition)' }}
                   >
-                    All
+                    {t('all')}
                   </button>
                   {allCombos.map((_, i) => (
                     <button
@@ -950,9 +928,9 @@ function App() {
       <footer className="shrink-0 bg-mantle" style={{ transition: 'background var(--transition)' }}>
         <div className="h-px bg-gradient-to-r from-transparent via-blue/30 to-transparent" />
         <div className="py-2.5 flex items-center justify-center gap-2 text-[11px] text-overlay1 flex-wrap">
-          <span>Chordao</span>
+          <span>{t('appName')}</span>
           <span className="text-surface1">·</span>
-          <span>E/Em/A/Am shape derivation</span>
+          <span>{t('derivation')}</span>
           <span className="text-surface1">·</span>
           <a
             href="https://github.com/W-Mai/chordao"
@@ -960,10 +938,10 @@ function App() {
             rel="noopener"
             className="text-blue hover:underline"
           >
-            GitHub
+            {t('github')}
           </a>
           <span className="text-surface1">·</span>
-          <span>MIT</span>
+          <span>{t('mit')}</span>
         </div>
       </footer>
 

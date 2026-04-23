@@ -1,17 +1,18 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
-const step1svg = (
+const step1svg = (t: TFunction) => (
   <svg viewBox="0 0 320 80" className="w-full">
     <rect x={80} y={10} width={230} height={60} rx={3} fill="#1a1408" />
     <rect x={80} y={10} width={4} height={60} rx={1} fill="#e0d6c2" />
     <line x1={84} y1={28} x2={310} y2={28} stroke="#aaa" strokeWidth={1} />
     <line x1={84} y1={52} x2={310} y2={52} stroke="#aaa" strokeWidth={1.5} />
     <text x={76} y={32} textAnchor="end" fontSize={9} fill="#7f849c" fontFamily="monospace">
-      A / Am
+      {t('guideShapeLabelAAm')}
     </text>
     <text x={76} y={56} textAnchor="end" fontSize={9} fill="#7f849c" fontFamily="monospace">
-      E / Em
+      {t('guideShapeLabelEEm')}
     </text>
     <circle cx={120} cy={28} r={10} fill="#f38ba8" />
     <text x={120} y={31} textAnchor="middle" fontSize={8} fill="#fff" fontWeight="bold">
@@ -28,7 +29,7 @@ const step1svg = (
   </svg>
 );
 
-const step2svg = (
+const step2svg = (_t: TFunction) => (
   <svg viewBox="0 0 200 60" className="w-full">
     <circle cx={50} cy={30} r={14} fill="#89b4fa" />
     <text x={50} y={34} textAnchor="middle" fontSize={10} fill="#fff" fontWeight="bold">
@@ -41,10 +42,10 @@ const step2svg = (
   </svg>
 );
 
-const step3svg = (
+const step3svg = (t: TFunction) => (
   <svg viewBox="0 0 360 100" className="w-full">
     <text x={50} y={10} textAnchor="middle" fontSize={9} fontWeight="bold" fill="#cdd6f4">
-      Open A
+      {t('guideOpenA')}
     </text>
     <rect x={20} y={16} width={60} height={60} rx={3} fill="#1a1408" />
     <rect x={20} y={16} width={60} height={3} rx={1} fill="#e0d6c2" />
@@ -71,11 +72,11 @@ const step3svg = (
       →
     </text>
     <text x={108} y={62} textAnchor="middle" fontSize={7} fill="#7f849c">
-      barre@3
+      {t('guideBarreAt3')}
     </text>
 
     <text x={180} y={10} textAnchor="middle" fontSize={9} fontWeight="bold" fill="#cdd6f4">
-      C (A@3)
+      {t('guideCAt3')}
     </text>
     <rect x={145} y={16} width={70} height={60} rx={3} fill="#1a1408" />
     <text x={143} y={30} textAnchor="end" fontSize={7} fill="#7f849c">
@@ -104,7 +105,7 @@ const step3svg = (
     </text>
 
     <text x={300} y={10} textAnchor="middle" fontSize={9} fontWeight="bold" fill="#cdd6f4">
-      Shape Grid
+      {t('shapeGrid')}
     </text>
     <rect x={255} y={18} width={90} height={44} rx={3} fill="#1a1408" />
     <line x1={255} y1={32} x2={345} y2={32} stroke="#aaa" strokeWidth={1} />
@@ -124,19 +125,19 @@ const step3svg = (
       1
     </text>
     <text x={300} y={90} textAnchor="middle" fontSize={7} fill="#89b4fa">
-      ↑ C here
+      {t('guideChordShift')}
     </text>
   </svg>
 );
 
-const step4svg = (
+const step4svg = (t: TFunction) => (
   <svg viewBox="0 0 280 60" className="w-full">
     <circle cx={50} cy={30} r={14} fill="#a6e3a1" />
     <text x={50} y={34} textAnchor="middle" fontSize={9} fill="#fff" fontWeight="bold">
       4
     </text>
     <text x={50} y={55} textAnchor="middle" fontSize={8} fill="#7f849c">
-      optimal
+      {t('optimal')}
     </text>
     <text x={95} y={34} textAnchor="middle" fontSize={14} fill="#7f849c">
       →
@@ -146,22 +147,22 @@ const step4svg = (
       4
     </text>
     <text x={140} y={55} textAnchor="middle" fontSize={8} fill="#7f849c">
-      alternative
+      {t('alternative')}
     </text>
     <circle cx={230} cy={30} r={14} fill="transparent" stroke="#f9e2af" strokeWidth={2} opacity={0.15} />
     <text x={230} y={34} textAnchor="middle" fontSize={9} fill="#f9e2af" opacity={0.15}>
       3
     </text>
     <text x={230} y={55} textAnchor="middle" fontSize={8} fill="#7f849c">
-      dimmed
+      {t('dimmed')}
     </text>
   </svg>
 );
 
-const step5svg = (
+const step5svg = (t: TFunction) => (
   <svg viewBox="0 0 140 130" className="w-full max-w-[180px] mx-auto">
     <text x={70} y={12} textAnchor="middle" fontSize={11} fontWeight="bold" fill="#cdd6f4">
-      Am
+      {t('guideShapeLabelAm')}
     </text>
     <rect x={25} y={22} width={90} height={3} rx={1} fill="#e0d6c2" />
     <line x1={25} y1={25} x2={115} y2={25} stroke="#313244" strokeWidth={0.8} />
@@ -184,12 +185,12 @@ const step5svg = (
     <circle cx={79} cy={58} r={6} fill="#cba6f7" />
     <circle cx={97} cy={36} r={6} fill="#cba6f7" />
     <text x={70} y={125} textAnchor="middle" fontSize={8} fill="#7f849c">
-      × = mute · ○ = open · ● = press
+      {t('guideChordDiagramLegend')}
     </text>
   </svg>
 );
 
-const step6svg = (
+const step6svg = (_t: TFunction) => (
   <svg viewBox="0 0 280 40" className="w-full">
     {['I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'].map((label, i) => (
       <g key={label}>
@@ -232,7 +233,7 @@ export function Guide() {
         onClick={toggle}
         className="text-[11px] rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer w-7 h-7 flex items-center justify-center"
         style={{ transition: 'all var(--transition)' }}
-        title="Help"
+        title={t('helpTitle')}
       >
         ?
       </button>
@@ -259,7 +260,7 @@ export function Guide() {
               ))}
             </div>
             <h3 className="text-base font-bold text-blue mb-2">{t(s[0])}</h3>
-            <div className="bg-base rounded-xl p-3 mb-3 border border-surface0">{SVGS[step]}</div>
+            <div className="bg-base rounded-xl p-3 mb-3 border border-surface0">{SVGS[step](t)}</div>
             <p className="text-xs text-subtext0 leading-relaxed mb-4">{t(s[1])}</p>
             <div className="flex gap-2">
               {step > 0 && (

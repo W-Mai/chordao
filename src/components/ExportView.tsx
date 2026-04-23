@@ -109,7 +109,7 @@ export function useExportImage({
             {NOTE_DISPLAY[selectedKey]}
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>Chordao</div>
+            <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--text)' }}>{t('appName')}</div>
             <div style={{ fontSize: 12, color: 'var(--overlay1)' }}>
               {t('keyOf')} {NOTE_DISPLAY[selectedKey]} · {t('derivation')}
             </div>
@@ -117,7 +117,8 @@ export function useExportImage({
           {activeProgObj && (
             <div style={{ textAlign: 'center', flexShrink: 0 }}>
               <div style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--blue)' }}>
-                ♪ {activeProgObj.name === 'custom' ? activeProgObj.degrees.join('-') : t(activeProgObj.name as string)}
+                {'♪ '}
+                {activeProgObj.name === 'custom' ? activeProgObj.degrees.join('-') : t(activeProgObj.name as string)}
               </div>
               <div style={{ fontSize: 11, color: 'var(--overlay1)', marginTop: 2 }}>
                 {activeProgObj.degrees.join(' → ')}
@@ -127,14 +128,14 @@ export function useExportImage({
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             {qrChordao && (
               <div style={{ textAlign: 'center' }}>
-                <img src={qrChordao} alt="Chordao" style={{ width: 56, height: 56, borderRadius: 4 }} />
-                <div style={{ fontSize: 7, color: 'var(--overlay0)', marginTop: 2 }}>Chordao</div>
+                <img src={qrChordao} alt={t('appName')} style={{ width: 56, height: 56, borderRadius: 4 }} />
+                <div style={{ fontSize: 7, color: 'var(--overlay0)', marginTop: 2 }}>{t('appName')}</div>
               </div>
             )}
             {qrBlog && (
               <div style={{ textAlign: 'center' }}>
-                <img src={qrBlog} alt="Blog" style={{ width: 56, height: 56, borderRadius: 4 }} />
-                <div style={{ fontSize: 7, color: 'var(--overlay0)', marginTop: 2 }}>benign.host</div>
+                <img src={qrBlog} alt="benign.host" style={{ width: 56, height: 56, borderRadius: 4 }} />
+                <div style={{ fontSize: 7, color: 'var(--overlay0)', marginTop: 2 }}>{'benign.host'}</div>
               </div>
             )}
           </div>
@@ -243,7 +244,7 @@ export function useExportImage({
             textAlign: 'center',
           }}
         >
-          {t('generatedBy')} · github.com/W-Mai/chordao · MIT
+          {t('generatedBy')} · {t('exportAttribution')}
         </div>
       </div>
     </div>
@@ -292,7 +293,8 @@ export function useExportImage({
             className="px-4 py-2 rounded-lg bg-surface0 text-subtext1 font-semibold text-sm cursor-pointer hover:bg-surface1"
             style={{ transition: 'all var(--transition)' }}
           >
-            ✕ {t('close')}
+            {'✕ '}
+            {t('close')}
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   NOTES,
@@ -7,102 +7,26 @@ import {
   groupByDegree,
   findOptimalCombination,
   voicingKey,
-  INTERVAL_LABELS,
-  type NoteName,
   type ChordVoicing,
 } from '../data/chordData';
 import { ShapeGrid } from './ShapeGrid';
 import { Fretboard } from './Fretboard';
-
-type GameMode = 'locate' | 'reverse' | 'sprint' | 'chain' | 'memory' | 'interval';
-type Difficulty = 'easy' | 'medium' | 'hard';
-
-const DEGREE_LABELS: Record<number, string> = { 1: 'I', 2: 'IIm', 3: 'IIIm', 4: 'IV', 5: 'V', 6: 'VIm' };
-const DIFFICULTY_DEGREES: Record<Difficulty, number[]> = {
-  easy: [1],
-  medium: [1, 4, 5],
-  hard: [1, 2, 3, 4, 5, 6],
-};
-const DIFFICULTY_TIME: Record<Difficulty, number> = { easy: 10, medium: 7, hard: 5 };
-const ALL_DEGREES = [1, 2, 3, 4, 5, 6];
-const TOTAL_QUESTIONS = 10;
-
-const OPEN_NOTES: NoteName[] = ['E', 'A', 'D', 'G', 'B', 'E'];
-const STRING_NAMES = ['⑥', '⑤', '④', '③', '②', '①'];
-const PRACTICE_INTERVALS = ['b3', '3', '4', '5', 'b7', '7'];
-
-function generateIntervalQuestion(difficulty: Difficulty) {
-  const rootSi = Math.floor(Math.random() * 6);
-  const maxFret = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 9 : 12;
-  const rootFret = Math.floor(Math.random() * (maxFret + 1));
-  const openIdx = NOTES.indexOf(OPEN_NOTES[rootSi]);
-  const rootNoteIdx = (openIdx + rootFret) % 12;
-  const rootNote = NOTE_DISPLAY[NOTES[rootNoteIdx]];
-  const pool =
-    difficulty === 'easy' ? ['3', '5'] : difficulty === 'medium' ? ['b3', '3', '5', 'b7'] : PRACTICE_INTERVALS;
-  const targetInterval = pool[Math.floor(Math.random() * pool.length)];
-  const targetSemitones = Number(Object.entries(INTERVAL_LABELS).find(([, v]) => v === targetInterval)![0]);
-
-  // Find all valid positions on fretboard
-  const targets: [number, number][] = [];
-  for (let si = 0; si < 6; si++) {
-    for (let f = 0; f <= 17; f++) {
-      const noteIdx = (NOTES.indexOf(OPEN_NOTES[si]) + f) % 12;
-      const interval = (((noteIdx - rootNoteIdx) % 12) + 12) % 12;
-      if (interval === targetSemitones) targets.push([si, f]);
-    }
-  }
-  return { rootSi, rootFret, rootNote, targetInterval, targetPositions: targets };
-}
-
-function randomItem<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-interface Question {
-  key: NoteName;
-  degree: number;
-  voicing: ChordVoicing;
-  allVoicings: ChordVoicing[];
-  optimal: ChordVoicing[];
-  reverseOptions: number[];
-}
-
-function generateQuestion(difficulty: Difficulty, mode: GameMode): Question {
-  const key = NOTES[Math.floor(Math.random() * 12)];
-  const voicings = generateVoicings(key);
-  const grouped = groupByDegree(voicings);
-  const optimal = findOptimalCombination(grouped);
-
-  // Locate: degree range by difficulty; Reverse: always all 6
-  const degrees = mode === 'reverse' ? ALL_DEGREES : DIFFICULTY_DEGREES[difficulty];
-  const degree = randomItem(degrees);
-  const degVoicings = grouped.get(degree) ?? [];
-  const voicing = randomItem(degVoicings);
-
-  // Reverse options: always 3 choices
-  const optionPool = difficulty === 'easy' ? [1, 4, 5] : ALL_DEGREES;
-  const options = new Set([degree]);
-  while (options.size < Math.min(3, optionPool.length)) options.add(randomItem(optionPool));
-  const reverseOptions = [...options].sort(() => Math.random() - 0.5);
-
-  return { key, degree, voicing, allVoicings: voicings, optimal, reverseOptions };
-}
-
-// Best score storage
-function bestKey(mode: GameMode, difficulty: Difficulty) {
-  return `chordao:best:${mode}:${difficulty}`;
-}
-function getBest(mode: GameMode, difficulty: Difficulty): number | null {
-  const v = localStorage.getItem(bestKey(mode, difficulty));
-  return v ? Number(v) : null;
-}
-function saveBest(mode: GameMode, difficulty: Difficulty, val: number) {
-  const prev = getBest(mode, difficulty);
-  // Sprint: lower is better; others: higher is better
-  const dominated = mode === 'sprint' ? prev !== null && prev <= val : prev !== null && prev >= val;
-  if (!dominated) localStorage.setItem(bestKey(mode, difficulty), String(val));
-}
+import {
+  DEGREE_LABELS,
+  DIFFICULTY_TIME,
+  TOTAL_QUESTIONS,
+  STRING_NAMES,
+  generateIntervalQuestion,
+  generateQuestion,
+  type GameMode,
+  type Difficulty,
+  type IntervalQuestion,
+  type Question,
+} from './game/gameLogic';
+import { getBest, saveBest } from './game/gameStorage';
+import { useGameTimer } from './game/useGameTimer';
+import { useSprintState } from './game/useSprintState';
+import { useChainState } from './game/useChainState';
 
 export function Game() {
   const { t } = useTranslation();
@@ -120,39 +44,17 @@ export function Game() {
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [rotated, setRotated] = useState(false);
-  const [questionTimer, setQuestionTimer] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pendingTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
-  // Correct voicing keys for "show correct answer" on wrong
   const [correctHighlight, setCorrectHighlight] = useState<string[]>([]);
-  // Sprint mode state
-  const [sprintFound, setSprintFound] = useState<Set<number>>(new Set());
-  const [sprintElapsed, setSprintElapsed] = useState(0);
-  const sprintStartRef = useRef(0);
-  // Chain mode state
-  const [chainTarget, setChainTarget] = useState(0);
-  const [chainStep, setChainStep] = useState(0);
-  // Memory mode: show chord briefly then hide
   const [memoryPhase, setMemoryPhase] = useState<'show' | 'guess'>('show');
-  // Interval mode question
-  const [intervalQ, setIntervalQ] = useState<{
-    rootSi: number;
-    rootFret: number;
-    rootNote: string;
-    targetInterval: string;
-    targetPositions: [number, number][]; // valid [si, fret] answers
-  } | null>(null);
+  const [intervalQ, setIntervalQ] = useState<IntervalQuestion | null>(null);
+
+  const { questionTimer, setQuestionTimer, startTimer, stopTimer, safeTimeout, clearPendingTimeouts } = useGameTimer();
+  const sprint = useSprintState();
+  const chain = useChainState();
+  const { sprintFound, sprintElapsed } = sprint;
+  const { chainStep, chainTarget } = chain;
 
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-
-  const safeTimeout = useCallback((fn: () => void, ms: number) => {
-    const id = setTimeout(() => {
-      pendingTimeouts.current = pendingTimeouts.current.filter((t) => t !== id);
-      fn();
-    }, ms);
-    pendingTimeouts.current.push(id);
-    return id;
-  }, []);
 
   useEffect(() => {
     if (!mounted) return;
@@ -170,17 +72,16 @@ export function Game() {
 
   const closeGame = useCallback(() => {
     setVisible(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-    pendingTimeouts.current.forEach(clearTimeout);
-    pendingTimeouts.current = [];
+    stopTimer();
+    clearPendingTimeouts();
     setTimeout(() => {
       setMounted(false);
       setOpen(false);
     }, 250);
-  }, []);
+  }, [stopTimer, clearPendingTimeouts]);
 
-  const sprintDone = mode === 'sprint' && sprintFound.size >= 6;
-  const chainDone = mode === 'chain' && chainStep >= 6;
+  const sprintDone = mode === 'sprint' && sprint.sprintFound.size >= 6;
+  const chainDone = mode === 'chain' && chain.chainStep >= 6;
   const gameOver =
     sprintDone ||
     chainDone ||
@@ -191,25 +92,15 @@ export function Game() {
   // Save best score on game over
   useEffect(() => {
     if (!gameOver) return;
-    if (mode === 'sprint') saveBest(mode, difficulty, sprintElapsed);
-    else if (mode === 'chain') saveBest(mode, difficulty, chainStep);
+    if (mode === 'sprint') saveBest(mode, difficulty, sprint.sprintElapsed);
+    else if (mode === 'chain') saveBest(mode, difficulty, chain.chainStep);
     else saveBest(mode, difficulty, score);
-  }, [gameOver, mode, difficulty, score, sprintElapsed, chainStep]);
+  }, [gameOver, mode, difficulty, score, sprint.sprintElapsed, chain.chainStep]);
 
-  const startTimer = useCallback((diff: Difficulty) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    const time = DIFFICULTY_TIME[diff];
-    setQuestionTimer(time);
-    timerRef.current = setInterval(() => {
-      setQuestionTimer((v) => {
-        if (v <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          return 0;
-        }
-        return v - 1;
-      });
-    }, 1000);
-  }, []);
+  const memoryShowMs = useCallback(
+    (diff: Difficulty) => (diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600),
+    [],
+  );
 
   const nextQuestion = useCallback(
     (diff: Difficulty) => {
@@ -224,13 +115,12 @@ export function Game() {
         setQuestion(q);
         if (mode === 'memory') {
           setMemoryPhase('show');
-          const showTime = diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600;
-          safeTimeout(() => setMemoryPhase('guess'), showTime);
+          safeTimeout(() => setMemoryPhase('guess'), memoryShowMs(diff));
         }
       }
       startTimer(diff);
     },
-    [startTimer, mode, safeTimeout],
+    [startTimer, mode, safeTimeout, memoryShowMs],
   );
 
   const startGame = useCallback(
@@ -244,84 +134,73 @@ export function Game() {
       setFeedback(null);
       setSelectedAnswer(null);
       setCorrectHighlight([]);
-      setSprintFound(new Set());
-      setSprintElapsed(0);
-      setChainStep(0);
+      sprint.setSprintFound(new Set());
+      sprint.setSprintElapsed(0);
+      chain.setChainStep(0);
 
       if (currentMode === 'sprint' || currentMode === 'chain') {
         const key = NOTES[Math.floor(Math.random() * 12)];
         const voicings = generateVoicings(key);
         const grouped = groupByDegree(voicings);
         const optimal = findOptimalCombination(grouped);
-        const q: Question = {
+        setQuestion({
           key,
           degree: currentMode === 'chain' ? 1 : 0,
           voicing: optimal[0],
           allVoicings: voicings,
           optimal,
           reverseOptions: [],
-        };
-        setQuestion(q);
-        if (currentMode === 'sprint') {
-          sprintStartRef.current = Date.now();
-        }
-        if (currentMode === 'chain') {
-          setChainTarget(4);
-          setChainStep(0);
-        }
-        if (timerRef.current) clearInterval(timerRef.current);
+        });
+        if (currentMode === 'sprint') sprint.startSprint();
+        if (currentMode === 'chain') chain.startChain();
+        stopTimer();
         setQuestionTimer(0);
+      } else if (currentMode === 'interval') {
+        setIntervalQ(generateIntervalQuestion(d));
+        setQuestion(null);
+        startTimer(d);
       } else {
-        if (currentMode === 'interval') {
-          setIntervalQ(generateIntervalQuestion(d));
-          setQuestion(null);
-        } else {
-          const q = generateQuestion(d, currentMode);
-          setQuestion(q);
-          if (currentMode === 'memory') {
-            setMemoryPhase('show');
-            const showTime = d === 'easy' ? 2000 : d === 'medium' ? 1200 : 600;
-            safeTimeout(() => setMemoryPhase('guess'), showTime);
-          }
+        setQuestion(generateQuestion(d, currentMode));
+        if (currentMode === 'memory') {
+          setMemoryPhase('show');
+          safeTimeout(() => setMemoryPhase('guess'), memoryShowMs(d));
         }
         startTimer(d);
       }
     },
-    [difficulty, startTimer, mode],
+    [difficulty, mode, startTimer, stopTimer, safeTimeout, setQuestionTimer, memoryShowMs, sprint, chain],
   );
 
   // Sprint elapsed timer
   useEffect(() => {
-    if (mode !== 'sprint' || !question || sprintFound.size >= 6 || !sprintStartRef.current) return;
-    const id = setInterval(() => setSprintElapsed(Math.floor((Date.now() - sprintStartRef.current) / 1000)), 200);
+    if (mode !== 'sprint' || !question || sprint.sprintFound.size >= 6 || !sprint.sprintStartRef.current) return;
+    const id = setInterval(() => sprint.setSprintElapsed(sprint.elapsedSince()), 200);
     return () => clearInterval(id);
-  }, [mode, question, sprintStartRef.current, sprintFound.size]);
+  }, [mode, question, sprint]);
 
-  // Timer expired → auto wrong (locate/reverse only)
+  // Timer expired → auto wrong (locate/reverse/memory/interval only)
   useEffect(() => {
     if (
-      questionTimer === 0 &&
-      question &&
-      !feedback &&
-      total < TOTAL_QUESTIONS &&
-      (mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval')
-    ) {
-      // Time's up for this question
-      setTotal((n) => n + 1);
-      setStreak(0);
-      setShakeKey((k) => k + 1);
-      setFeedback('wrong');
-      // Show correct positions
-      const correctKeys = question.allVoicings.filter((v) => v.degree === question.degree).map(voicingKey);
-      setCorrectHighlight(correctKeys);
-      if (timerRef.current) clearInterval(timerRef.current);
-      safeTimeout(() => nextQuestion(difficulty), 2500);
-    }
-  }, [questionTimer, question, feedback, total, difficulty, nextQuestion]);
+      questionTimer !== 0 ||
+      !question ||
+      feedback ||
+      total >= TOTAL_QUESTIONS ||
+      !(mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval')
+    )
+      return;
+    setTotal((n) => n + 1);
+    setStreak(0);
+    setShakeKey((k) => k + 1);
+    setFeedback('wrong');
+    const correctKeys = question.allVoicings.filter((v) => v.degree === question.degree).map(voicingKey);
+    setCorrectHighlight(correctKeys);
+    stopTimer();
+    safeTimeout(() => nextQuestion(difficulty), 2500);
+  }, [questionTimer, question, feedback, total, difficulty, nextQuestion, mode, safeTimeout, stopTimer]);
 
   const recordAnswer = useCallback(
-    (correct: boolean, _q?: Question | null) => {
-      if (timerRef.current) clearInterval(timerRef.current);
+    (correct: boolean) => {
+      stopTimer();
       setTotal((n) => n + 1);
       if (correct) {
         setScore((n) => n + 1);
@@ -331,86 +210,79 @@ export function Game() {
           return next;
         });
         setFeedback('correct');
-        safeTimeout(() => nextQuestion(difficulty), 2500);
       } else {
         setStreak(0);
         setShakeKey((k) => k + 1);
         setFeedback('wrong');
-        // Show correct positions for 1.5s
-        const correctKeys =
-          question?.allVoicings.filter((v: ChordVoicing) => v.degree === question.degree).map(voicingKey) ?? [];
+        const correctKeys = question
+          ? question.allVoicings.filter((v: ChordVoicing) => v.degree === question.degree).map(voicingKey)
+          : [];
         setCorrectHighlight(correctKeys);
-        safeTimeout(() => nextQuestion(difficulty), 2500);
       }
+      safeTimeout(() => nextQuestion(difficulty), 2500);
     },
-    [nextQuestion, difficulty],
+    [nextQuestion, difficulty, question, safeTimeout, stopTimer],
   );
 
-  const CHAIN_ORDER = [4, 1, 5, 2, 6, 3];
+  const handleSprintClick = useCallback(
+    (chordKey: string) => {
+      if (!question || sprintDone) return;
+      const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
+      if (!clicked || sprint.sprintFound.has(clicked.degree)) return;
+      const next = new Set([...sprint.sprintFound, clicked.degree]);
+      sprint.setSprintFound(next);
+      setScore((n) => n + 1);
+      if (next.size >= 6) sprint.finishSprint();
+    },
+    [question, sprintDone, sprint],
+  );
 
-  // Grid click handler for all modes
+  const handleChainClick = useCallback(
+    (chordKey: string) => {
+      if (!question || chainDone) return;
+      const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
+      if (!clicked) return;
+      if (clicked.degree === chain.chainTarget) {
+        setScore((n) => n + 1);
+        setStreak((s) => {
+          const next = s + 1;
+          setBestStreak((b) => Math.max(b, next));
+          return next;
+        });
+        chain.advanceChain();
+      } else {
+        setStreak(0);
+        setShakeKey((k) => k + 1);
+      }
+    },
+    [question, chainDone, chain],
+  );
+
+  // Grid click handler dispatches by mode
   const handleGridClick = useCallback(
     (chordKey: string) => {
       if (!question) return;
-      if (mode === 'sprint' && sprintDone) return;
-      if (mode === 'chain' && chainDone) return;
-      if ((mode === 'locate' || mode === 'reverse' || mode === 'memory' || mode === 'interval') && feedback) return;
-
-      if (mode === 'sprint') {
-        const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
-        if (!clicked || sprintFound.has(clicked.degree)) return;
-        const next = new Set([...sprintFound, clicked.degree]);
-        setSprintFound(next);
-        setScore((n) => n + 1);
-        if (next.size >= 6) {
-          setSprintElapsed(Math.floor((Date.now() - sprintStartRef.current) / 1000));
-        }
-        return;
-      }
-
-      if (mode === 'chain') {
-        const clicked = question.allVoicings.find((v) => voicingKey(v) === chordKey);
-        if (!clicked) return;
-        if (clicked.degree === chainTarget) {
-          setScore((n) => n + 1);
-          setStreak((s) => {
-            const next = s + 1;
-            setBestStreak((b) => Math.max(b, next));
-            return next;
-          });
-          const nextStep = chainStep + 1;
-          setChainStep(nextStep);
-          if (nextStep < CHAIN_ORDER.length) {
-            setChainTarget(CHAIN_ORDER[nextStep]);
-          }
-        } else {
-          setStreak(0);
-          setShakeKey((k) => k + 1);
-        }
-        return;
-      }
-
-      // Memory mode: must match exact voicing
+      if (mode === 'sprint') return handleSprintClick(chordKey);
+      if (mode === 'chain') return handleChainClick(chordKey);
+      if (feedback) return;
       if (mode === 'memory') {
         setSelectedAnswer(chordKey);
-        const correct = voicingKey(question.voicing) === chordKey;
-        recordAnswer(correct, question);
+        recordAnswer(voicingKey(question.voicing) === chordKey);
         return;
       }
-
-      // Locate mode
+      // Locate / interval (interval uses its own grid; locate uses voicings)
       setSelectedAnswer(chordKey);
       const correct = question.allVoicings.some((v) => v.degree === question.degree && voicingKey(v) === chordKey);
-      recordAnswer(correct, question);
+      recordAnswer(correct);
     },
-    [question, feedback, mode, sprintFound, sprintDone, chainTarget, chainStep, chainDone, recordAnswer],
+    [question, feedback, mode, recordAnswer, handleSprintClick, handleChainClick],
   );
 
   // Reverse mode: click degree button
   const handleReverseAnswer = useCallback(
     (deg: number) => {
       if (!question || feedback) return;
-      recordAnswer(deg === question.degree, question);
+      recordAnswer(deg === question.degree);
     },
     [question, feedback, recordAnswer],
   );
@@ -625,14 +497,14 @@ export function Game() {
                   {/* Sprint timer */}
                   {mode === 'sprint' && (
                     <div className="text-center mb-2 text-sm font-mono text-overlay1">
-                      {t('gameFound', { count: sprintFound.size })} · {sprintElapsed}s
+                      {t('gameSprintProgress', { found: sprintFound.size, elapsed: sprintElapsed })}
                     </div>
                   )}
 
                   {/* Chain progress */}
                   {mode === 'chain' && (
                     <div className="text-center mb-2 text-sm text-overlay1">
-                      {chainStep}/6 · {DEGREE_LABELS[chainTarget]}
+                      {t('gameChainProgress', { step: chainStep, degree: DEGREE_LABELS[chainTarget] })}
                     </div>
                   )}
 

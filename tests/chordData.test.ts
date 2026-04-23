@@ -8,7 +8,6 @@ import {
   findOptimalCombination,
   voicingKey,
   PROGRESSIONS,
-  type NoteName,
 } from '../src/data/chordData';
 
 describe('NOTES and NOTE_DISPLAY', () => {
