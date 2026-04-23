@@ -18,9 +18,9 @@ import {
   PROGRESSIONS,
 } from './data/chordData';
 import { ChordDiagram } from './components/ChordDiagram';
-import { Fretboard } from './components/Fretboard';
-import { ShapeGrid } from './components/ShapeGrid';
-import { FullscreenOverlay, useOverlayFullscreen } from './components/FullscreenOverlay';
+import { FullscreenOverlay } from './components/FullscreenOverlay';
+import { GridPanel } from './components/GridPanel';
+import { FretPanel } from './components/FretPanel';
 import { parseHash, useHashSync } from './hooks/useHashState';
 
 import { Roller } from './components/Roller';
@@ -32,20 +32,6 @@ import { useExportImage } from './components/ExportView';
 const DEGREE_LABELS = ['', 'I', 'IIm', 'IIIm', 'IV', 'V', 'VIm'];
 const THEMES = ['dark', 'light', 'cyber'] as const;
 const THEME_ICONS: Record<string, string> = { dark: '🌙', light: '☀️', cyber: '⚡' };
-
-function ExpandBtn({ onClick }: { onClick: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <button
-      onClick={onClick}
-      className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer transition-all"
-      style={{ transition: 'all var(--transition)' }}
-      title={t('expand')}
-    >
-      {'⛶'}
-    </button>
-  );
-}
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -134,7 +120,7 @@ function App() {
     resetHover();
   }, [resetHover]);
   const [positionPrefer, setPositionPrefer] = useState<BassPrefer>(
-    () => (localStorage.getItem('chordao:prefer') as BassPrefer) || 'none',
+    () => initial.prefer ?? ((localStorage.getItem('chordao:prefer') as BassPrefer) || 'none'),
   );
   const togglePrefer = useCallback(() => {
     setPositionPrefer((v) => {
@@ -224,9 +210,11 @@ function App() {
     () => findAllCombinations(grouped, activeProgObj?.degrees, positionPrefer),
     [grouped, activeProgObj, positionPrefer],
   );
-  const [comboIdx, setComboIdx] = useState(0);
-  // Reset combo index when combos change
-  useEffect(() => setComboIdx(0), [allCombos]);
+  const [comboIdx, setComboIdx] = useState(initial.combo ?? 0);
+  // Reset combo index when combos change (but only if current index becomes invalid)
+  useEffect(() => {
+    setComboIdx((prev) => (prev === -1 || (prev >= 0 && prev < allCombos.length) ? prev : 0));
+  }, [allCombos]);
   const optimal = useMemo(() => {
     if (comboIdx === -1) {
       // All: merge all combos, deduplicate by voicingKey
@@ -357,9 +345,13 @@ function App() {
   }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [intervalMode, setIntervalMode] = useState(false);
+  const [intervalMode, setIntervalMode] = useState(initial.intervalMode);
   const [visibleIntervals, setVisibleIntervals] = useState(
-    () => new Set(JSON.parse(localStorage.getItem('chordao:intervals') || '["R","3","b3","5","b7","7"]') as string[]),
+    () =>
+      new Set(
+        initial.visibleIntervals ??
+          (JSON.parse(localStorage.getItem('chordao:intervals') || '["R","3","b3","5","b7","7"]') as string[]),
+      ),
   );
   const toggleInterval = useCallback((iv: string) => {
     setVisibleIntervals((s) => {
@@ -382,8 +374,24 @@ function App() {
     setTimeout(() => setShareOpen(false), 150);
   }, []);
 
+  const [fullscreen, setFullscreen] = useState<'grid' | 'fret' | null>(initial.fullscreen);
+  const openGrid = useCallback(() => setFullscreen('grid'), []);
+  const openFret = useCallback(() => setFullscreen('fret'), []);
+  const closeFullscreen = useCallback(() => setFullscreen(null), []);
+  const gridFS = fullscreen === 'grid';
+  const fretFS = fullscreen === 'fret';
+
   // Sync state to URL hash for sharing
-  useHashSync({ key: selectedKey, activeProg, customDegrees });
+  useHashSync({
+    key: selectedKey,
+    activeProg,
+    customDegrees,
+    comboIdx,
+    positionPrefer,
+    intervalMode,
+    visibleIntervals,
+    fullscreen,
+  });
 
   // Swipe on header to switch key
   const headerRef = useRef<HTMLDivElement>(null);
@@ -435,9 +443,6 @@ function App() {
     filteredOptimal,
     shapeSystem,
   });
-
-  const [gridFS, openGrid, closeGrid] = useOverlayFullscreen();
-  const [fretFS, openFret, closeFret] = useOverlayFullscreen();
 
   return (
     <div className="flex flex-col h-screen">
@@ -804,94 +809,40 @@ function App() {
           className="flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust w-full"
           style={{ transition: 'background var(--transition)' }}
         >
-          <section className="panel mb-2 md:mb-6">
-            <div className="panel-header">
-              <span className="panel-title flex-1">{t('shapeGrid')}</span>
-              {allCombos.length > 1 && (
-                <div className="flex gap-0.5 mr-2">
-                  <button
-                    onClick={() => setComboIdx(-1)}
-                    className={`text-[9px] px-1.5 h-5 rounded-full cursor-pointer flex items-center justify-center ${comboIdx === -1 ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
-                    style={{ transition: 'all var(--transition)' }}
-                  >
-                    {t('all')}
-                  </button>
-                  {allCombos.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setComboIdx(i)}
-                      className={`text-[9px] w-5 h-5 rounded-full cursor-pointer flex items-center justify-center ${comboIdx === i ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
-                      style={{ transition: 'all var(--transition)' }}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button
-                onClick={togglePrefer}
-                className={`text-[9px] px-1.5 h-5 rounded-full cursor-pointer flex items-center justify-center mr-1 ${positionPrefer !== 'none' ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
-                style={{ transition: 'all var(--transition)' }}
-              >
-                {positionPrefer === 'ascending' ? '↗' : positionPrefer === 'descending' ? '↘' : '—'}
-              </button>
-              <ExpandBtn onClick={openGrid} />
-            </div>
-            <div className="panel-body">
-              <ShapeGrid
-                voicings={filteredVoicings}
-                optimal={filteredOptimal}
-                light={light}
-                hoveredChord={activeChordKey}
-                onHoverChord={handleHoverChord}
-                onClickChord={handleClickChord}
-                onDblClickChord={handleDblClickChord}
-                progressionDegrees={activeProgObj?.degrees}
-                allCombos={comboIdx === -1 ? allCombos : undefined}
-                animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
-                activeStep={playing ? playStep : undefined}
-              />
-            </div>
-          </section>
+          <GridPanel
+            filteredVoicings={filteredVoicings}
+            filteredOptimal={filteredOptimal}
+            allCombos={allCombos}
+            comboIdx={comboIdx}
+            setComboIdx={setComboIdx}
+            positionPrefer={positionPrefer}
+            togglePrefer={togglePrefer}
+            light={light}
+            activeChordKey={activeChordKey}
+            handleHoverChord={handleHoverChord}
+            handleClickChord={handleClickChord}
+            handleDblClickChord={handleDblClickChord}
+            progressionDegrees={activeProgObj?.degrees}
+            animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
+            activeStep={playing ? playStep : undefined}
+            onExpand={openGrid}
+          />
 
-          <section className="panel mb-2 md:mb-6">
-            <div className="panel-header">
-              <span className="panel-title flex-1">{t('fretboardOverview')}</span>
-              <button
-                onClick={() => setIntervalMode((v) => !v)}
-                className={`text-[9px] px-1.5 h-5 rounded-full cursor-pointer flex items-center justify-center mr-1 ${intervalMode ? 'bg-blue text-crust font-bold' : 'bg-surface0 text-overlay1'}`}
-                style={{ transition: 'all var(--transition)' }}
-              >
-                {'♫'}
-              </button>
-              {intervalMode &&
-                ['R', 'b3', '3', '4', '5', 'b7', '7'].map((iv) => (
-                  <button
-                    key={iv}
-                    onClick={() => toggleInterval(iv)}
-                    className={`text-[8px] px-1 h-5 rounded-full cursor-pointer flex items-center justify-center ${visibleIntervals.has(iv) ? 'bg-blue/20 text-blue font-bold' : 'text-overlay0 opacity-40'}`}
-                    style={{ transition: 'all var(--transition)' }}
-                  >
-                    {iv}
-                  </button>
-                ))}
-              <ExpandBtn onClick={openFret} />
-            </div>
-            <div className="panel-body">
-              <Fretboard
-                voicings={filteredVoicings}
-                optimal={filteredOptimal}
-                light={light}
-                hoveredChord={activeChordKey}
-                onHoverChord={handleHoverChord}
-                onClickChord={handleClickChord}
-                onDblClickChord={handleDblClickChord}
-                intervalMode={intervalMode}
-                intervalMap={intervalMap}
-                visibleIntervals={visibleIntervals}
-              />
-            </div>
-          </section>
+          <FretPanel
+            filteredVoicings={filteredVoicings}
+            filteredOptimal={filteredOptimal}
+            light={light}
+            activeChordKey={activeChordKey}
+            handleHoverChord={handleHoverChord}
+            handleClickChord={handleClickChord}
+            handleDblClickChord={handleDblClickChord}
+            intervalMode={intervalMode}
+            setIntervalMode={setIntervalMode}
+            visibleIntervals={visibleIntervals}
+            toggleInterval={toggleInterval}
+            intervalMap={intervalMap}
+            onExpand={openFret}
+          />
 
           <section className="panel mb-2 md:mb-6">
             <div className="panel-header">
@@ -946,49 +897,41 @@ function App() {
         </div>
       </footer>
 
-      {/* Fullscreen overlays */}
-      <FullscreenOverlay active={gridFS} onClose={closeGrid}>
-        <section className="panel w-full">
-          <div className="panel-header">
-            <span className="panel-title flex-1">{t('shapeGrid')}</span>
-          </div>
-          <div className="panel-body">
-            <ShapeGrid
-              voicings={filteredVoicings}
-              optimal={filteredOptimal}
-              light={light}
-              hoveredChord={activeChordKey}
-              onHoverChord={handleHoverChord}
-              onClickChord={handleClickChord}
-              onDblClickChord={handleDblClickChord}
-              progressionDegrees={activeProgObj?.degrees}
-              allCombos={comboIdx === -1 ? allCombos : undefined}
-              animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
-              activeStep={playing ? playStep : undefined}
-            />
-          </div>
-        </section>
+      {/* Fullscreen overlays — same panels, minus the expand button */}
+      <FullscreenOverlay active={gridFS} onClose={closeFullscreen}>
+        <GridPanel
+          filteredVoicings={filteredVoicings}
+          filteredOptimal={filteredOptimal}
+          allCombos={allCombos}
+          comboIdx={comboIdx}
+          setComboIdx={setComboIdx}
+          positionPrefer={positionPrefer}
+          togglePrefer={togglePrefer}
+          light={light}
+          activeChordKey={activeChordKey}
+          handleHoverChord={handleHoverChord}
+          handleClickChord={handleClickChord}
+          handleDblClickChord={handleDblClickChord}
+          progressionDegrees={activeProgObj?.degrees}
+          animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
+          activeStep={playing ? playStep : undefined}
+        />
       </FullscreenOverlay>
-      <FullscreenOverlay active={fretFS} onClose={closeFret}>
-        <section className="panel w-full">
-          <div className="panel-header">
-            <span className="panel-title flex-1">{t('fretboardOverview')}</span>
-          </div>
-          <div className="panel-body">
-            <Fretboard
-              voicings={filteredVoicings}
-              optimal={filteredOptimal}
-              light={light}
-              hoveredChord={activeChordKey}
-              onHoverChord={handleHoverChord}
-              onClickChord={handleClickChord}
-              onDblClickChord={handleDblClickChord}
-              intervalMode={intervalMode}
-              intervalMap={intervalMap}
-              visibleIntervals={visibleIntervals}
-            />
-          </div>
-        </section>
+      <FullscreenOverlay active={fretFS} onClose={closeFullscreen}>
+        <FretPanel
+          filteredVoicings={filteredVoicings}
+          filteredOptimal={filteredOptimal}
+          light={light}
+          activeChordKey={activeChordKey}
+          handleHoverChord={handleHoverChord}
+          handleClickChord={handleClickChord}
+          handleDblClickChord={handleDblClickChord}
+          intervalMode={intervalMode}
+          setIntervalMode={setIntervalMode}
+          visibleIntervals={visibleIntervals}
+          toggleInterval={toggleInterval}
+          intervalMap={intervalMap}
+        />
       </FullscreenOverlay>
 
       {ExportContainer}

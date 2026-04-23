@@ -4,6 +4,21 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.24.1]
+
+### Added
+- **Panel state persisted to URL** — `combo` index, `prefer` (↗/↘/—), `im` (interval map on/off), `ivs` (visible intervals), and `fs` (which panel is fullscreen) all ride along in the hash; defaults are omitted to keep URLs tidy
+- **Fullscreen overlay carries panel controls** — Shape Grid combo switch / bass-direction preference / Fretboard ♫ interval-map toggle + filter chips all work inside the enlarged view
+- **Chinese README** as the default; `English` link at the top switches to `README.en.md`
+
+### Fixed
+- Fullscreen overlay no longer traps clicks after close (effect-dep thrash killed the unmount timer, leaving a transparent full-screen div)
+- Export image shows the correct shape-system label: "CAGED shape derivation" vs "E/Em/A/Am shape derivation"
+
+### Changed
+- Extracted `GridPanel` / `FretPanel` components so the normal view and fullscreen overlay share one definition (header + body)
+- README updated to reflect CAGED, multi-combo, bass direction, interval overlays, 6th practice mode
+
 ## [2026.4.23.1]
 
 ### Fixed

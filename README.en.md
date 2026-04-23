@@ -83,7 +83,8 @@ Chordao finds the **optimal combination** of shapes that minimizes hand movement
 ### Interaction & Export
 - **Interactive highlight** — Click to play, double-click to lock; all views (Shape Grid / Fretboard / Diagrams) sync
 - **Keyboard shortcuts** — ← → switch keys, 1–6 filter degrees, 0/Esc reset
-- **Shareable URLs** — Key, progression, and settings encoded in URL hash
+- **Shareable URLs** — Key, progression, and panel settings (combo index, bass-direction preference, interval-map state, fullscreen panel) all encoded in URL hash; defaults are omitted to keep URLs tidy
+- **Panel fullscreen** — Click ⛶ to expand Shape Grid or Fretboard to fullscreen; all header controls (combo switch, interval filter chips, etc.) remain usable inside the overlay
 - **Export PNG** — Dedicated layout with QR codes (linking to current state), progression info, and shape-system-aware legend
 - **3 themes** — Catppuccin Mocha (dark), Latte (light), Cyber (neon) with system auto-detection
 - **Circle of fifths / Chromatic** — Switch key ordering
