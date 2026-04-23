@@ -4,6 +4,19 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.23.1]
+
+### Fixed
+- Keyboard arrow-key navigation now follows Circle-of-Fifths ↔ Chromatic re-ordering (missing React effect dep)
+- Game mode exhaustive-deps fixes — Memory/Sprint/Chain no longer judge on stale closures
+- `saveBest` guards against `NaN` in localStorage so tampered values no longer overwrite best scores
+
+### Changed
+- All remaining user-visible strings routed through i18n (Guide SVG labels, Game progress, footer, export template, toolbar buttons)
+- Extracted `src/hooks/useHashState.ts` — URL-hash parse/sync lifted out of App.tsx
+- Extracted `src/components/game/` — pure logic, storage, and per-mode hooks (useGameTimer, useSprintState, useChainState); Game() shrank 325→273 lines, cognitive complexity 124→91
+- Lint warnings 36 → 0
+
 ## [2026.4.22.3]
 
 ### Added
