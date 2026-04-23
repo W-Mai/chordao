@@ -97,10 +97,7 @@ export function Game() {
     else saveBest(mode, difficulty, score);
   }, [gameOver, mode, difficulty, score, sprint.sprintElapsed, chain.chainStep]);
 
-  const memoryShowMs = useCallback(
-    (diff: Difficulty) => (diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600),
-    [],
-  );
+  const memoryShowMs = useCallback((diff: Difficulty) => (diff === 'easy' ? 2000 : diff === 'medium' ? 1200 : 600), []);
 
   const nextQuestion = useCallback(
     (diff: Difficulty) => {

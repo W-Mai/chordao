@@ -21,11 +21,7 @@ export function parseHash(): HashState {
   };
 }
 
-export function useHashSync(state: {
-  key: NoteName;
-  activeProg: string | null;
-  customDegrees: number[];
-}): void {
+export function useHashSync(state: { key: NoteName; activeProg: string | null; customDegrees: number[] }): void {
   const { key, activeProg, customDegrees } = state;
   useEffect(() => {
     const params = new URLSearchParams();
