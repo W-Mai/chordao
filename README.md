@@ -75,6 +75,10 @@ Chordao 会按五度圈顺序，搜索 6 个顺阶和弦里**移动距离最小*
 ### 练习游戏（详见 [练习游戏](#-练习游戏)）
 - 6 种模式 × 3 种难度，每题倒计时、连击统计、本地最佳分数
 
+### 歌片（详见 [歌片](#-歌片)）
+- 歌词 + 小节对齐的和弦图；重音字用度数色高亮；内置歌片以 `.md` 文件形式放在 `songs/` 目录
+- 可视化编辑器（点字设重音、点色块选度数）、localStorage 归档、lz-string 链接分享
+
 ### 和弦进行与音频
 - **内置进行** —— Pop Canon、布鲁斯、华语抒情、爵士 ii-V-I 等，带动画路径展示
 - **自定义进行** —— 直接输入级数序列（如 `1 4 5 1`），与 URL 同步
@@ -126,6 +130,39 @@ Chordao 会按五度圈顺序，搜索 6 个顺阶和弦里**移动距离最小*
 - × = 闷弦，○ = 空弦
 - 标题栏：`I · E @ 8` —— 级数 · 指型 · 横按品位
 
+## 🎼 歌片
+
+点 header 里的 🎼 按钮打开歌片面板。每行横跨指板的 4 个小节，每个小节带度数色的标题条，每小节可标记**一个重音字**（表示和弦真正进入的那个字）。
+
+### 内置歌片
+
+歌片以 `.md` 文件形式放在项目根目录的 `songs/` 下。加一首歌就直接往目录里扔一个文件（比如 `songs/mysong.md`），重新跑 dev 或 build 就会自动出现在下拉菜单里。例子：
+
+```md
+---
+title: 我的歌
+key: D#
+strum: ↑ ↑↓↑↓↑↓
+---
+
+--- 主歌 1 ---
+我[那]些残梦 | 灵异[九]霄 | 徒忙[漫]奋斗 | 满目[沧]愁 @ 1 3m 6m 4
+```
+
+- YAML 风格 frontmatter 存 `title` / `key` / `strum`
+- `--- 段落名 ---` 开始一个段
+- `|` 分隔小节，`@ 1 3m 6m 4` 依次指定每小节的度数
+- `[X]` 把 X 这个字标为该小节重音（按度数色高亮）
+
+### 可视化编辑器
+
+点 panel 上的「新建」/「编辑」打开编辑器，完全所见即所得：点度数色块换度数、点字符 toggle 重音、双击小节改歌词。段落 / 行可任意增删改。顶栏有「查看源码」按钮，给喜欢直接写文本的用户留了退路。
+
+### 自定义歌片与分享
+
+- 自己写的歌片存在 localStorage 里（id 带 `user:` 前缀）
+- 编辑器里「复制分享链接」把当前歌片 lz-string 压缩进 URL hash —— 别人打开链接会自动导入到他本地的 localStorage
+
 ## 🎮 练习游戏
 
 6 种模式训练指板熟练度：
@@ -168,11 +205,19 @@ bun run dev
 ### 项目结构
 
 ```
+songs/          — 内置歌片 (.md 文件 + YAML frontmatter)；往这里扔文件就能加歌
 src/
   components/
     game/       — 各模式的 game 状态 hook + 纯逻辑
-    *.tsx       — UI 组件（ShapeGrid、Fretboard、ChordDiagram、Game、Guide、ExportView 等）
-  data/         — 和弦数据层（指型、推导、最优组合搜索、音程表）
+    *.tsx       — UI 组件（ShapeGrid、Fretboard、ChordDiagram、Game、Guide、ExportView、
+                  SongSheetPanel、SongEditor、VisualSongEditor 等）
+  data/
+    songs/      — import.meta.glob 扫 /songs/*.md
+    songSheet.ts         — SongSheet/Section/Line/Bar 类型 + parseBarSource
+    songSheetText.ts     — UG 风格文本 parser + serializer (frontmatter + `|`/`@` body)
+    songStorage.ts       — localStorage 归档 (listUserSongs/saveUserSong/deleteUserSong)
+    songShare.ts         — lz-string URL payload (encodeSheetForUrl/decodeSheetFromUrl)
+    chordData.ts         — 和弦数据层（指型、推导、最优组合搜索、音程表）
   hooks/        — 共享 hook（useHashState 处理 URL hash 同步）
   utils/        — 音频合成、二维码生成
   i18n/         — 翻译文件（en / zh）

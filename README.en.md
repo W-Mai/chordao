@@ -75,6 +75,10 @@ Chordao finds the **optimal combination** of shapes that minimizes hand movement
 ### Practice Games (see [Practice Game](#-practice-game))
 - 6 modes × 3 difficulties with per-question timer, streak tracking, and local best scores
 
+### Song Sheets (see [Song Sheets](#-song-sheets))
+- Lyric + bar-aligned chord charts; degree-colored accents; built-in songs live as `.md` files in `songs/`
+- WYSIWYG editor (click character → accent, click chip → degree), localStorage archive, lz-string URL sharing
+
 ### Progressions & Audio
 - **Built-in progressions** — Pop Canon, Blues, C-Pop Ballad, Jazz ii-V-I, etc., with animated path visualization
 - **Custom progressions** — Type your own degree sequence (e.g. `1 4 5 1`), synced to URL
@@ -126,6 +130,39 @@ Standard chord box notation for each voicing:
 - × = muted, ○ = open
 - Header label: `I · E @ 8` — degree · shape · barre fret
 
+## 🎼 Song Sheets
+
+Click the 🎼 button in the header to open a song sheet panel. Each row lays out 4 bars across the neck, each bar gets a degree-colored header, and one character per bar can be marked as the **accent** (where the chord lands).
+
+### Built-in songs
+
+Song sheets live in the repo's root `songs/` directory as plain `.md` files. To add a song, drop a file like `songs/mysong.md` — it shows up in the dropdown at next build/dev-reload. Example:
+
+```md
+---
+title: My Song
+key: D#
+strum: ↑ ↑↓↑↓↑↓
+---
+
+--- verse 1 ---
+lyric[l]ine one | more[l]yrics | and[s]o on | fill[4]bars @ 1 3m 6m 4
+```
+
+- YAML-ish frontmatter holds `title` / `key` / `strum`
+- `--- section name ---` begins a section
+- `|` separates bars; `@ 1 3m 6m 4` lists one degree per bar
+- `[X]` marks X as the accent character (shown in the degree's color)
+
+### Visual editor
+
+Click **New** / **Edit** in the panel header to open the editor. It's fully WYSIWYG: click a chord chip to pick a degree, click a character to toggle its accent, double-click a bar to edit the lyrics. Add / rename / delete sections and lines inline. A **View source** button reveals the raw `.md` text for power users.
+
+### User songs & sharing
+
+- User-authored songs live in `localStorage` under the `user:<slug>` id prefix
+- The editor's **Share link** button bakes the current sheet into the URL hash (lz-string compressed) — opening that URL on another browser imports the sheet into its localStorage automatically
+
 ## 🎮 Practice Game
 
 6 game modes to train fretboard knowledge:
@@ -167,11 +204,19 @@ bun run dev
 ### Project Structure
 
 ```
+songs/          — Built-in song sheets (.md files with YAML frontmatter); drop a new file to add a song
 src/
   components/
     game/       — Per-mode game state hooks + pure logic
-    *.tsx       — UI components (ShapeGrid, Fretboard, ChordDiagram, Game, Guide, ExportView, …)
-  data/         — Chord data layer (shapes, derivation, optimal-combo search, interval maps)
+    *.tsx       — UI components (ShapeGrid, Fretboard, ChordDiagram, Game, Guide, ExportView,
+                  SongSheetPanel, SongEditor, VisualSongEditor, …)
+  data/
+    songs/      — import.meta.glob loader for /songs/*.md
+    songSheet.ts         — SongSheet/Section/Line/Bar types + parseBarSource
+    songSheetText.ts     — UG-ish text parser + serializer (frontmatter + `|`/`@` body)
+    songStorage.ts       — localStorage archive (listUserSongs/saveUserSong/deleteUserSong)
+    songShare.ts         — lz-string URL payload (encodeSheetForUrl/decodeSheetFromUrl)
+    chordData.ts         — Chord data layer (shapes, derivation, optimal-combo search, interval maps)
   hooks/        — Shared hooks (useHashState for URL-hash sync)
   utils/        — Audio synthesis, QR code generation
   i18n/         — Translation files (en/zh)
