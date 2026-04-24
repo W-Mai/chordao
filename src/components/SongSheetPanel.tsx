@@ -17,6 +17,12 @@ function absoluteChordName(key: NoteName, degree: number): string {
   return `${NOTE_DISPLAY[root]}${DEGREE_SUFFIX[degree]}`;
 }
 
+interface SongOption {
+  id: string;
+  title: string;
+  group?: string; // e.g. 'builtin' | 'user'
+}
+
 interface SongSheetPanelProps {
   sheet: SongSheet;
   selectedKey: NoteName;
@@ -28,6 +34,9 @@ interface SongSheetPanelProps {
   handleDblClickChord: (k: string) => void;
   chordNameMode: 'degree' | 'absolute';
   toggleChordNameMode: () => void;
+  songOptions: SongOption[];
+  currentSongId: string;
+  onSelectSong: (id: string) => void;
   onExpand?: () => void;
 }
 
@@ -54,6 +63,9 @@ export function SongSheetPanel({
   handleDblClickChord,
   chordNameMode,
   toggleChordNameMode,
+  songOptions,
+  currentSongId,
+  onSelectSong,
   onExpand,
 }: SongSheetPanelProps) {
   const { t } = useTranslation();
@@ -70,8 +82,22 @@ export function SongSheetPanel({
   return (
     <section className="panel mb-2 md:mb-6 w-full">
       <div className="panel-header">
-        <span className="panel-title flex-1">
-          {'🎼'} {sheet.title}
+        <span className="panel-title flex items-center gap-1 flex-1 min-w-0">
+          <span>{'🎼'}</span>
+          <select
+            value={currentSongId}
+            onChange={(e) => onSelectSong(e.target.value)}
+            className="bg-transparent text-txt text-[13px] font-semibold cursor-pointer outline-none border-0 max-w-full truncate hover:text-blue"
+            style={{ transition: 'color var(--transition)' }}
+            title={t('songSelectTitle')}
+          >
+            {songOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.title}
+                {opt.group === 'user' ? ` (${t('songUser')})` : ''}
+              </option>
+            ))}
+          </select>
         </span>
         <button
           onClick={toggleChordNameMode}

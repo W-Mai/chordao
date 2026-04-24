@@ -22,7 +22,7 @@ import { FullscreenOverlay } from './components/FullscreenOverlay';
 import { GridPanel } from './components/GridPanel';
 import { FretPanel } from './components/FretPanel';
 import { SongSheetPanel } from './components/SongSheetPanel';
-import { huoche } from './data/songs/huoche';
+import { BUILTIN_SONGS, DEFAULT_SONG_ID, findBuiltinSong } from './data/songs';
 import { parseHash, useHashSync } from './hooks/useHashState';
 
 import { Roller } from './components/Roller';
@@ -366,6 +366,27 @@ function App() {
     });
   }, []);
 
+  const [selectedSongId, setSelectedSongId] = useState<string>(() => {
+    // URL > localStorage > default
+    const fromUrl = initial.song;
+    if (fromUrl && findBuiltinSong(fromUrl)) return fromUrl;
+    const fromStorage = localStorage.getItem('chordao:songId');
+    if (fromStorage && findBuiltinSong(fromStorage)) return fromStorage;
+    return DEFAULT_SONG_ID;
+  });
+  const currentSong = useMemo(
+    () => findBuiltinSong(selectedSongId) ?? findBuiltinSong(DEFAULT_SONG_ID)!,
+    [selectedSongId],
+  );
+  const handleSelectSong = useCallback((id: string) => {
+    setSelectedSongId(id);
+    localStorage.setItem('chordao:songId', id);
+  }, []);
+  const songOptions = useMemo(
+    () => BUILTIN_SONGS.map((s) => ({ id: s.id, title: s.title, group: 'builtin' as const })),
+    [],
+  );
+
   const toggleInterval = useCallback((iv: string) => {
     setVisibleIntervals((s) => {
       const n = new Set(s);
@@ -404,6 +425,8 @@ function App() {
     intervalMode,
     visibleIntervals,
     fullscreen,
+    songId: selectedSongId,
+    defaultSongId: DEFAULT_SONG_ID,
   });
 
   // Swipe on header to switch key
@@ -824,7 +847,7 @@ function App() {
         >
           <div className="lg:col-start-1 lg:row-start-1">
             <SongSheetPanel
-              sheet={huoche}
+              sheet={currentSong}
               selectedKey={selectedKey}
               optimal={optimal}
               light={light}
@@ -834,6 +857,9 @@ function App() {
               handleDblClickChord={handleDblClickChord}
               chordNameMode={chordNameMode}
               toggleChordNameMode={toggleChordNameMode}
+              songOptions={songOptions}
+              currentSongId={selectedSongId}
+              onSelectSong={handleSelectSong}
             />
           </div>
           <div className="lg:col-start-2 lg:row-start-1">

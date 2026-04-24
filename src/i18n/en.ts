@@ -107,4 +107,6 @@ export default {
   songChordNameToggle: 'Toggle chord name: degree ↔ absolute',
   songModeDegree: '1/3m/6m',
   songModeAbs: 'C/Em/Am',
+  songSelectTitle: 'Select a song',
+  songUser: 'user',
 } satisfies Record<string, string>;

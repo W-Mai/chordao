@@ -103,4 +103,6 @@ export default {
   songChordNameToggle: '切换和弦名：级数 ↔ 绝对名',
   songModeDegree: '级数',
   songModeAbs: '和弦名',
+  songSelectTitle: '选择歌片',
+  songUser: '自定义',
 } satisfies Record<string, string>;

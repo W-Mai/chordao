@@ -12,6 +12,7 @@ export interface HashState {
   intervalMode: boolean; // defaults to false
   visibleIntervals: string[] | null; // null = use default/localStorage
   fullscreen: FullscreenPanel;
+  song: string | null; // null = default song; otherwise built-in id or 'user:<slug>'
 }
 
 export function parseHash(): HashState {
@@ -46,6 +47,7 @@ export function parseHash(): HashState {
     intervalMode: params.get('im') === '1',
     visibleIntervals,
     fullscreen,
+    song: params.get('song') || null,
   };
 }
 
@@ -58,11 +60,23 @@ export interface HashSyncState {
   intervalMode: boolean;
   visibleIntervals: Set<string>; // only written when intervalMode=true
   fullscreen: FullscreenPanel;
+  songId: string; // omit when it matches defaultSongId
+  defaultSongId: string;
 }
 
 export function useHashSync(state: HashSyncState): void {
-  const { key, activeProg, customDegrees, comboIdx, positionPrefer, intervalMode, visibleIntervals, fullscreen } =
-    state;
+  const {
+    key,
+    activeProg,
+    customDegrees,
+    comboIdx,
+    positionPrefer,
+    intervalMode,
+    visibleIntervals,
+    fullscreen,
+    songId,
+    defaultSongId,
+  } = state;
   // Flatten the Set so effect deps stay primitive
   const ivsKey = [...visibleIntervals].sort().join(',');
 
@@ -84,6 +98,18 @@ export function useHashSync(state: HashSyncState): void {
       if (ivsKey !== DEFAULT_IVS) params.set('ivs', ivsKey);
     }
     if (fullscreen) params.set('fs', fullscreen);
+    if (songId !== defaultSongId) params.set('song', songId);
     window.history.replaceState(null, '', `#${params.toString()}`);
-  }, [key, activeProg, customDegrees, comboIdx, positionPrefer, intervalMode, ivsKey, fullscreen]);
+  }, [
+    key,
+    activeProg,
+    customDegrees,
+    comboIdx,
+    positionPrefer,
+    intervalMode,
+    ivsKey,
+    fullscreen,
+    songId,
+    defaultSongId,
+  ]);
 }
