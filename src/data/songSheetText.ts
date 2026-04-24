@@ -25,14 +25,38 @@ function slugify(title: string): string {
 }
 
 /**
+ * Strip a YAML-style frontmatter block (`---\n...\n---`) from the top of `text`.
+ * Returns the header key-value map plus the remaining body and the line offset
+ * that the body starts at (so error line numbers stay accurate).
+ */
+export function splitFrontmatter(text: string): { meta: Record<string, string>; body: string; bodyLineOffset: number } {
+  const lines = text.split('\n');
+  if (lines[0]?.trim() !== '---') return { meta: {}, body: text, bodyLineOffset: 0 };
+  const meta: Record<string, string> = {};
+  let i = 1;
+  for (; i < lines.length; i++) {
+    if (lines[i].trim() === '---') break;
+    const m = lines[i].match(/^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/);
+    if (m) meta[m[1].toLowerCase()] = m[2];
+  }
+  if (i >= lines.length) return { meta: {}, body: text, bodyLineOffset: 0 }; // unterminated, treat as plain body
+  const body = lines.slice(i + 1).join('\n');
+  return { meta, body, bodyLineOffset: i + 1 };
+}
+
+/**
  * Parse a UG-ish text format into a SongSheet.
- * Lenient: empty lines ignored; unknown headers become errors but don't abort.
+ * Supports optional YAML frontmatter at top. Lenient: empty lines ignored.
  */
 export function parseSongSheetText(text: string): ParseResult {
   const errors: ParseError[] = [];
-  let title = '';
-  let key: NoteName = 'C';
-  let strum: string | undefined;
+  const { meta, body, bodyLineOffset } = splitFrontmatter(text);
+  let title = meta.title ?? '';
+  let key: NoteName = NOTES.includes(meta.key as NoteName) ? (meta.key as NoteName) : 'C';
+  if (meta.key && !NOTES.includes(meta.key as NoteName)) {
+    errors.push({ line: 0, message: `Unknown key "${meta.key}" in frontmatter` });
+  }
+  let strum: string | undefined = meta.strum;
   const sections: Section[] = [];
   let currentSection: Section | null = null;
 
@@ -44,10 +68,10 @@ export function parseSongSheetText(text: string): ParseResult {
     return currentSection;
   };
 
-  const lines = text.split('\n');
+  const lines = body.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
-    const lineNo = i + 1;
+    const lineNo = bodyLineOffset + i + 1;
     const trimmed = raw.trim();
     if (!trimmed) continue;
 
@@ -131,13 +155,15 @@ export function parseSongSheetText(text: string): ParseResult {
 }
 
 /**
- * Inverse of parseSongSheetText — produce a canonical editable text.
+ * Inverse of parseSongSheetText — produce a canonical editable text with YAML frontmatter.
  */
 export function serializeSongSheet(sheet: SongSheet): string {
   const lines: string[] = [];
+  lines.push('---');
   lines.push(`title: ${sheet.title}`);
   lines.push(`key: ${sheet.key}`);
   if (sheet.strum) lines.push(`strum: ${sheet.strum}`);
+  lines.push('---');
   lines.push('');
 
   for (const section of sheet.sections) {

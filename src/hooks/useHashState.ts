@@ -62,8 +62,8 @@ export interface HashSyncState {
   intervalMode: boolean;
   visibleIntervals: Set<string>; // only written when intervalMode=true
   fullscreen: FullscreenPanel;
-  songId: string; // omit when it matches defaultSongId
-  defaultSongId: string;
+  songId: string | null; // null = panel hidden; omit from URL
+  defaultSongId: string | null; // omit songId when it matches this
 }
 
 export function useHashSync(state: HashSyncState): void {
@@ -100,7 +100,7 @@ export function useHashSync(state: HashSyncState): void {
       if (ivsKey !== DEFAULT_IVS) params.set('ivs', ivsKey);
     }
     if (fullscreen) params.set('fs', fullscreen);
-    if (songId !== defaultSongId) params.set('song', songId);
+    if (songId != null && songId !== defaultSongId) params.set('song', songId);
     window.history.replaceState(null, '', `#${params.toString()}`);
   }, [
     key,

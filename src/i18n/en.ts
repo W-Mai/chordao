@@ -107,6 +107,7 @@ export default {
   songChordNameToggle: 'Toggle chord name: degree ↔ absolute',
   songModeDegree: '1/3m/6m',
   songModeAbs: 'C/Em/Am',
+  songOpenPanelTitle: 'Open song sheet',
   songSelectTitle: 'Select a song',
   songUser: 'user',
   songEditorTitle: 'Song editor',

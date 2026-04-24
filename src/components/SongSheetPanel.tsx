@@ -39,6 +39,7 @@ interface SongSheetPanelProps {
   onSelectSong: (id: string) => void;
   onNewSong?: () => void;
   onEditSong?: () => void;
+  onClosePanel?: () => void;
   onExpand?: () => void;
 }
 
@@ -70,6 +71,7 @@ export function SongSheetPanel({
   onSelectSong,
   onNewSong,
   onEditSong,
+  onClosePanel,
   onExpand,
 }: SongSheetPanelProps) {
   const { t } = useTranslation();
@@ -132,6 +134,16 @@ export function SongSheetPanel({
           </button>
         )}
         {onExpand && <ExpandBtn onClick={onExpand} title={t('expand')} />}
+        {onClosePanel && (
+          <button
+            onClick={onClosePanel}
+            className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-red hover:border-red cursor-pointer ml-1"
+            style={{ transition: 'all var(--transition)' }}
+            title={t('close')}
+          >
+            {'✕'}
+          </button>
+        )}
       </div>
       <div className="panel-body">
         {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}

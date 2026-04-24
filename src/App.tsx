@@ -23,7 +23,7 @@ import { GridPanel } from './components/GridPanel';
 import { FretPanel } from './components/FretPanel';
 import { SongSheetPanel } from './components/SongSheetPanel';
 import { SongEditor } from './components/SongEditor';
-import { BUILTIN_SONGS, DEFAULT_SONG_ID, findBuiltinSong } from './data/songs';
+import { BUILTIN_SONGS, findBuiltinSong } from './data/songs';
 import { listUserSongs, getUserSong, saveUserSong, deleteUserSong, isUserSongId } from './data/songStorage';
 import { decodeSheetFromUrl } from './data/songShare';
 import type { SongSheet } from './data/songSheet';
@@ -395,27 +395,42 @@ function App() {
 
   const findSong = useCallback((id: string): SongSheet | undefined => findBuiltinSong(id) ?? getUserSong(id), []);
 
-  const [selectedSongId, setSelectedSongId] = useState<string>(() => {
-    // URL sheet= payload wins over song=
+  // `null` = song panel hidden. The user must choose a song explicitly (via
+  // the 🎼 header button or a shared sheet= URL) before the panel appears.
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(() => {
     if (sheetPayloadImport) return sheetPayloadImport.id;
     const fromUrl = initial.song;
     if (fromUrl && (findBuiltinSong(fromUrl) || (isUserSongId(fromUrl) && getUserSong(fromUrl)))) return fromUrl;
-    const fromStorage = localStorage.getItem('chordao:songId');
-    if (fromStorage && (findBuiltinSong(fromStorage) || (isUserSongId(fromStorage) && getUserSong(fromStorage))))
-      return fromStorage;
-    return DEFAULT_SONG_ID;
+    // Don't auto-restore from localStorage — closing the panel is sticky until
+    // the user opens it again, otherwise the default-hidden contract is broken.
+    return null;
   });
 
-  const currentSong = useMemo(
-    () => findSong(selectedSongId) ?? findBuiltinSong(DEFAULT_SONG_ID)!,
-    // Depend on userSongsRev so a freshly saved user-song gets picked up
+  const currentSong = useMemo(() => {
+    if (selectedSongId == null) return null;
+    return findSong(selectedSongId) ?? null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedSongId, userSongsRev, findSong],
-  );
+  }, [selectedSongId, userSongsRev, findSong]);
 
-  const handleSelectSong = useCallback((id: string) => {
+  const handleSelectSong = useCallback((id: string | null) => {
     setSelectedSongId(id);
-    localStorage.setItem('chordao:songId', id);
+    if (id == null) localStorage.removeItem('chordao:songId');
+    else localStorage.setItem('chordao:songId', id);
+  }, []);
+
+  const handleOpenSongPanel = useCallback(() => {
+    // Open by restoring the last-used song, or the first builtin.
+    const last = localStorage.getItem('chordao:songId');
+    if (last && (findBuiltinSong(last) || (isUserSongId(last) && getUserSong(last)))) {
+      setSelectedSongId(last);
+      return;
+    }
+    const first = BUILTIN_SONGS[0]?.id;
+    if (first) setSelectedSongId(first);
+  }, []);
+
+  const handleCloseSongPanel = useCallback(() => {
+    setSelectedSongId(null);
   }, []);
 
   const songOptions = useMemo(
@@ -434,6 +449,7 @@ function App() {
     setEditorOpen(true);
   }, []);
   const openEditorForCurrent = useCallback(() => {
+    if (!currentSong) return;
     setEditorInitial(currentSong);
     setEditorOpen(true);
   }, [currentSong]);
@@ -450,7 +466,7 @@ function App() {
     if (!editorInitial || !isUserSongId(editorInitial.id)) return;
     deleteUserSong(editorInitial.id);
     bumpUserSongs();
-    if (selectedSongId === editorInitial.id) handleSelectSong(DEFAULT_SONG_ID);
+    if (selectedSongId === editorInitial.id) handleSelectSong(null);
     setEditorOpen(false);
   }, [editorInitial, bumpUserSongs, selectedSongId, handleSelectSong]);
 
@@ -493,7 +509,7 @@ function App() {
     visibleIntervals,
     fullscreen,
     songId: selectedSongId,
-    defaultSongId: DEFAULT_SONG_ID,
+    defaultSongId: null,
   });
 
   // Swipe on header to switch key
@@ -586,6 +602,15 @@ function App() {
               {THEME_ICONS[theme]}
             </button>
             <Guide />
+            <button
+              onClick={handleOpenSongPanel}
+              disabled={selectedSongId != null}
+              className="text-[11px] rounded border border-surface0 text-overlay1 hover:text-blue hover:border-blue cursor-pointer w-7 h-7 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ transition: 'all var(--transition)' }}
+              title={t('songOpenPanelTitle')}
+            >
+              {'🎼'}
+            </button>
             <Game />
             <div className="relative">
               <button
@@ -909,29 +934,34 @@ function App() {
 
         {/* Main */}
         <main
-          className="flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust w-full grid gap-2 md:gap-4 grid-cols-1 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] content-start"
+          className={`flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust w-full grid gap-2 md:gap-4 content-start ${
+            currentSong ? 'grid-cols-1 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]' : 'grid-cols-1'
+          }`}
           style={{ transition: 'background var(--transition)' }}
         >
-          <div className="lg:col-start-1 lg:row-start-1">
-            <SongSheetPanel
-              sheet={currentSong}
-              selectedKey={selectedKey}
-              optimal={optimal}
-              light={light}
-              activeChordKey={activeChordKey}
-              handleHoverChord={handleHoverChord}
-              handleClickChord={handleClickChord}
-              handleDblClickChord={handleDblClickChord}
-              chordNameMode={chordNameMode}
-              toggleChordNameMode={toggleChordNameMode}
-              songOptions={songOptions}
-              currentSongId={selectedSongId}
-              onSelectSong={handleSelectSong}
-              onNewSong={openEditorForNew}
-              onEditSong={openEditorForCurrent}
-            />
-          </div>
-          <div className="lg:col-start-2 lg:row-start-1">
+          {currentSong && (
+            <div className="lg:col-start-1 lg:row-start-1">
+              <SongSheetPanel
+                sheet={currentSong}
+                selectedKey={selectedKey}
+                optimal={optimal}
+                light={light}
+                activeChordKey={activeChordKey}
+                handleHoverChord={handleHoverChord}
+                handleClickChord={handleClickChord}
+                handleDblClickChord={handleDblClickChord}
+                chordNameMode={chordNameMode}
+                toggleChordNameMode={toggleChordNameMode}
+                songOptions={songOptions}
+                currentSongId={selectedSongId ?? ''}
+                onSelectSong={handleSelectSong}
+                onNewSong={openEditorForNew}
+                onEditSong={openEditorForCurrent}
+                onClosePanel={handleCloseSongPanel}
+              />
+            </div>
+          )}
+          <div className={currentSong ? 'lg:col-start-2 lg:row-start-1' : ''}>
             <GridPanel
               filteredVoicings={filteredVoicings}
               filteredOptimal={filteredOptimal}
