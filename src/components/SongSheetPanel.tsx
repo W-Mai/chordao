@@ -1,7 +1,71 @@
 import { useTranslation } from 'react-i18next';
 import { NOTE_DISPLAY, NOTES, type NoteName, type ChordVoicing, voicingKey } from '../data/chordData';
-import type { SongSheet } from '../data/songSheet';
+import type { SongSheet, Section } from '../data/songSheet';
 import { parseBarSource } from '../data/songSheet';
+
+/**
+ * Visual width of a string under a monospace font:
+ * CJK ideographs (and other wide codepoints) count as 2, ASCII as 1.
+ * Good enough heuristic — we'll pad with half-width non-breaking spaces.
+ */
+function visualWidth(s: string): number {
+  let w = 0;
+  for (const ch of s) w += ch.charCodeAt(0) > 0x7f ? 2 : 1;
+  return w;
+}
+
+const HALF_SPACE = ' '; // non-breaking half-width space (monospace-stable)
+
+interface AccentSlice {
+  pre: string;
+  accent: string;
+  post: string;
+}
+
+function sliceAroundAccent(chars: Array<{ ch: string; accent: boolean }>): AccentSlice {
+  const firstAccent = chars.findIndex((c) => c.accent);
+  if (firstAccent < 0) {
+    // No accent marker — treat everything as pre, empty accent/post.
+    return { pre: chars.map((c) => c.ch).join(''), accent: '', post: '' };
+  }
+  let lastAccent = firstAccent;
+  for (let i = firstAccent; i < chars.length; i++) if (chars[i].accent) lastAccent = i;
+  return {
+    pre: chars
+      .slice(0, firstAccent)
+      .map((c) => c.ch)
+      .join(''),
+    accent: chars
+      .slice(firstAccent, lastAccent + 1)
+      .map((c) => c.ch)
+      .join(''),
+    post: chars
+      .slice(lastAccent + 1)
+      .map((c) => c.ch)
+      .join(''),
+  };
+}
+
+/**
+ * For each bar index in a section, find the max visual width of the
+ * pre-accent segment across all lines. Lines with shorter pre-accent
+ * get padded from the left so that accent chars line up vertically.
+ */
+function computeSectionAlignment(section: Section): { prePadMax: number[] } {
+  if (section.lines.length === 0) return { prePadMax: [] };
+  const barCount = section.lines[0].bars.length;
+  const prePadMax: number[] = Array(barCount).fill(0);
+  for (const line of section.lines) {
+    line.bars.forEach((bar, bi) => {
+      if (bi >= barCount) return;
+      const { chars } = parseBarSource(bar.source);
+      const { pre } = sliceAroundAccent(chars);
+      const w = visualWidth(pre);
+      if (w > prePadMax[bi]) prePadMax[bi] = w;
+    });
+  }
+  return { prePadMax };
+}
 
 const DEGREE_INTERVAL: Record<number, number> = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9 };
 const DEGREE_SUFFIX: Record<number, string> = { 1: '', 2: 'm', 3: 'm', 4: '', 5: '', 6: 'm' };
@@ -147,83 +211,90 @@ export function SongSheetPanel({
       </div>
       <div className="panel-body">
         {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}
-        {sheet.sections.map((section, si) => (
-          <div key={si} className="mb-4">
-            {section.name && (
-              <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
-            )}
-            {section.lines.map((line, li) => {
-              const bars = line.bars;
-              return (
-                <div
-                  key={li}
-                  className="grid gap-0.5 mb-2 leading-relaxed"
-                  style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}
-                >
-                  {/* Chord header row */}
-                  {bars.map((bar, bi) => {
-                    const vKey = keyOfDegree(bar.degree);
-                    const isActive = vKey != null && vKey === activeChordKey;
-                    const color = `var(--color-deg-${bar.degree})`;
-                    return (
-                      <button
-                        key={`h-${bi}`}
-                        onClick={() => vKey && handleClickChord(vKey)}
-                        onDoubleClick={() => vKey && handleDblClickChord(vKey)}
-                        onPointerEnter={() => vKey && handleHoverChord(vKey)}
-                        onPointerLeave={() => handleHoverChord(null)}
-                        className="text-left text-xs font-mono px-1 py-0.5 rounded cursor-pointer"
-                        style={{
-                          background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
-                          color: isActive ? 'var(--crust)' : color,
-                          fontWeight: isActive ? 700 : 500,
-                          transition: 'all var(--transition)',
-                        }}
-                      >
-                        {label(bar.degree)}
-                      </button>
-                    );
-                  })}
-                  {/* Lyrics row */}
-                  {bars.map((bar, bi) => {
-                    const { chars } = parseBarSource(bar.source);
-                    const color = `var(--color-deg-${bar.degree})`;
-                    const vKey = keyOfDegree(bar.degree);
-                    return (
-                      <div
-                        key={`l-${bi}`}
-                        onClick={() => vKey && handleClickChord(vKey)}
-                        onPointerEnter={() => vKey && handleHoverChord(vKey)}
-                        onPointerLeave={() => handleHoverChord(null)}
-                        className="text-base cursor-pointer select-none"
-                        style={{ transition: 'all var(--transition)' }}
-                      >
-                        {chars.map((c, ci) => (
-                          <span
-                            key={ci}
-                            style={
-                              c.accent
-                                ? {
-                                    background: `color-mix(in srgb, ${color} 30%, transparent)`,
-                                    color,
-                                    fontWeight: 700,
-                                    padding: '0 1px',
-                                    borderRadius: 2,
-                                  }
-                                : {}
-                            }
-                          >
-                            {c.ch === ' ' ? ' ' : c.ch}
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+        {sheet.sections.map((section, si) => {
+          const { prePadMax } = computeSectionAlignment(section);
+          return (
+            <div key={si} className="mb-4 font-mono">
+              {section.name && (
+                <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
+              )}
+              {section.lines.map((line, li) => {
+                const bars = line.bars;
+                return (
+                  <div
+                    key={li}
+                    className="grid gap-0.5 mb-2 leading-relaxed"
+                    style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}
+                  >
+                    {/* Chord header row */}
+                    {bars.map((bar, bi) => {
+                      const vKey = keyOfDegree(bar.degree);
+                      const isActive = vKey != null && vKey === activeChordKey;
+                      const color = `var(--color-deg-${bar.degree})`;
+                      return (
+                        <button
+                          key={`h-${bi}`}
+                          onClick={() => vKey && handleClickChord(vKey)}
+                          onDoubleClick={() => vKey && handleDblClickChord(vKey)}
+                          onPointerEnter={() => vKey && handleHoverChord(vKey)}
+                          onPointerLeave={() => handleHoverChord(null)}
+                          className="text-left text-xs font-mono px-1 py-0.5 rounded cursor-pointer"
+                          style={{
+                            background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
+                            color: isActive ? 'var(--crust)' : color,
+                            fontWeight: isActive ? 700 : 500,
+                            transition: 'all var(--transition)',
+                          }}
+                        >
+                          {label(bar.degree)}
+                        </button>
+                      );
+                    })}
+                    {/* Lyrics row */}
+                    {bars.map((bar, bi) => {
+                      const { chars } = parseBarSource(bar.source);
+                      const slice = sliceAroundAccent(chars);
+                      const padW = Math.max(0, (prePadMax[bi] ?? 0) - visualWidth(slice.pre));
+                      const padStr = HALF_SPACE.repeat(padW);
+                      const color = `var(--color-deg-${bar.degree})`;
+                      const vKey = keyOfDegree(bar.degree);
+                      return (
+                        <div
+                          key={`l-${bi}`}
+                          onClick={() => vKey && handleClickChord(vKey)}
+                          onPointerEnter={() => vKey && handleHoverChord(vKey)}
+                          onPointerLeave={() => handleHoverChord(null)}
+                          className="text-base cursor-pointer select-none whitespace-pre"
+                          style={{ transition: 'all var(--transition)' }}
+                        >
+                          {padStr && <span style={{ color: 'var(--text)', opacity: 0.55 }}>{padStr}</span>}
+                          {chars.map((c, ci) => (
+                            <span
+                              key={ci}
+                              style={
+                                c.accent
+                                  ? {
+                                      background: `color-mix(in srgb, ${color} 30%, transparent)`,
+                                      color,
+                                      fontWeight: 700,
+                                      padding: '0 1px',
+                                      borderRadius: 2,
+                                    }
+                                  : { color: 'var(--text)', opacity: 0.55 }
+                              }
+                            >
+                              {c.ch === ' ' ? ' ' : c.ch}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
