@@ -104,4 +104,7 @@ export default {
   all: 'All',
   helpTitle: 'Help',
   expand: 'Expand',
+  songChordNameToggle: 'Toggle chord name: degree ↔ absolute',
+  songModeDegree: '1/3m/6m',
+  songModeAbs: 'C/Em/Am',
 } satisfies Record<string, string>;

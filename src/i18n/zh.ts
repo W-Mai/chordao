@@ -100,4 +100,7 @@ export default {
   all: '全部',
   helpTitle: '帮助',
   expand: '放大',
+  songChordNameToggle: '切换和弦名：级数 ↔ 绝对名',
+  songModeDegree: '级数',
+  songModeAbs: '和弦名',
 } satisfies Record<string, string>;

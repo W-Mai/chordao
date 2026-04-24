@@ -21,6 +21,8 @@ import { ChordDiagram } from './components/ChordDiagram';
 import { FullscreenOverlay } from './components/FullscreenOverlay';
 import { GridPanel } from './components/GridPanel';
 import { FretPanel } from './components/FretPanel';
+import { SongSheetPanel } from './components/SongSheetPanel';
+import { huoche } from './data/songs/huoche';
 import { parseHash, useHashSync } from './hooks/useHashState';
 
 import { Roller } from './components/Roller';
@@ -353,6 +355,17 @@ function App() {
           (JSON.parse(localStorage.getItem('chordao:intervals') || '["R","3","b3","5","b7","7"]') as string[]),
       ),
   );
+  const [chordNameMode, setChordNameMode] = useState<'degree' | 'absolute'>(
+    () => (localStorage.getItem('chordao:chordNameMode') as 'degree' | 'absolute') || 'degree',
+  );
+  const toggleChordNameMode = useCallback(() => {
+    setChordNameMode((v) => {
+      const next = v === 'degree' ? 'absolute' : 'degree';
+      localStorage.setItem('chordao:chordNameMode', next);
+      return next;
+    });
+  }, []);
+
   const toggleInterval = useCallback((iv: string) => {
     setVisibleIntervals((s) => {
       const n = new Set(s);
@@ -806,73 +819,89 @@ function App() {
 
         {/* Main */}
         <main
-          className="flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust w-full"
+          className="flex-1 min-h-0 p-2 md:p-6 overflow-y-auto bg-crust w-full grid gap-2 md:gap-4 grid-cols-1 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)] content-start"
           style={{ transition: 'background var(--transition)' }}
         >
-          <GridPanel
-            filteredVoicings={filteredVoicings}
-            filteredOptimal={filteredOptimal}
-            allCombos={allCombos}
-            comboIdx={comboIdx}
-            setComboIdx={setComboIdx}
-            positionPrefer={positionPrefer}
-            togglePrefer={togglePrefer}
-            light={light}
-            activeChordKey={activeChordKey}
-            handleHoverChord={handleHoverChord}
-            handleClickChord={handleClickChord}
-            handleDblClickChord={handleDblClickChord}
-            progressionDegrees={activeProgObj?.degrees}
-            animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
-            activeStep={playing ? playStep : undefined}
-            onExpand={openGrid}
-          />
+          <div className="lg:col-start-1 lg:row-start-1">
+            <SongSheetPanel
+              sheet={huoche}
+              selectedKey={selectedKey}
+              optimal={optimal}
+              light={light}
+              activeChordKey={activeChordKey}
+              handleHoverChord={handleHoverChord}
+              handleClickChord={handleClickChord}
+              handleDblClickChord={handleDblClickChord}
+              chordNameMode={chordNameMode}
+              toggleChordNameMode={toggleChordNameMode}
+            />
+          </div>
+          <div className="lg:col-start-2 lg:row-start-1">
+            <GridPanel
+              filteredVoicings={filteredVoicings}
+              filteredOptimal={filteredOptimal}
+              allCombos={allCombos}
+              comboIdx={comboIdx}
+              setComboIdx={setComboIdx}
+              positionPrefer={positionPrefer}
+              togglePrefer={togglePrefer}
+              light={light}
+              activeChordKey={activeChordKey}
+              handleHoverChord={handleHoverChord}
+              handleClickChord={handleClickChord}
+              handleDblClickChord={handleDblClickChord}
+              progressionDegrees={activeProgObj?.degrees}
+              animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
+              activeStep={playing ? playStep : undefined}
+              onExpand={openGrid}
+            />
 
-          <FretPanel
-            filteredVoicings={filteredVoicings}
-            filteredOptimal={filteredOptimal}
-            light={light}
-            activeChordKey={activeChordKey}
-            handleHoverChord={handleHoverChord}
-            handleClickChord={handleClickChord}
-            handleDblClickChord={handleDblClickChord}
-            intervalMode={intervalMode}
-            setIntervalMode={setIntervalMode}
-            visibleIntervals={visibleIntervals}
-            toggleInterval={toggleInterval}
-            intervalMap={intervalMap}
-            onExpand={openFret}
-          />
+            <FretPanel
+              filteredVoicings={filteredVoicings}
+              filteredOptimal={filteredOptimal}
+              light={light}
+              activeChordKey={activeChordKey}
+              handleHoverChord={handleHoverChord}
+              handleClickChord={handleClickChord}
+              handleDblClickChord={handleDblClickChord}
+              intervalMode={intervalMode}
+              setIntervalMode={setIntervalMode}
+              visibleIntervals={visibleIntervals}
+              toggleInterval={toggleInterval}
+              intervalMap={intervalMap}
+              onExpand={openFret}
+            />
 
-          <section className="panel mb-2 md:mb-6">
-            <div className="panel-header">
-              <span className="panel-title">{t('chordDiagrams')}</span>
-              <span className="text-[10px] text-overlay0 ml-2">{t('dblClickExpand')}</span>
-            </div>
-            <div className="panel-body">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:flex md:flex-wrap gap-2 md:gap-4 justify-items-center">
-                {[1, 2, 3, 4, 5, 6].map((degree) => {
-                  const dv = grouped.get(degree) ?? [];
-                  return dv.map((v) => (
-                    <ChordDiagram
-                      key={voicingKey(v)}
-                      voicing={v}
-                      highlighted={
-                        activeChordKey == null ? optimalSet.has(voicingKey(v)) : activeChordKey === voicingKey(v)
-                      }
-                      dimmed={activeChordKey != null && activeChordKey !== voicingKey(v)}
-                      light={light}
-                      showBarre={showBarre}
-                      onDoubleClick={() => handleDblClickChord(voicingKey(v))}
-                      onPointerEnter={() => handleHoverChord(voicingKey(v))}
-                      onPointerLeave={() => handleHoverChord(null)}
-                      onClick={() => handleClickChord(voicingKey(v))}
-                    />
-                  ));
-                })}
+            <section className="panel mb-2 md:mb-6">
+              <div className="panel-header">
+                <span className="panel-title">{t('chordDiagrams')}</span>
+                <span className="text-[10px] text-overlay0 ml-2">{t('dblClickExpand')}</span>
               </div>
-            </div>
-          </section>
+              <div className="panel-body">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:flex md:flex-wrap gap-2 md:gap-4 justify-items-center">
+                  {[1, 2, 3, 4, 5, 6].map((degree) => {
+                    const dv = grouped.get(degree) ?? [];
+                    return dv.map((v) => (
+                      <ChordDiagram
+                        key={voicingKey(v)}
+                        voicing={v}
+                        highlighted={
+                          activeChordKey == null ? optimalSet.has(voicingKey(v)) : activeChordKey === voicingKey(v)
+                        }
+                        dimmed={activeChordKey != null && activeChordKey !== voicingKey(v)}
+                        light={light}
+                        showBarre={showBarre}
+                        onDoubleClick={() => handleDblClickChord(voicingKey(v))}
+                        onPointerEnter={() => handleHoverChord(voicingKey(v))}
+                        onPointerLeave={() => handleHoverChord(null)}
+                        onClick={() => handleClickChord(voicingKey(v))}
+                      />
+                    ));
+                  })}
+                </div>
+              </div>
+            </section>
+          </div>
         </main>
       </div>
 
