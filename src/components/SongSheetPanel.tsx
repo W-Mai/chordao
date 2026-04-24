@@ -37,6 +37,8 @@ interface SongSheetPanelProps {
   songOptions: SongOption[];
   currentSongId: string;
   onSelectSong: (id: string) => void;
+  onNewSong?: () => void;
+  onEditSong?: () => void;
   onExpand?: () => void;
 }
 
@@ -66,6 +68,8 @@ export function SongSheetPanel({
   songOptions,
   currentSongId,
   onSelectSong,
+  onNewSong,
+  onEditSong,
   onExpand,
 }: SongSheetPanelProps) {
   const { t } = useTranslation();
@@ -107,6 +111,26 @@ export function SongSheetPanel({
         >
           {chordNameMode === 'degree' ? t('songModeDegree') : t('songModeAbs')}
         </button>
+        {onNewSong && (
+          <button
+            onClick={onNewSong}
+            className="text-[10px] px-2 h-5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue mr-1"
+            style={{ transition: 'all var(--transition)' }}
+            title={t('songEditorOpenNew')}
+          >
+            {t('songEditorOpenNew')}
+          </button>
+        )}
+        {onEditSong && (
+          <button
+            onClick={onEditSong}
+            className="text-[10px] px-2 h-5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue mr-1"
+            style={{ transition: 'all var(--transition)' }}
+            title={t('songEditorOpenEdit')}
+          >
+            {t('songEditorOpenEdit')}
+          </button>
+        )}
         {onExpand && <ExpandBtn onClick={onExpand} title={t('expand')} />}
       </div>
       <div className="panel-body">

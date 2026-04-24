@@ -22,7 +22,11 @@ import { FullscreenOverlay } from './components/FullscreenOverlay';
 import { GridPanel } from './components/GridPanel';
 import { FretPanel } from './components/FretPanel';
 import { SongSheetPanel } from './components/SongSheetPanel';
+import { SongEditor } from './components/SongEditor';
 import { BUILTIN_SONGS, DEFAULT_SONG_ID, findBuiltinSong } from './data/songs';
+import { listUserSongs, getUserSong, saveUserSong, deleteUserSong, isUserSongId } from './data/songStorage';
+import { decodeSheetFromUrl } from './data/songShare';
+import type { SongSheet } from './data/songSheet';
 import { parseHash, useHashSync } from './hooks/useHashState';
 
 import { Roller } from './components/Roller';
@@ -366,26 +370,89 @@ function App() {
     });
   }, []);
 
+  // User-song archive (stored in localStorage, re-fetched when it changes)
+  const [userSongsRev, setUserSongsRev] = useState(0);
+  const bumpUserSongs = useCallback(() => setUserSongsRev((r) => r + 1), []);
+  const userSongs = useMemo(() => {
+    // userSongsRev is intentionally referenced to trigger re-fetch
+    void userSongsRev;
+    return listUserSongs();
+  }, [userSongsRev]);
+
+  // Import a sheet= URL payload once at mount (if present), then select it
+  const sheetPayloadImport = useMemo<SongSheet | null>(
+    () => (initial.sheetPayload ? decodeSheetFromUrl(initial.sheetPayload) : null),
+    // initial is captured once at mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  useEffect(() => {
+    if (sheetPayloadImport) {
+      saveUserSong(sheetPayloadImport);
+      bumpUserSongs();
+    }
+  }, [sheetPayloadImport, bumpUserSongs]);
+
+  const findSong = useCallback((id: string): SongSheet | undefined => findBuiltinSong(id) ?? getUserSong(id), []);
+
   const [selectedSongId, setSelectedSongId] = useState<string>(() => {
-    // URL > localStorage > default
+    // URL sheet= payload wins over song=
+    if (sheetPayloadImport) return sheetPayloadImport.id;
     const fromUrl = initial.song;
-    if (fromUrl && findBuiltinSong(fromUrl)) return fromUrl;
+    if (fromUrl && (findBuiltinSong(fromUrl) || (isUserSongId(fromUrl) && getUserSong(fromUrl)))) return fromUrl;
     const fromStorage = localStorage.getItem('chordao:songId');
-    if (fromStorage && findBuiltinSong(fromStorage)) return fromStorage;
+    if (fromStorage && (findBuiltinSong(fromStorage) || (isUserSongId(fromStorage) && getUserSong(fromStorage))))
+      return fromStorage;
     return DEFAULT_SONG_ID;
   });
+
   const currentSong = useMemo(
-    () => findBuiltinSong(selectedSongId) ?? findBuiltinSong(DEFAULT_SONG_ID)!,
-    [selectedSongId],
+    () => findSong(selectedSongId) ?? findBuiltinSong(DEFAULT_SONG_ID)!,
+    // Depend on userSongsRev so a freshly saved user-song gets picked up
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedSongId, userSongsRev, findSong],
   );
+
   const handleSelectSong = useCallback((id: string) => {
     setSelectedSongId(id);
     localStorage.setItem('chordao:songId', id);
   }, []);
+
   const songOptions = useMemo(
-    () => BUILTIN_SONGS.map((s) => ({ id: s.id, title: s.title, group: 'builtin' as const })),
-    [],
+    () => [
+      ...BUILTIN_SONGS.map((s) => ({ id: s.id, title: s.title, group: 'builtin' as const })),
+      ...userSongs.map((s) => ({ id: s.id, title: s.title, group: 'user' as const })),
+    ],
+    [userSongs],
   );
+
+  // Editor state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorInitial, setEditorInitial] = useState<SongSheet | null>(null);
+  const openEditorForNew = useCallback(() => {
+    setEditorInitial(null);
+    setEditorOpen(true);
+  }, []);
+  const openEditorForCurrent = useCallback(() => {
+    setEditorInitial(currentSong);
+    setEditorOpen(true);
+  }, [currentSong]);
+  const handleEditorSave = useCallback(
+    (sheet: SongSheet) => {
+      saveUserSong(sheet);
+      bumpUserSongs();
+      handleSelectSong(sheet.id);
+      setEditorOpen(false);
+    },
+    [bumpUserSongs, handleSelectSong],
+  );
+  const handleEditorDelete = useCallback(() => {
+    if (!editorInitial || !isUserSongId(editorInitial.id)) return;
+    deleteUserSong(editorInitial.id);
+    bumpUserSongs();
+    if (selectedSongId === editorInitial.id) handleSelectSong(DEFAULT_SONG_ID);
+    setEditorOpen(false);
+  }, [editorInitial, bumpUserSongs, selectedSongId, handleSelectSong]);
 
   const toggleInterval = useCallback((iv: string) => {
     setVisibleIntervals((s) => {
@@ -860,6 +927,8 @@ function App() {
               songOptions={songOptions}
               currentSongId={selectedSongId}
               onSelectSong={handleSelectSong}
+              onNewSong={openEditorForNew}
+              onEditSong={openEditorForCurrent}
             />
           </div>
           <div className="lg:col-start-2 lg:row-start-1">
@@ -991,6 +1060,15 @@ function App() {
 
       {ExportContainer}
       {PreviewModal}
+
+      <SongEditor
+        open={editorOpen}
+        initialSheet={editorInitial}
+        isExistingUserSong={editorInitial != null && isUserSongId(editorInitial.id)}
+        onSave={handleEditorSave}
+        onDelete={handleEditorDelete}
+        onClose={() => setEditorOpen(false)}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ export interface HashState {
   visibleIntervals: string[] | null; // null = use default/localStorage
   fullscreen: FullscreenPanel;
   song: string | null; // null = default song; otherwise built-in id or 'user:<slug>'
+  sheetPayload: string | null; // lz-string compressed sheet text (overrides song=)
 }
 
 export function parseHash(): HashState {
@@ -48,6 +49,7 @@ export function parseHash(): HashState {
     visibleIntervals,
     fullscreen,
     song: params.get('song') || null,
+    sheetPayload: params.get('sheet') || null,
   };
 }
 
