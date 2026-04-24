@@ -130,4 +130,6 @@ export default {
   songEditorAddLine: '+ line',
   songEditorAddSection: '+ section',
   songEditorEmptyBarHint: '(double-click to add lyrics)',
+  songEditorAddBar: '+ bar',
+  songEditorRemoveBar: '− bar',
 } satisfies Record<string, string>;

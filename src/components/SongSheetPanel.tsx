@@ -53,11 +53,10 @@ function sliceAroundAccent(chars: Array<{ ch: string; accent: boolean }>): Accen
  */
 function computeSectionAlignment(section: Section): { prePadMax: number[] } {
   if (section.lines.length === 0) return { prePadMax: [] };
-  const barCount = section.lines[0].bars.length;
+  const barCount = Math.max(...section.lines.map((l) => l.bars.length));
   const prePadMax: number[] = Array(barCount).fill(0);
   for (const line of section.lines) {
     line.bars.forEach((bar, bi) => {
-      if (bi >= barCount) return;
       const { chars } = parseBarSource(bar.source);
       const { pre } = sliceAroundAccent(chars);
       const w = visualWidth(pre);

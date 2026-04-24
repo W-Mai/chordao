@@ -126,4 +126,6 @@ export default {
   songEditorAddLine: '+ 加行',
   songEditorAddSection: '+ 加段落',
   songEditorEmptyBarHint: '（双击添加歌词）',
+  songEditorAddBar: '+ 小节',
+  songEditorRemoveBar: '− 小节',
 } satisfies Record<string, string>;

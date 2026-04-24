@@ -251,6 +251,7 @@ function LineEditor({
   degreePickerOpen,
   closeDegreePicker,
 }: LineEditorProps) {
+  const { t } = useTranslation();
   const flat = useMemo(() => flattenLine(line), [line]);
 
   const commit = useCallback((next: FlatLine) => onChange(unflattenLine(next)), [onChange]);
@@ -283,6 +284,27 @@ function LineEditor({
     [flat, commit],
   );
 
+  const addBar = useCallback(() => {
+    // Append an empty bar at the end, degree defaults to the last bar's degree (or 1).
+    const lastDeg = flat.degrees[flat.degrees.length - 1] ?? 1;
+    commit({
+      ...flat,
+      degrees: [...flat.degrees, lastDeg],
+      boundaries: [...flat.boundaries, flat.atoms.length],
+    });
+  }, [flat, commit]);
+
+  const removeBar = useCallback(() => {
+    if (flat.degrees.length <= 1) return;
+    // Drop the last bar and its atoms (everything from its boundary to the end).
+    const lastStart = flat.boundaries[flat.boundaries.length - 1];
+    commit({
+      atoms: flat.atoms.slice(0, lastStart),
+      degrees: flat.degrees.slice(0, -1),
+      boundaries: flat.boundaries.slice(0, -1),
+    });
+  }, [flat, commit]);
+
   const editSourceText = useCallback(
     (barIdx: number, text: string) => {
       // Rebuild atoms for this bar from scratch text (no accent markers — user is typing plain text).
@@ -310,6 +332,23 @@ function LineEditor({
         {'×'}
       </button>
       <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1 mb-1 justify-end">
+          <button
+            onClick={removeBar}
+            disabled={n <= 1}
+            className="text-[10px] px-1.5 py-0.5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-red disabled:opacity-30 disabled:cursor-not-allowed"
+            title={t('songEditorRemoveBar')}
+          >
+            {t('songEditorRemoveBar')}
+          </button>
+          <button
+            onClick={addBar}
+            className="text-[10px] px-1.5 py-0.5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue"
+            title={t('songEditorAddBar')}
+          >
+            {t('songEditorAddBar')}
+          </button>
+        </div>
         <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
           {flat.degrees.map((degree, bi) => {
             const color = `var(--color-deg-${degree})`;
