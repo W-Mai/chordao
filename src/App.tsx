@@ -433,6 +433,17 @@ function App() {
     return null;
   });
 
+  // On mount: if the initial song is set and the URL didn't pin a key,
+  // snap selectedKey to that song's key. URL key= wins (user explicitly asked).
+  useEffect(() => {
+    if (initial.key) return;
+    if (!selectedSongId) return;
+    const s = findSong(selectedSongId);
+    if (s) _setSelectedKey(s.key);
+    // mount-only; initial is captured once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const currentSong = useMemo(() => {
     if (selectedSongId == null) return null;
     return findSong(selectedSongId) ?? null;
@@ -485,22 +496,33 @@ function App() {
     if (!currentSong) stopSongPlay();
   }, [currentSong, stopSongPlay]);
 
-  const handleSelectSong = useCallback((id: string | null) => {
-    setSelectedSongId(id);
-    if (id == null) localStorage.removeItem('chordao:songId');
-    else localStorage.setItem('chordao:songId', id);
-  }, []);
+  const handleSelectSong = useCallback(
+    (id: string | null) => {
+      setSelectedSongId(id);
+      if (id == null) localStorage.removeItem('chordao:songId');
+      else {
+        localStorage.setItem('chordao:songId', id);
+        // Selecting a song snaps the app's key to the sheet's key. User can still
+        // override afterwards with the key selector — that's sticky until the next
+        // song selection.
+        const s = findSong(id);
+        if (s) setSelectedKey(s.key);
+      }
+    },
+    [findSong, setSelectedKey],
+  );
 
   const handleOpenSongPanel = useCallback(() => {
     // Open by restoring the last-used song, or the first builtin.
     const last = localStorage.getItem('chordao:songId');
-    if (last && (findBuiltinSong(last) || (isUserSongId(last) && getUserSong(last)))) {
-      setSelectedSongId(last);
-      return;
-    }
-    const first = BUILTIN_SONGS[0]?.id;
-    if (first) setSelectedSongId(first);
-  }, []);
+    let id: string | null = null;
+    if (last && (findBuiltinSong(last) || (isUserSongId(last) && getUserSong(last)))) id = last;
+    else id = BUILTIN_SONGS[0]?.id ?? null;
+    if (!id) return;
+    setSelectedSongId(id);
+    const s = findSong(id);
+    if (s) setSelectedKey(s.key);
+  }, [findSong, setSelectedKey]);
 
   const handleCloseSongPanel = useCallback(() => {
     setSelectedSongId(null);
