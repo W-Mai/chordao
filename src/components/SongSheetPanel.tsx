@@ -55,14 +55,18 @@ interface SongSheetPanelProps {
 }
 
 /**
- * Render a single line of the sheet. A line is a single grid, one column per char
- * across ALL bars. This lets chord chips span across bar boundaries freely — a
- * chord's "territory" runs from its accent to the next chord's accent (even if
- * that next chord lives in a later bar). Bar boundaries are marked with thin
- * dividers as a separate overlay row.
+ * Render a single line of the sheet. Lines inside the same section share the
+ * column layout: each bar slot is assigned a column count equal to the MAX
+ * char count for that bar across all lines in the section. Lines with fewer
+ * chars just leave the trailing columns empty — that's what keeps the same
+ * bar's accent chars vertically aligned across lines.
+ *
+ * Chord bands span from their accent column up to the next chord's accent
+ * (possibly crossing bar boundaries).
  */
 function LineRow({
   bars,
+  barColWidths,
   label,
   activeChordKey,
   keyOfDegree,
@@ -72,6 +76,8 @@ function LineRow({
   fontSize,
 }: {
   bars: Bar[];
+  /** Section-level column budget: barColWidths[bi] = columns reserved for bar bi */
+  barColWidths: number[];
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -80,38 +86,49 @@ function LineRow({
   handleDblClickChord: (k: string) => void;
   fontSize: number;
 }) {
-  // Flatten the whole line into one char stream, tagging each atom with its (barIdx, chordIdx).
-  type LyricAtom = { ch: string; accent: boolean; barIdx: number; chordIdx: number };
+  // Cumulative start column for each bar inside this section's grid.
+  const barStartCols: number[] = [];
+  {
+    let acc = 0;
+    for (let i = 0; i < barColWidths.length; i++) {
+      barStartCols.push(acc);
+      acc += barColWidths[i];
+    }
+  }
+
+  type LyricAtom = { ch: string; accent: boolean; barIdx: number; chordIdx: number; col: number };
   const atoms: LyricAtom[] = [];
-  // Linear list of chords: {barIdx, chordIdx, degree, startCol, accentCol}
-  // - startCol = where the chord's color band begins (for first-of-line, that's col 0)
-  // - accentCol = where the chord's label should visually anchor (its first accent char)
   type ChordRef = { barIdx: number; chordIdx: number; degree: number; startCol: number; accentCol: number };
   const chords: ChordRef[] = [];
-  const barStartCols: number[] = [];
 
   bars.forEach((bar, bi) => {
-    barStartCols.push(atoms.length);
+    let cursor = barStartCols[bi];
     bar.chords.forEach((chord, ci) => {
       const chars = parseBarSource(chord.source).chars;
-      const baseCol = atoms.length;
+      const chordBaseCol = cursor;
       let accentOffset = chars.findIndex((c) => c.accent);
       if (accentOffset < 0) accentOffset = 0;
-      const accentCol = baseCol + accentOffset;
+      const accentCol = chordBaseCol + accentOffset;
       const isFirstChordOfLine = bi === 0 && ci === 0;
       const startCol = isFirstChordOfLine ? 0 : accentCol;
       chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol, accentCol });
-      for (const ch of chars) atoms.push({ ...ch, barIdx: bi, chordIdx: ci });
+      chars.forEach((ch, offset) => {
+        atoms.push({ ...ch, barIdx: bi, chordIdx: ci, col: chordBaseCol + offset });
+      });
+      cursor += chars.length;
     });
   });
 
-  const cols = Math.max(1, atoms.length);
+  const totalCols = Math.max(
+    1,
+    barColWidths.reduce((s, n) => s + n, 0),
+  );
 
   return (
     <div
       className="grid min-w-0 mb-2 leading-relaxed"
       style={{
-        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${totalCols}, minmax(0, 1fr))`,
         gridTemplateRows: 'auto auto',
         fontSize: `${fontSize}px`,
         lineHeight: 1.2,
@@ -121,7 +138,7 @@ function LineRow({
           The label text inside is anchored to the accent column so it sits right above
           the accent char in the lyric row. */}
       {chords.map((chord, ci) => {
-        const endCol = ci + 1 < chords.length ? chords[ci + 1].startCol : cols;
+        const endCol = ci + 1 < chords.length ? chords[ci + 1].startCol : totalCols;
         const vKey = keyOfDegree(chord.degree);
         const isActive = vKey != null && vKey === activeChordKey;
         const color = `var(--color-deg-${chord.degree})`;
@@ -147,8 +164,14 @@ function LineRow({
               borderBottomRightRadius: 0,
               transition: 'all var(--transition)',
               padding: 0,
+              minHeight: '1.4em',
             }}
           >
+            {/* Invisible spacer keeps the button's intrinsic height matching the label */}
+            <span aria-hidden style={{ visibility: 'hidden' }}>
+              {label(chord.degree)}
+            </span>
+            {/* Visible label, anchored to the accent column inside the band */}
             <span
               style={{
                 position: 'absolute',
@@ -168,7 +191,8 @@ function LineRow({
         );
       })}
 
-      {/* Lyric chars — one grid column each. Accent cells share the degree color. */}
+      {/* Lyric chars — each placed by its absolute column so empty trailing cells
+          (when a bar has fewer chars than its section-wide budget) just stay blank. */}
       {atoms.map((a, i) => {
         const color = `var(--color-deg-${bars[a.barIdx].chords[a.chordIdx].degree})`;
         const vKey = keyOfDegree(bars[a.barIdx].chords[a.chordIdx].degree);
@@ -179,7 +203,7 @@ function LineRow({
               key={`lyr-${i}`}
               style={{
                 gridRow: 2,
-                gridColumn: `${i + 1}`,
+                gridColumn: `${a.col + 1}`,
                 background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
                 color: isActive ? 'var(--crust)' : color,
                 fontWeight: 700,
@@ -197,7 +221,7 @@ function LineRow({
             key={`lyr-${i}`}
             style={{
               gridRow: 2,
-              gridColumn: `${i + 1}`,
+              gridColumn: `${a.col + 1}`,
               color: 'var(--text)',
               opacity: 0.55,
               display: 'inline-flex',
@@ -279,13 +303,30 @@ export function SongSheetPanel({
     return () => ro.disconnect();
   }, []);
 
-  // Font size per line: make each line fill the panel width.
-  // n = total chars in the line (summed across all bars).
-  const lineFontSize = (line: import('../data/songSheet').Line): number => {
+  // Per-section column budget: each bar slot gets the MAX char count over all
+  // lines in the section. This is what makes same-bar accent chars line up
+  // vertically across different lines.
+  const sectionBarCols = (section: import('../data/songSheet').Section): number[] => {
+    if (section.lines.length === 0) return [];
+    const barCount = Math.max(...section.lines.map((l) => l.bars.length));
+    const widths: number[] = Array(barCount).fill(0);
+    for (const line of section.lines) {
+      line.bars.forEach((bar, bi) => {
+        const n = Math.max(1, barCharCount(bar));
+        if (n > widths[bi]) widths[bi] = n;
+      });
+    }
+    return widths;
+  };
+
+  // Font size per section: based on the total column budget so every line in
+  // the section uses the same font size (and thus the same column pixel width).
+  const sectionFontSize = (section: import('../data/songSheet').Section): number => {
     if (bodyWidth === 0) return 16;
-    const n = line.bars.reduce((sum, bar) => sum + barCharCount(bar), 0);
-    if (n === 0) return 16;
-    const raw = bodyWidth / (n * CH_EM);
+    const widths = sectionBarCols(section);
+    const totalCols = widths.reduce((s, n) => s + n, 0);
+    if (totalCols === 0) return 16;
+    const raw = bodyWidth / (totalCols * CH_EM);
     return Math.min(MAX_FONT_PX, Math.max(MIN_FONT_PX, raw));
   };
 
@@ -354,26 +395,31 @@ export function SongSheetPanel({
       </div>
       <div className="panel-body" ref={bodyRef}>
         {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}
-        {sheet.sections.map((section, si) => (
-          <div key={si} className="mb-4 font-mono">
-            {section.name && (
-              <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
-            )}
-            {section.lines.map((line, li) => (
-              <LineRow
-                key={li}
-                bars={line.bars}
-                label={label}
-                activeChordKey={activeChordKey}
-                keyOfDegree={keyOfDegree}
-                handleHoverChord={handleHoverChord}
-                handleClickChord={handleClickChord}
-                handleDblClickChord={handleDblClickChord}
-                fontSize={lineFontSize(line)}
-              />
-            ))}
-          </div>
-        ))}
+        {sheet.sections.map((section, si) => {
+          const barColWidths = sectionBarCols(section);
+          const fs = sectionFontSize(section);
+          return (
+            <div key={si} className="mb-4 font-mono">
+              {section.name && (
+                <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
+              )}
+              {section.lines.map((line, li) => (
+                <LineRow
+                  key={li}
+                  bars={line.bars}
+                  barColWidths={barColWidths}
+                  label={label}
+                  activeChordKey={activeChordKey}
+                  keyOfDegree={keyOfDegree}
+                  handleHoverChord={handleHoverChord}
+                  handleClickChord={handleClickChord}
+                  handleDblClickChord={handleDblClickChord}
+                  fontSize={fs}
+                />
+              ))}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
