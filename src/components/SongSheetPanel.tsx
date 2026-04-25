@@ -193,6 +193,8 @@ interface SongSheetPanelProps {
   onEditSong?: () => void;
   onClosePanel?: () => void;
   onExpand?: () => void;
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
 }
 
 /**
@@ -478,6 +480,8 @@ export function SongSheetPanel({
   onEditSong,
   onClosePanel,
   onExpand,
+  isPlaying,
+  onTogglePlay,
 }: SongSheetPanelProps) {
   const { t } = useTranslation();
 
@@ -548,6 +552,18 @@ export function SongSheetPanel({
             ))}
           </select>
         </span>
+        {onTogglePlay && (
+          <button
+            onClick={onTogglePlay}
+            className={`text-[11px] w-6 h-5 rounded cursor-pointer mr-1 flex items-center justify-center ${
+              isPlaying ? 'bg-green/20 text-green' : 'bg-surface0 text-overlay1 hover:text-green'
+            }`}
+            style={{ transition: 'all var(--transition)' }}
+            title={t('songPlayTitle')}
+          >
+            {isPlaying ? '⏸' : '▶'}
+          </button>
+        )}
         <button
           onClick={toggleChordNameMode}
           className="text-[10px] px-2 h-5 rounded-full cursor-pointer bg-surface0 text-overlay1 mr-1 flex items-center"

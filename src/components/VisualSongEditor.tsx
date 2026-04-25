@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SongSheet, Section, Line, Bar, Chord } from '../data/songSheet';
 import { NOTES, type NoteName } from '../data/chordData';
+import { RHYTHM_PATTERNS } from '../utils/audio';
 
 const DEGREE_LABEL: Record<number, string> = { 1: '1', 2: '2m', 3: '3m', 4: '4', 5: '5', 6: '6m' };
 const ALL_DEGREES = [1, 2, 3, 4, 5, 6];
@@ -137,7 +138,7 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
   } | null>(null);
 
   const updateMeta = useCallback(
-    (patch: Partial<Pick<SongSheet, 'title' | 'key' | 'strum'>>) => {
+    (patch: Partial<Pick<SongSheet, 'title' | 'key' | 'strum' | 'bpm'>>) => {
       onChange({ ...sheet, ...patch });
     },
     [sheet, onChange],
@@ -224,6 +225,19 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
           onChange={(e) => updateMeta({ strum: e.target.value || undefined })}
           className="w-36 bg-base border border-surface0 rounded px-2 py-1 text-sm text-txt outline-none focus:border-blue font-mono"
         />
+        <label className="text-xs text-overlay0">{t('songEditorBpmField')}</label>
+        <input
+          type="number"
+          min={30}
+          max={300}
+          value={sheet.bpm ?? ''}
+          placeholder={t('songEditorBpmPlaceholder')}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            updateMeta({ bpm: e.target.value === '' || !Number.isFinite(n) || n <= 0 ? undefined : n });
+          }}
+          className="w-20 bg-base border border-surface0 rounded px-2 py-1 text-sm text-txt outline-none focus:border-blue"
+        />
       </div>
 
       {sheet.sections.map((section, si) => (
@@ -235,6 +249,19 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
               placeholder={t('songEditorSectionPlaceholder')}
               className="flex-1 bg-transparent border-b border-surface0 text-sm text-txt outline-none focus:border-blue"
             />
+            <select
+              value={section.strum ?? ''}
+              onChange={(e) => updateSection(si, { strum: e.target.value || undefined })}
+              title={t('songEditorSectionStrumTitle')}
+              className="bg-base border border-surface0 rounded px-1.5 py-0.5 text-[11px] text-overlay1 outline-none focus:border-blue cursor-pointer"
+            >
+              <option value={''}>{t('songEditorSectionStrumDefault')}</option>
+              {RHYTHM_PATTERNS.map((r) => (
+                <option key={r.name} value={r.name}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
             <button
               onClick={() => addLine(si)}
               className="text-[10px] px-2 py-0.5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue"

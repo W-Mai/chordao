@@ -17,6 +17,7 @@ export interface Line {
 
 export interface Section {
   name?: string;
+  strum?: string;
   lines: Line[];
 }
 
@@ -25,6 +26,7 @@ export interface SongSheet {
   title: string;
   key: NoteName;
   strum?: string;
+  bpm?: number;
   sections: Section[];
 }
 
@@ -84,6 +86,38 @@ export function countAccents(source: string): number {
  * If `barSource` has fewer accents than expected, returns as many fragments as accents.
  * If zero accents, returns a single fragment == barSource (caller decides how to handle).
  */
+/** One chord slot in the playback stream. */
+export interface PlaybackStep {
+  degree: number;
+  sectionIdx: number;
+  lineIdx: number;
+  barIdx: number;
+  chordIdx: number;
+  beats: number;
+  strum?: string;
+}
+
+/**
+ * Flatten a sheet into an ordered playback stream. Each bar is 4 beats total;
+ * bars with N chords split evenly so each chord gets 4/N beats.
+ */
+export function flattenForPlayback(sheet: SongSheet, beatsPerBar = 4): PlaybackStep[] {
+  const out: PlaybackStep[] = [];
+  sheet.sections.forEach((section, sectionIdx) => {
+    const strum = section.strum ?? sheet.strum;
+    section.lines.forEach((line, lineIdx) =>
+      line.bars.forEach((bar, barIdx) => {
+        const n = Math.max(1, bar.chords.length);
+        const perChord = beatsPerBar / n;
+        bar.chords.forEach((c, chordIdx) => {
+          out.push({ degree: c.degree, sectionIdx, lineIdx, barIdx, chordIdx, beats: perChord, strum });
+        });
+      }),
+    );
+  });
+  return out;
+}
+
 export function splitBarByAccents(barSource: string): string[] {
   const accentCount = countAccents(barSource);
   if (accentCount <= 1) return [barSource];

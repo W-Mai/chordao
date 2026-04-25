@@ -58,6 +58,12 @@ export function parseSongSheetText(text: string): ParseResult {
     errors.push({ line: 0, message: `Unknown key "${meta.key}" in frontmatter` });
   }
   let strum: string | undefined = meta.strum;
+  let bpm: number | undefined;
+  if (meta.bpm) {
+    const n = Number(meta.bpm);
+    if (Number.isFinite(n) && n > 0) bpm = n;
+    else errors.push({ line: 0, message: `Invalid bpm "${meta.bpm}" in frontmatter` });
+  }
   const sections: Section[] = [];
   let currentSection: Section | null = null;
 
@@ -69,6 +75,17 @@ export function parseSongSheetText(text: string): ParseResult {
     return currentSection;
   };
 
+  const parseSectionHeader = (header: string): { name?: string; strum?: string } => {
+    const parts = header.split('|').map((p) => p.trim());
+    const name = parts[0] || undefined;
+    let secStrum: string | undefined;
+    for (let k = 1; k < parts.length; k++) {
+      const m = parts[k].match(/^strum\s*:\s*(.+)$/i);
+      if (m) secStrum = m[1].trim();
+    }
+    return { name, strum: secStrum };
+  };
+
   const lines = body.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
@@ -76,10 +93,11 @@ export function parseSongSheetText(text: string): ParseResult {
     const trimmed = raw.trim();
     if (!trimmed) continue;
 
-    // Section header: --- name ---
+    // Section header: --- name ---   or   --- name | strum:pop ---
     const secMatch = trimmed.match(/^---\s*(.*?)\s*---$/);
     if (secMatch) {
-      currentSection = { name: secMatch[1] || undefined, lines: [] };
+      const { name, strum: secStrum } = parseSectionHeader(secMatch[1]);
+      currentSection = { name, strum: secStrum, lines: [] };
       sections.push(currentSection);
       continue;
     }
@@ -180,6 +198,7 @@ export function parseSongSheetText(text: string): ParseResult {
           title: title.trim(),
           key,
           strum,
+          bpm,
           sections,
         }
       : null;
@@ -196,11 +215,14 @@ export function serializeSongSheet(sheet: SongSheet): string {
   lines.push(`title: ${sheet.title}`);
   lines.push(`key: ${sheet.key}`);
   if (sheet.strum) lines.push(`strum: ${sheet.strum}`);
+  if (sheet.bpm) lines.push(`bpm: ${sheet.bpm}`);
   lines.push('---');
   lines.push('');
 
   for (const section of sheet.sections) {
-    lines.push(`--- ${section.name ?? ''} ---`);
+    const headerParts = [section.name ?? ''];
+    if (section.strum) headerParts.push(`strum:${section.strum}`);
+    lines.push(`--- ${headerParts.join(' | ')} ---`);
     for (const line of section.lines) {
       const barsStr = line.bars.map((b) => b.chords.map((c) => c.source).join('')).join(' | ');
       const degsStr = line.bars

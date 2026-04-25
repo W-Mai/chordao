@@ -27,6 +27,7 @@ import { BUILTIN_SONGS, findBuiltinSong } from './data/songs';
 import { listUserSongs, getUserSong, saveUserSong, deleteUserSong, isUserSongId } from './data/songStorage';
 import { decodeSheetFromUrl } from './data/songShare';
 import type { SongSheet } from './data/songSheet';
+import { flattenForPlayback } from './data/songSheet';
 import { parseHash, useHashSync } from './hooks/useHashState';
 
 import { Roller } from './components/Roller';
@@ -320,6 +321,18 @@ function App() {
     localStorage.setItem('chordao:bpm', String(v));
   }, []);
 
+  const [songPlaying, setSongPlaying] = useState(false);
+  const songTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopSongPlay = useCallback(() => {
+    setSongPlaying(false);
+    if (songTimerRef.current) clearTimeout(songTimerRef.current);
+    songTimerRef.current = null;
+    setLockedChord(null);
+  }, []);
+  const toggleSongPlay = useCallback(() => {
+    setSongPlaying((v) => !v);
+  }, []);
+
   const activeProgDegrees = useMemo(() => {
     if (!activeProgObj) return null;
     return new Set(activeProgObj.degrees);
@@ -411,6 +424,43 @@ function App() {
     return findSong(selectedSongId) ?? null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSongId, userSongsRev, findSong]);
+
+  const songSteps = useMemo(() => (currentSong ? flattenForPlayback(currentSong) : []), [currentSong]);
+
+  const effectiveBpm = currentSong?.bpm ?? bpm;
+
+  useEffect(() => {
+    if (!songPlaying || songSteps.length === 0) return;
+    let step = 0;
+    const tick = () => {
+      const s = songSteps[step];
+      const v = optimal.find((o) => o.degree === s.degree);
+      if (v) {
+        setLockedChord(voicingKey(v));
+        if (!muted) {
+          const stepPattern = s.strum ? (RHYTHM_PATTERNS.find((r) => r.name === s.strum) ?? rhythm) : rhythm;
+          if (s.beats >= 4) scheduleBar(v.frets, effectiveBpm, stepPattern, audioNow());
+          else playChord(v.frets);
+        }
+      }
+      step++;
+      if (step >= songSteps.length) {
+        stopSongPlay();
+        return;
+      }
+      const durMs = (s.beats * 60 * 1000) / effectiveBpm;
+      songTimerRef.current = setTimeout(tick, durMs);
+    };
+    tick();
+    return () => {
+      if (songTimerRef.current) clearTimeout(songTimerRef.current);
+      resetAudio();
+    };
+  }, [songPlaying, songSteps, effectiveBpm, rhythm, muted, optimal, stopSongPlay]);
+
+  useEffect(() => {
+    if (!currentSong) stopSongPlay();
+  }, [currentSong, stopSongPlay]);
 
   const handleSelectSong = useCallback((id: string | null) => {
     setSelectedSongId(id);
@@ -969,6 +1019,8 @@ function App() {
                 onNewSong={openEditorForNew}
                 onEditSong={openEditorForCurrent}
                 onClosePanel={handleCloseSongPanel}
+                isPlaying={songPlaying}
+                onTogglePlay={toggleSongPlay}
               />
             </div>
           )}
