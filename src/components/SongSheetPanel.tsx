@@ -639,6 +639,46 @@ export function SongSheetPanel({
               {section.name && (
                 <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
               )}
+              {(() => {
+                // Consecutive-dedup'd degree sequence for this section.
+                const seq: number[] = [];
+                for (const line of section.lines) {
+                  for (const bar of line.bars) {
+                    for (const c of bar.chords) {
+                      if (seq.length === 0 || seq[seq.length - 1] !== c.degree) seq.push(c.degree);
+                    }
+                  }
+                }
+                if (seq.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap items-center gap-1 mb-2">
+                    {seq.map((deg, i) => {
+                      const vKey = keyOfDegree(deg);
+                      const isActive = vKey != null && vKey === activeChordKey;
+                      const color = `var(--color-deg-${deg})`;
+                      return (
+                        <span key={`prog-${i}`} className="flex items-center gap-1">
+                          {i > 0 && <span className="text-overlay0 text-[10px]">{'›'}</span>}
+                          <button
+                            onClick={() => vKey && handleClickChord(vKey)}
+                            onPointerEnter={() => vKey && handleHoverChord(vKey)}
+                            onPointerLeave={() => handleHoverChord(null)}
+                            className="px-1.5 py-0.5 rounded text-[11px] cursor-pointer"
+                            style={{
+                              background: isActive ? color : `color-mix(in srgb, ${color} 18%, transparent)`,
+                              color: isActive ? 'var(--crust)' : color,
+                              fontWeight: isActive ? 700 : 500,
+                              transition: 'all var(--transition)',
+                            }}
+                          >
+                            {label(deg)}
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               {section.lines.map((line, li) => {
                 const carryOver = lastChord;
                 // Update lastChord for the next line: pick the last chord in this line's last bar.
