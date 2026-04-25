@@ -83,25 +83,24 @@ function LineRow({
   // Flatten the whole line into one char stream, tagging each atom with its (barIdx, chordIdx).
   type LyricAtom = { ch: string; accent: boolean; barIdx: number; chordIdx: number };
   const atoms: LyricAtom[] = [];
-  // Also build a linear list of chords: {barIdx, chordIdx, degree, accentCol}
-  type ChordRef = { barIdx: number; chordIdx: number; degree: number; startCol: number };
+  // Linear list of chords: {barIdx, chordIdx, degree, startCol, accentCol}
+  // - startCol = where the chord's color band begins (for first-of-line, that's col 0)
+  // - accentCol = where the chord's label should visually anchor (its first accent char)
+  type ChordRef = { barIdx: number; chordIdx: number; degree: number; startCol: number; accentCol: number };
   const chords: ChordRef[] = [];
-  // barStartCols[i] = column index where bar i starts (used for bar dividers)
   const barStartCols: number[] = [];
 
   bars.forEach((bar, bi) => {
     barStartCols.push(atoms.length);
     bar.chords.forEach((chord, ci) => {
       const chars = parseBarSource(chord.source).chars;
-      // Column where this chord's band begins:
-      //   - First chord in line → column 0 (picks up any leading non-accent chars)
-      //   - Otherwise → its own first accent column (fall back to its first char)
       const baseCol = atoms.length;
       let accentOffset = chars.findIndex((c) => c.accent);
       if (accentOffset < 0) accentOffset = 0;
+      const accentCol = baseCol + accentOffset;
       const isFirstChordOfLine = bi === 0 && ci === 0;
-      const startCol = isFirstChordOfLine ? 0 : baseCol + accentOffset;
-      chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol });
+      const startCol = isFirstChordOfLine ? 0 : accentCol;
+      chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol, accentCol });
       for (const ch of chars) atoms.push({ ...ch, barIdx: bi, chordIdx: ci });
     });
   });
@@ -118,13 +117,16 @@ function LineRow({
         lineHeight: 1.2,
       }}
     >
-      {/* Chord chips — each spans from its startCol up to the next chord's startCol
-          (or the end of the line). Spans may cross bar boundaries. */}
+      {/* Chord chips — background spans from startCol to next chord's startCol (or line end).
+          The label text inside is anchored to the accent column so it sits right above
+          the accent char in the lyric row. */}
       {chords.map((chord, ci) => {
         const endCol = ci + 1 < chords.length ? chords[ci + 1].startCol : cols;
         const vKey = keyOfDegree(chord.degree);
         const isActive = vKey != null && vKey === activeChordKey;
         const color = `var(--color-deg-${chord.degree})`;
+        const bandWidth = endCol - chord.startCol;
+        const accentOffsetPct = bandWidth > 0 ? ((chord.accentCol - chord.startCol) / bandWidth) * 100 : 0;
         return (
           <button
             key={`chip-${ci}`}
@@ -132,7 +134,7 @@ function LineRow({
             onDoubleClick={() => vKey && handleDblClickChord(vKey)}
             onPointerEnter={() => vKey && handleHoverChord(vKey)}
             onPointerLeave={() => handleHoverChord(null)}
-            className="text-left text-xs font-mono px-1 py-0.5 cursor-pointer"
+            className="text-left text-xs font-mono py-0.5 cursor-pointer relative"
             style={{
               gridRow: 1,
               gridColumn: `${chord.startCol + 1} / ${endCol + 1}`,
@@ -144,9 +146,24 @@ function LineRow({
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
               transition: 'all var(--transition)',
+              padding: 0,
             }}
           >
-            {label(chord.degree)}
+            <span
+              style={{
+                position: 'absolute',
+                left: `${accentOffsetPct}%`,
+                top: 0,
+                bottom: 0,
+                paddingLeft: 2,
+                paddingRight: 2,
+                display: 'flex',
+                alignItems: 'center',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {label(chord.degree)}
+            </span>
           </button>
         );
       })}
