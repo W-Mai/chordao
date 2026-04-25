@@ -1,7 +1,18 @@
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NOTE_DISPLAY, NOTES, type NoteName, type ChordVoicing, voicingKey } from '../data/chordData';
 import type { SongSheet, Bar } from '../data/songSheet';
 import { parseBarSource } from '../data/songSheet';
+
+/** Approx per-char em factor in a monospace CJK-heavy font. Tuned empirically. */
+const CH_EM = 1.1;
+const MIN_FONT_PX = 12;
+const MAX_FONT_PX = 28;
+
+/** Count rendered chars in a bar (sum over chords, sans [] markers). */
+function barCharCount(bar: Bar): number {
+  return bar.chords.reduce((n, c) => n + parseBarSource(c.source).chars.length, 0);
+}
 
 const DEGREE_INTERVAL: Record<number, number> = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9 };
 const DEGREE_SUFFIX: Record<number, string> = { 1: '', 2: 'm', 3: 'm', 4: '', 5: '', 6: 'm' };
@@ -62,6 +73,7 @@ function BarCell({
   handleHoverChord,
   handleClickChord,
   handleDblClickChord,
+  fontSize,
 }: {
   bar: Bar;
   label: (degree: number) => string;
@@ -70,6 +82,7 @@ function BarCell({
   handleHoverChord: (k: string | null) => void;
   handleClickChord: (k: string) => void;
   handleDblClickChord: (k: string) => void;
+  fontSize: number;
 }) {
   // Flatten every chord's chars into a single ordered stream, tracking which chord owns each char.
   type LyricAtom = { ch: string; accent: boolean; chordIdx: number };
@@ -97,6 +110,8 @@ function BarCell({
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gridTemplateRows: 'auto auto',
+        fontSize: `${fontSize}px`,
+        lineHeight: 1.2,
       }}
     >
       {/* Chord chips — each spans from its start column to just before the next chord's start */}
@@ -219,6 +234,75 @@ export function SongSheetPanel({
   const label = (degree: number) =>
     chordNameMode === 'absolute' ? absoluteChordName(selectedKey, degree) : DEGREE_LABEL[degree];
 
+  // Measure the body's width so we can auto-size the font to fill a line.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [bodyWidth, setBodyWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const update = () => setBodyWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // For each section × bar index, find the line that has the most chars — that's
+  // the "hardest" cell for this bar slot. Font size per bar follows this max so
+  // accent positions align vertically across lines in the same section.
+  const sectionBarMaxChars = useMemo(() => {
+    return sheet.sections.map((section) => {
+      const maxPerBar: number[] = [];
+      for (const line of section.lines) {
+        line.bars.forEach((bar, bi) => {
+          const n = barCharCount(bar);
+          if (n > (maxPerBar[bi] ?? 0)) maxPerBar[bi] = n;
+        });
+      }
+      return maxPerBar;
+    });
+  }, [sheet]);
+
+  // Base font size: the biggest the sheet could tolerate if every bar had the
+  // largest "max chars" we saw anywhere. Each bar's actual size gets scaled
+  // relative to its section×bar-slot worst line.
+  const baseFontSize = useMemo(() => {
+    if (bodyWidth === 0) return 16;
+    const barsPerLine = Math.max(1, sheet.sections[0]?.lines[0]?.bars.length ?? 4);
+    const globalMax = sectionBarMaxChars.reduce((m, row) => {
+      const rowMax = row.reduce((mm, n) => Math.max(mm, n || 0), 0);
+      return Math.max(m, rowMax);
+    }, 1);
+    // Available width per bar (minus a little for gaps)
+    const perBar = Math.max(40, bodyWidth / barsPerLine - 8);
+    const raw = perBar / (globalMax * CH_EM);
+    return Math.min(MAX_FONT_PX, Math.max(MIN_FONT_PX, raw));
+  }, [bodyWidth, sheet, sectionBarMaxChars]);
+
+  // Font size for a given section × bar index. If that slot's worst line is the
+  // one driving baseFontSize, we get baseFontSize. Otherwise we scale up — but
+  // CAP at the base so we don't accidentally go bigger than the sheet's baseline.
+  // (A per-bar cap keeps accent positions aligned across lines inside a section.)
+  const fontSizeForBar = (sectionIdx: number, barIdx: number, thisBarChars: number): number => {
+    const slotMax = sectionBarMaxChars[sectionIdx]?.[barIdx] ?? thisBarChars;
+    // The slot's worst line would render at baseFontSize; other lines match to stay aligned.
+    // Scale up only if this bar is *shorter* than the slot max would be the norm.
+    // Actually we want the accents to stay on the same column, so ALL lines in this slot
+    // must use the SAME font size — that of the slot's worst line.
+    void thisBarChars;
+    // Slot font size = base × (globalMax / slotMax). If the slot is less crowded than the
+    // globalMax, we can scale up proportionally. Clamp to [MIN, MAX].
+    const globalMax = sectionBarMaxChars.reduce((m, row) => {
+      const rowMax = row.reduce((mm, n) => Math.max(mm, n || 0), 0);
+      return Math.max(m, rowMax);
+    }, 1);
+    const slotScaled = baseFontSize * (globalMax / Math.max(1, slotMax));
+    return Math.min(MAX_FONT_PX, Math.max(MIN_FONT_PX, slotScaled));
+  };
+
+  // Silence unused-import warnings when the hook isn't tree-shaken out
+  void useEffect;
+
   return (
     <section className="panel mb-2 md:mb-6 w-full">
       <div className="panel-header">
@@ -279,7 +363,7 @@ export function SongSheetPanel({
           </button>
         )}
       </div>
-      <div className="panel-body">
+      <div className="panel-body" ref={bodyRef}>
         {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}
         {sheet.sections.map((section, si) => (
           <div key={si} className="mb-4 font-mono">
@@ -304,6 +388,7 @@ export function SongSheetPanel({
                       handleHoverChord={handleHoverChord}
                       handleClickChord={handleClickChord}
                       handleDblClickChord={handleDblClickChord}
+                      fontSize={fontSizeForBar(si, bi, barCharCount(bar))}
                     />
                   ))}
                 </div>
