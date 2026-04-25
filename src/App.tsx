@@ -433,13 +433,21 @@ function App() {
     setSelectedSongId(null);
   }, []);
 
-  const songOptions = useMemo(
-    () => [
-      ...BUILTIN_SONGS.map((s) => ({ id: s.id, title: s.title, group: 'builtin' as const })),
-      ...userSongs.map((s) => ({ id: s.id, title: s.title, group: 'user' as const })),
-    ],
-    [userSongs],
-  );
+  const songOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const opts: { id: string; title: string; group: 'builtin' | 'user' }[] = [];
+    for (const s of BUILTIN_SONGS) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      opts.push({ id: s.id, title: s.title, group: 'builtin' });
+    }
+    for (const s of userSongs) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      opts.push({ id: s.id, title: s.title, group: 'user' });
+    }
+    return opts;
+  }, [userSongs]);
 
   // Editor state
   const [editorOpen, setEditorOpen] = useState(false);
@@ -455,9 +463,12 @@ function App() {
   }, [currentSong]);
   const handleEditorSave = useCallback(
     (sheet: SongSheet) => {
-      saveUserSong(sheet);
+      const sheetToSave: SongSheet = isUserSongId(sheet.id)
+        ? sheet
+        : { ...sheet, id: `user:${Math.random().toString(36).slice(2, 10)}` };
+      saveUserSong(sheetToSave);
       bumpUserSongs();
-      handleSelectSong(sheet.id);
+      handleSelectSong(sheetToSave.id);
       setEditorOpen(false);
     },
     [bumpUserSongs, handleSelectSong],
