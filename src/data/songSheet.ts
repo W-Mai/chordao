@@ -21,14 +21,22 @@ export interface Section {
   lines: Line[];
 }
 
+export interface TimeSig {
+  beats: number; // numerator: beats per bar
+  unit: number; // denominator: which note value gets one beat (2|4|8|16)
+}
+
 export interface SongSheet {
   id: string;
   title: string;
   key: NoteName;
   strum?: string;
   bpm?: number;
+  timeSig?: TimeSig;
   sections: Section[];
 }
+
+export const DEFAULT_TIME_SIG: TimeSig = { beats: 4, unit: 4 };
 
 export interface BarRender {
   chars: Array<{ ch: string; accent: boolean }>;
@@ -93,16 +101,18 @@ export interface PlaybackStep {
   lineIdx: number;
   barIdx: number;
   chordIdx: number;
-  beats: number;
+  beats: number; // beats this chord occupies (relative to sheet.timeSig.beats)
+  barStartBeat: number; // offset within the bar where this chord begins [0, timeSig.beats)
   strum?: string;
 }
 
 /**
- * Flatten a sheet into an ordered playback stream. Each bar is 4 beats total;
- * bars with N chords split evenly so each chord gets 4/N beats.
+ * Flatten a sheet into an ordered playback stream. A bar is `sheet.timeSig.beats`
+ * beats total; a bar with N chords splits evenly so each chord gets beats/N.
  */
-export function flattenForPlayback(sheet: SongSheet, beatsPerBar = 4): PlaybackStep[] {
+export function flattenForPlayback(sheet: SongSheet): PlaybackStep[] {
   const out: PlaybackStep[] = [];
+  const beatsPerBar = sheet.timeSig?.beats ?? DEFAULT_TIME_SIG.beats;
   sheet.sections.forEach((section, sectionIdx) => {
     const strum = section.strum ?? sheet.strum;
     section.lines.forEach((line, lineIdx) =>
@@ -110,7 +120,16 @@ export function flattenForPlayback(sheet: SongSheet, beatsPerBar = 4): PlaybackS
         const n = Math.max(1, bar.chords.length);
         const perChord = beatsPerBar / n;
         bar.chords.forEach((c, chordIdx) => {
-          out.push({ degree: c.degree, sectionIdx, lineIdx, barIdx, chordIdx, beats: perChord, strum });
+          out.push({
+            degree: c.degree,
+            sectionIdx,
+            lineIdx,
+            barIdx,
+            chordIdx,
+            beats: perChord,
+            barStartBeat: chordIdx * perChord,
+            strum,
+          });
         });
       }),
     );

@@ -1,4 +1,4 @@
-import type { SongSheet, Section, Bar, Chord } from './songSheet';
+import type { SongSheet, Section, Bar, Chord, TimeSig } from './songSheet';
 import { countAccents, splitBarByAccents } from './songSheet';
 import { NOTES, type NoteName } from './chordData';
 
@@ -63,6 +63,18 @@ export function parseSongSheetText(text: string): ParseResult {
     const n = Number(meta.bpm);
     if (Number.isFinite(n) && n > 0) bpm = n;
     else errors.push({ line: 0, message: `Invalid bpm "${meta.bpm}" in frontmatter` });
+  }
+  let timeSig: TimeSig | undefined;
+  if (meta.time) {
+    const m = meta.time.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+    if (m) {
+      const beats = Number(m[1]);
+      const unit = Number(m[2]);
+      if (beats > 0 && [2, 4, 8, 16].includes(unit)) timeSig = { beats, unit };
+      else errors.push({ line: 0, message: `Invalid time "${meta.time}" (unit must be 2/4/8/16)` });
+    } else {
+      errors.push({ line: 0, message: `Invalid time "${meta.time}" (expected N/M)` });
+    }
   }
   const sections: Section[] = [];
   let currentSection: Section | null = null;
@@ -199,6 +211,7 @@ export function parseSongSheetText(text: string): ParseResult {
           key,
           strum,
           bpm,
+          timeSig,
           sections,
         }
       : null;
@@ -216,6 +229,7 @@ export function serializeSongSheet(sheet: SongSheet): string {
   lines.push(`key: ${sheet.key}`);
   if (sheet.strum) lines.push(`strum: ${sheet.strum}`);
   if (sheet.bpm) lines.push(`bpm: ${sheet.bpm}`);
+  if (sheet.timeSig) lines.push(`time: ${sheet.timeSig.beats}/${sheet.timeSig.unit}`);
   lines.push('---');
   lines.push('');
 

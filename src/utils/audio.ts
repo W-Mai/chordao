@@ -278,6 +278,43 @@ export function scheduleBar(frets: number[], bpm: number, pattern: RhythmPattern
   }
 }
 
+/**
+ * Schedule a windowed slice of a rhythm pattern for a song-sheet playback step.
+ *
+ * Patterns are all designed in 4/4 with `strum.beat` ∈ [0, 4). We linearly scale
+ * pattern beats to the sheet's time signature: `scaled = strum.beat * beats/4`,
+ * then keep only strums whose scaled beat falls inside `[windowStart, windowEnd)`,
+ * shifted so the window starts at `startTime`.
+ *
+ * `beatDur` is the duration of ONE beat (as defined by the sheet's time sig),
+ * i.e. `60/bpm` — this is the caller's responsibility so playback math stays
+ * in one place.
+ */
+export function scheduleBarScoped(
+  frets: number[],
+  beatDur: number,
+  pattern: RhythmPattern,
+  beatsPerBar: number,
+  windowStart: number,
+  windowEnd: number,
+  startTime: number,
+) {
+  const ac = getCtx();
+  const scale = beatsPerBar / 4;
+  const windowBeats = windowEnd - windowStart;
+  if (windowBeats <= 0) return;
+  for (const s of pattern.strums) {
+    const scaled = s.beat * scale;
+    if (scaled < windowStart || scaled >= windowEnd) continue;
+    const t = startTime + (scaled - windowStart) * beatDur;
+    if (s.dir === 'arp') {
+      arpeggioAt(ac, frets, t, windowBeats * beatDur);
+    } else {
+      strumAt(ac, frets, t, s.dir, s.vol * 0.12, s.strings);
+    }
+  }
+}
+
 export function audioNow(): number {
   return getCtx().currentTime;
 }

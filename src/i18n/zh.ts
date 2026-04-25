@@ -125,6 +125,7 @@ export default {
   songEditorStrumField: '节奏型',
   songEditorBpmField: 'BPM',
   songEditorBpmPlaceholder: '默认',
+  songEditorTimeSigField: '拍号',
   songEditorSectionStrumTitle: '为本段落指定节奏型',
   songEditorSectionStrumDefault: '— 默认 —',
   songEditorSectionPlaceholder: '段落名（可选）',

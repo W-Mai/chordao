@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SongSheet, Section, Line, Bar, Chord } from '../data/songSheet';
+import type { SongSheet, Section, Line, Bar, Chord, TimeSig } from '../data/songSheet';
 import { NOTES, type NoteName } from '../data/chordData';
 import { RHYTHM_PATTERNS } from '../utils/audio';
 
@@ -138,7 +138,7 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
   } | null>(null);
 
   const updateMeta = useCallback(
-    (patch: Partial<Pick<SongSheet, 'title' | 'key' | 'strum' | 'bpm'>>) => {
+    (patch: Partial<Pick<SongSheet, 'title' | 'key' | 'strum' | 'bpm' | 'timeSig'>>) => {
       onChange({ ...sheet, ...patch });
     },
     [sheet, onChange],
@@ -238,6 +238,25 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
           }}
           className="w-20 bg-base border border-surface0 rounded px-2 py-1 text-sm text-txt outline-none focus:border-blue"
         />
+        <label className="text-xs text-overlay0">{t('songEditorTimeSigField')}</label>
+        <select
+          value={sheet.timeSig ? `${sheet.timeSig.beats}/${sheet.timeSig.unit}` : ''}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (!v) return updateMeta({ timeSig: undefined });
+            const [b, u] = v.split('/').map(Number);
+            const ts: TimeSig = { beats: b, unit: u };
+            updateMeta({ timeSig: ts });
+          }}
+          className="bg-base border border-surface0 rounded px-2 py-1 text-sm text-txt outline-none focus:border-blue cursor-pointer"
+        >
+          <option value={''}>{'4/4'}</option>
+          {['2/4', '3/4', '6/8', '9/8', '12/8'].map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
       </div>
 
       {sheet.sections.map((section, si) => (

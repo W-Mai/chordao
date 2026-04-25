@@ -1,6 +1,14 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { playChord, scheduleBar, resetAudio, audioNow, RHYTHM_PATTERNS, type RhythmPattern } from './utils/audio';
+import {
+  playChord,
+  scheduleBar,
+  scheduleBarScoped,
+  resetAudio,
+  audioNow,
+  RHYTHM_PATTERNS,
+  type RhythmPattern,
+} from './utils/audio';
 import {
   NOTES,
   NOTE_DISPLAY,
@@ -27,7 +35,7 @@ import { BUILTIN_SONGS, findBuiltinSong } from './data/songs';
 import { listUserSongs, getUserSong, saveUserSong, deleteUserSong, isUserSongId } from './data/songStorage';
 import { decodeSheetFromUrl } from './data/songShare';
 import type { SongSheet } from './data/songSheet';
-import { flattenForPlayback } from './data/songSheet';
+import { flattenForPlayback, DEFAULT_TIME_SIG } from './data/songSheet';
 import { parseHash, useHashSync } from './hooks/useHashState';
 
 import { Roller } from './components/Roller';
@@ -322,12 +330,18 @@ function App() {
   }, []);
 
   const [songPlaying, setSongPlaying] = useState(false);
+  const [songCursor, setSongCursor] = useState<{
+    sectionIdx: number;
+    lineIdx: number;
+    barIdx: number;
+    chordIdx: number;
+  } | null>(null);
   const songTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stopSongPlay = useCallback(() => {
     setSongPlaying(false);
     if (songTimerRef.current) clearTimeout(songTimerRef.current);
     songTimerRef.current = null;
-    setLockedChord(null);
+    setSongCursor(null);
   }, []);
   const toggleSongPlay = useCallback(() => {
     setSongPlaying((v) => !v);
@@ -428,27 +442,36 @@ function App() {
   const songSteps = useMemo(() => (currentSong ? flattenForPlayback(currentSong) : []), [currentSong]);
 
   const effectiveBpm = currentSong?.bpm ?? bpm;
+  const songTimeSig = currentSong?.timeSig ?? DEFAULT_TIME_SIG;
 
   useEffect(() => {
     if (!songPlaying || songSteps.length === 0) return;
+    const beatDur = 60 / effectiveBpm;
+    const beatsPerBar = songTimeSig.beats;
     let step = 0;
     const tick = () => {
       const s = songSteps[step];
       const v = optimal.find((o) => o.degree === s.degree);
-      if (v) {
-        setLockedChord(voicingKey(v));
-        if (!muted) {
-          const stepPattern = s.strum ? (RHYTHM_PATTERNS.find((r) => r.name === s.strum) ?? rhythm) : rhythm;
-          if (s.beats >= 4) scheduleBar(v.frets, effectiveBpm, stepPattern, audioNow());
-          else playChord(v.frets);
-        }
+      setSongCursor({ sectionIdx: s.sectionIdx, lineIdx: s.lineIdx, barIdx: s.barIdx, chordIdx: s.chordIdx });
+      if (v && !muted) {
+        const stepPattern = s.strum ? (RHYTHM_PATTERNS.find((r) => r.name === s.strum) ?? rhythm) : rhythm;
+        scheduleBarScoped(
+          v.frets,
+          beatDur,
+          stepPattern,
+          beatsPerBar,
+          s.barStartBeat,
+          s.barStartBeat + s.beats,
+          audioNow(),
+        );
       }
+      const durMs = s.beats * beatDur * 1000;
       step++;
       if (step >= songSteps.length) {
-        stopSongPlay();
+        // Let the final step's audio finish before tearing down the audio graph.
+        songTimerRef.current = setTimeout(() => stopSongPlay(), durMs);
         return;
       }
-      const durMs = (s.beats * 60 * 1000) / effectiveBpm;
       songTimerRef.current = setTimeout(tick, durMs);
     };
     tick();
@@ -456,7 +479,7 @@ function App() {
       if (songTimerRef.current) clearTimeout(songTimerRef.current);
       resetAudio();
     };
-  }, [songPlaying, songSteps, effectiveBpm, rhythm, muted, optimal, stopSongPlay]);
+  }, [songPlaying, songSteps, effectiveBpm, songTimeSig.beats, rhythm, muted, optimal, stopSongPlay]);
 
   useEffect(() => {
     if (!currentSong) stopSongPlay();
@@ -1021,6 +1044,7 @@ function App() {
                 onClosePanel={handleCloseSongPanel}
                 isPlaying={songPlaying}
                 onTogglePlay={toggleSongPlay}
+                playCursor={songCursor}
               />
             </div>
           )}

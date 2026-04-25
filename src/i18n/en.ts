@@ -129,6 +129,7 @@ export default {
   songEditorStrumField: 'Strum',
   songEditorBpmField: 'BPM',
   songEditorBpmPlaceholder: 'auto',
+  songEditorTimeSigField: 'Time',
   songEditorSectionStrumTitle: 'Override rhythm for this section',
   songEditorSectionStrumDefault: '— default —',
   songEditorSectionPlaceholder: 'section name',

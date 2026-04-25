@@ -195,6 +195,12 @@ interface SongSheetPanelProps {
   onExpand?: () => void;
   isPlaying?: boolean;
   onTogglePlay?: () => void;
+  playCursor?: {
+    sectionIdx: number;
+    lineIdx: number;
+    barIdx: number;
+    chordIdx: number;
+  } | null;
 }
 
 /**
@@ -211,6 +217,8 @@ function LineRow({
   bars,
   slotLayouts,
   carryOverChord,
+  carryOverPlaying,
+  playingChord,
   label,
   activeChordKey,
   keyOfDegree,
@@ -224,6 +232,10 @@ function LineRow({
   slotLayouts: BarSlotLayout[];
   /** The chord carried over from the previous line of the same section (null on first line). */
   carryOverChord: { degree: number } | null;
+  /** True if the playback cursor currently lives on that carry-over chord. */
+  carryOverPlaying: boolean;
+  /** {barIdx, chordIdx} of the chord currently being played on this line, or null. */
+  playingChord: { barIdx: number; chordIdx: number } | null;
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -304,7 +316,7 @@ function LineRow({
         chords[0].startCol > 0 &&
         (() => {
           const vKey = keyOfDegree(carryOverChord.degree);
-          const isActive = vKey != null && vKey === activeChordKey;
+          const isActive = carryOverPlaying || (vKey != null && vKey === activeChordKey);
           const color = `var(--color-deg-${carryOverChord.degree})`;
           return (
             <button
@@ -340,7 +352,9 @@ function LineRow({
       {chords.map((chord, ci) => {
         const endCol = ci + 1 < chords.length ? chords[ci + 1].startCol : totalCols;
         const vKey = keyOfDegree(chord.degree);
-        const isActive = vKey != null && vKey === activeChordKey;
+        const isPlayingThis =
+          playingChord != null && playingChord.barIdx === chord.barIdx && playingChord.chordIdx === chord.chordIdx;
+        const isActive = isPlayingThis || (vKey != null && vKey === activeChordKey);
         const color = `var(--color-deg-${chord.degree})`;
         const bandWidth = endCol - chord.startCol;
         const accentOffsetPct = bandWidth > 0 ? ((chord.accentCol - chord.startCol) / bandWidth) * 100 : 0;
@@ -397,7 +411,9 @@ function LineRow({
       {atoms.map((a, i) => {
         const color = `var(--color-deg-${bars[a.barIdx].chords[a.chordIdx].degree})`;
         const vKey = keyOfDegree(bars[a.barIdx].chords[a.chordIdx].degree);
-        const isActive = vKey != null && vKey === activeChordKey;
+        const isPlayingThis =
+          playingChord != null && playingChord.barIdx === a.barIdx && playingChord.chordIdx === a.chordIdx;
+        const isActive = isPlayingThis || (vKey != null && vKey === activeChordKey);
         if (a.accent) {
           return (
             <span
@@ -482,6 +498,7 @@ export function SongSheetPanel({
   onExpand,
   isPlaying,
   onTogglePlay,
+  playCursor,
 }: SongSheetPanelProps) {
   const { t } = useTranslation();
 
@@ -624,12 +641,31 @@ export function SongSheetPanel({
                 if (lastBar && lastBar.chords.length > 0) {
                   lastChord = { degree: lastBar.chords[lastBar.chords.length - 1].degree };
                 }
+                const playingChord =
+                  playCursor && playCursor.sectionIdx === si && playCursor.lineIdx === li
+                    ? { barIdx: playCursor.barIdx, chordIdx: playCursor.chordIdx }
+                    : null;
+                // Carry-over is "playing" only when the cursor is on the previous line's
+                // last chord (i.e. the one we're painting into this line's leading region).
+                const prevLine = li > 0 ? section.lines[li - 1] : null;
+                const prevLastBarIdx = prevLine ? prevLine.bars.length - 1 : -1;
+                const prevLastChordIdx =
+                  prevLine && prevLastBarIdx >= 0 ? prevLine.bars[prevLastBarIdx].chords.length - 1 : -1;
+                const carryOverPlaying =
+                  carryOver != null &&
+                  playCursor != null &&
+                  playCursor.sectionIdx === si &&
+                  playCursor.lineIdx === li - 1 &&
+                  playCursor.barIdx === prevLastBarIdx &&
+                  playCursor.chordIdx === prevLastChordIdx;
                 return (
                   <LineRow
                     key={li}
                     bars={line.bars}
                     slotLayouts={slotLayouts}
                     carryOverChord={carryOver}
+                    carryOverPlaying={carryOverPlaying}
+                    playingChord={playingChord}
                     label={label}
                     activeChordKey={activeChordKey}
                     keyOfDegree={keyOfDegree}
