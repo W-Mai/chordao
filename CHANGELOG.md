@@ -4,6 +4,21 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.26.1]
+
+### Added
+- **Song sheets** — lyric + bar-aligned chord chart with degree-colored accents. Built-in songs live as `.md` files under `songs/` (frontmatter + UG-ish body); a 🎼 header button opens a hidden-by-default panel with a song selector.
+- **Visual song editor** — click char sets accent, click chip picks degree; supports per-line bar add/remove, multi-chord bars (split-chord, `/`-separated), section/line editing. Raw-text view available as fallback.
+- **Song sharing** — lz-string compressed sheet payload in URL; auto-imports to localStorage on open.
+- **Runtime accent alignment** — same-bar accents line up vertically across lines in a section (computed from line patterns, no manual spacing).
+- **Trapezoid chord chip** — chip color band extends across its chord's whole territory (including across bars and into next lines as a carry-over); chip label anchored above the accent char.
+- **Auto-fit font size** — section-level column budget + per-section font-size so lines fill the panel width and accents share pixel columns.
+- **Pixel font for chord chips** — self-hosted Pixeloid Mono under `public/fonts/`.
+
+### Fixed
+- Fullscreen overlay no longer traps clicks after close (effect-dep thrash) — earlier fix preserved through the refactor.
+- User-saved copy of a built-in song no longer collides with its id in the selector dropdown.
+
 ## [2026.4.24.1]
 
 ### Added
