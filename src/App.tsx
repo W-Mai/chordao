@@ -342,6 +342,7 @@ function App() {
     if (songTimerRef.current) clearTimeout(songTimerRef.current);
     songTimerRef.current = null;
     setSongCursor(null);
+    setLockedChord(null);
   }, []);
   const toggleSongPlay = useCallback(() => {
     setSongPlaying((v) => !v);
@@ -464,6 +465,11 @@ function App() {
       const s = songSteps[step];
       const v = optimal.find((o) => o.degree === s.degree);
       setSongCursor({ sectionIdx: s.sectionIdx, lineIdx: s.lineIdx, barIdx: s.barIdx, chordIdx: s.chordIdx });
+      // Also broadcast the active chord so the right-side views (Shape Grid,
+      // Fretboard, Chord Diagrams) highlight all same-degree voicings. The song
+      // panel specifically filters this out while playCursor is set — see its
+      // chip/lyric highlight logic.
+      if (v) setLockedChord(voicingKey(v));
       if (v && !muted) {
         const stepPattern = s.strum ? (RHYTHM_PATTERNS.find((r) => r.name === s.strum) ?? rhythm) : rhythm;
         scheduleBarScoped(

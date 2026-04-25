@@ -219,6 +219,7 @@ function LineRow({
   carryOverChord,
   carryOverPlaying,
   playingChord,
+  isPlaybackActive,
   label,
   activeChordKey,
   keyOfDegree,
@@ -236,6 +237,8 @@ function LineRow({
   carryOverPlaying: boolean;
   /** {barIdx, chordIdx} of the chord currently being played on this line, or null. */
   playingChord: { barIdx: number; chordIdx: number } | null;
+  /** True while song playback is running anywhere (cursor is visible somewhere). */
+  isPlaybackActive: boolean;
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -316,7 +319,9 @@ function LineRow({
         chords[0].startCol > 0 &&
         (() => {
           const vKey = keyOfDegree(carryOverChord.degree);
-          const isActive = carryOverPlaying || (vKey != null && vKey === activeChordKey);
+          const isActive = isPlaybackActive
+            ? carryOverPlaying
+            : carryOverPlaying || (vKey != null && vKey === activeChordKey);
           const color = `var(--color-deg-${carryOverChord.degree})`;
           return (
             <button
@@ -354,7 +359,7 @@ function LineRow({
         const vKey = keyOfDegree(chord.degree);
         const isPlayingThis =
           playingChord != null && playingChord.barIdx === chord.barIdx && playingChord.chordIdx === chord.chordIdx;
-        const isActive = isPlayingThis || (vKey != null && vKey === activeChordKey);
+        const isActive = isPlaybackActive ? isPlayingThis : isPlayingThis || (vKey != null && vKey === activeChordKey);
         const color = `var(--color-deg-${chord.degree})`;
         const bandWidth = endCol - chord.startCol;
         const accentOffsetPct = bandWidth > 0 ? ((chord.accentCol - chord.startCol) / bandWidth) * 100 : 0;
@@ -413,7 +418,7 @@ function LineRow({
         const vKey = keyOfDegree(bars[a.barIdx].chords[a.chordIdx].degree);
         const isPlayingThis =
           playingChord != null && playingChord.barIdx === a.barIdx && playingChord.chordIdx === a.chordIdx;
-        const isActive = isPlayingThis || (vKey != null && vKey === activeChordKey);
+        const isActive = isPlaybackActive ? isPlayingThis : isPlayingThis || (vKey != null && vKey === activeChordKey);
         if (a.accent) {
           return (
             <span
@@ -666,6 +671,7 @@ export function SongSheetPanel({
                     carryOverChord={carryOver}
                     carryOverPlaying={carryOverPlaying}
                     playingChord={playingChord}
+                    isPlaybackActive={playCursor != null}
                     label={label}
                     activeChordKey={activeChordKey}
                     keyOfDegree={keyOfDegree}
