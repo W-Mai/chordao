@@ -1,4 +1,5 @@
-import type { SongSheet, Section, Bar } from './songSheet';
+import type { SongSheet, Section, Bar, Chord } from './songSheet';
+import { countAccents, splitBarByAccents } from './songSheet';
 import { NOTES, type NoteName } from './chordData';
 
 export interface ParseError {
@@ -106,12 +107,12 @@ export function parseSongSheetText(text: string): ParseResult {
     const degPart = trimmed.slice(atIdx + 1).trim();
 
     const barSources = barsPart.split('|').map((s) => s.trim());
-    const degTokens = degPart.split(/\s+/).filter(Boolean);
+    const degGroups = degPart.split(/\s+/).filter(Boolean); // one group per bar, chords inside split by '/'
 
-    if (barSources.length !== degTokens.length) {
+    if (barSources.length !== degGroups.length) {
       errors.push({
         line: lineNo,
-        message: `Bar count (${barSources.length}) != degree count (${degTokens.length})`,
+        message: `Bar count (${barSources.length}) != degree group count (${degGroups.length})`,
       });
       continue;
     }
@@ -119,13 +120,45 @@ export function parseSongSheetText(text: string): ParseResult {
     const bars: Bar[] = [];
     let barError = false;
     for (let bi = 0; bi < barSources.length; bi++) {
-      const degree = parseDegreeToken(degTokens[bi]);
-      if (degree == null) {
-        errors.push({ line: lineNo, message: `Invalid degree "${degTokens[bi]}" (expected 1-6 with optional m)` });
+      const group = degGroups[bi];
+      const degTokens = group.split('/');
+      const degrees: number[] = [];
+      for (const tok of degTokens) {
+        const d = parseDegreeToken(tok);
+        if (d == null) {
+          errors.push({
+            line: lineNo,
+            message: `Invalid degree "${tok}" in bar ${bi + 1} (expected 1-6 with optional m)`,
+          });
+          barError = true;
+          break;
+        }
+        degrees.push(d);
+      }
+      if (barError) break;
+
+      const barSource = barSources[bi];
+      const accentCount = countAccents(barSource);
+
+      // Single-chord bar: accept either 0 or 1 accent (historical data may have 0)
+      if (degrees.length === 1) {
+        bars.push({ chords: [{ degree: degrees[0], source: barSource }] });
+        continue;
+      }
+
+      // Multi-chord bar: accent count must equal chord count
+      if (accentCount !== degrees.length) {
+        errors.push({
+          line: lineNo,
+          message: `Bar ${bi + 1}: ${degrees.length} chords declared but ${accentCount} accent marker(s) found`,
+        });
         barError = true;
         break;
       }
-      bars.push({ degree, source: barSources[bi] });
+
+      const fragments = splitBarByAccents(barSource);
+      const chords: Chord[] = degrees.map((d, ci) => ({ degree: d, source: fragments[ci] ?? '' }));
+      bars.push({ chords });
     }
     if (barError) continue;
 
@@ -169,14 +202,18 @@ export function serializeSongSheet(sheet: SongSheet): string {
   for (const section of sheet.sections) {
     lines.push(`--- ${section.name ?? ''} ---`);
     for (const line of section.lines) {
-      const bars = line.bars.map((b) => b.source).join(' | ');
-      const degs = line.bars
-        .map((b) => {
-          const suffix = [2, 3, 6].includes(b.degree) ? 'm' : '';
-          return `${b.degree}${suffix}`;
-        })
+      const barsStr = line.bars.map((b) => b.chords.map((c) => c.source).join('')).join(' | ');
+      const degsStr = line.bars
+        .map((b) =>
+          b.chords
+            .map((c) => {
+              const suffix = [2, 3, 6].includes(c.degree) ? 'm' : '';
+              return `${c.degree}${suffix}`;
+            })
+            .join('/'),
+        )
         .join(' ');
-      lines.push(`${bars} @ ${degs}`);
+      lines.push(`${barsStr} @ ${degsStr}`);
     }
     lines.push('');
   }

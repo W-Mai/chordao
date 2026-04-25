@@ -25,10 +25,10 @@ const BLANK_TEMPLATE: SongSheet = {
       lines: [
         {
           bars: [
-            { degree: 1, source: '' },
-            { degree: 3, source: '' },
-            { degree: 6, source: '' },
-            { degree: 4, source: '' },
+            { chords: [{ degree: 1, source: '' }] },
+            { chords: [{ degree: 3, source: '' }] },
+            { chords: [{ degree: 6, source: '' }] },
+            { chords: [{ degree: 4, source: '' }] },
           ],
         },
       ],

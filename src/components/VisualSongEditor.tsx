@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { SongSheet, Section, Line, Bar } from '../data/songSheet';
+import type { SongSheet, Section, Line, Bar, Chord } from '../data/songSheet';
 import { NOTES, type NoteName } from '../data/chordData';
 
 const DEGREE_LABEL: Record<number, string> = { 1: '1', 2: '2m', 3: '3m', 4: '4', 5: '5', 6: '6m' };
@@ -11,10 +11,6 @@ interface VisualSongEditorProps {
   onChange: (next: SongSheet) => void;
 }
 
-/**
- * Parsed bar source → array of {ch, accent} atoms. Accents are characters
- * that sat inside [X] brackets in the original string.
- */
 interface CharAtom {
   ch: string;
   accent: boolean;
@@ -37,11 +33,27 @@ function atomsFromSource(source: string): CharAtom[] {
   return out;
 }
 
-function sourceFromAtoms(atoms: CharAtom[]): string {
-  // Re-wrap contiguous accent runs in [..] brackets.
+/** Find accent-run starts within a sub-range of atoms. */
+function accentRunStarts(atoms: CharAtom[], from: number, to: number): number[] {
+  const starts: number[] = [];
+  let inRun = false;
+  for (let i = from; i < to; i++) {
+    if (atoms[i].accent && !inRun) {
+      starts.push(i);
+      inRun = true;
+    } else if (!atoms[i].accent) {
+      inRun = false;
+    }
+  }
+  return starts;
+}
+
+/** Render a range of atoms back into a source string with [] around accent runs. */
+function sourceFromRange(atoms: CharAtom[], from: number, to: number): string {
   let out = '';
   let prevAccent = false;
-  for (const a of atoms) {
+  for (let i = from; i < to; i++) {
+    const a = atoms[i];
     if (a.accent && !prevAccent) out += '[';
     if (!a.accent && prevAccent) out += ']';
     out += a.ch;
@@ -52,44 +64,77 @@ function sourceFromAtoms(atoms: CharAtom[]): string {
 }
 
 /**
- * A line is a set of bars. For visual editing we flatten into a single atom
- * stream + bar boundaries. boundary[i] = atom index where bar i starts.
- * len(atoms) is implicit end of the last bar.
+ * Per-line flat representation used only during editing:
+ * - atoms: every character in the line as { ch, accent }
+ * - barStarts: atom index where each bar starts (length = bar count)
+ * - barDegreesList[i]: degrees array for bar i; its length is allowed to drift
+ *   temporarily but normalized to match accent runs on commit.
  */
 interface FlatLine {
   atoms: CharAtom[];
-  degrees: number[]; // length = boundaries.length
-  boundaries: number[]; // length = degrees.length; always starts with 0
+  barStarts: number[];
+  barDegreesList: number[][];
 }
 
 function flattenLine(line: Line): FlatLine {
   const atoms: CharAtom[] = [];
-  const boundaries: number[] = [];
-  const degrees: number[] = [];
+  const barStarts: number[] = [];
+  const barDegreesList: number[][] = [];
   for (const bar of line.bars) {
-    boundaries.push(atoms.length);
-    degrees.push(bar.degree);
-    for (const a of atomsFromSource(bar.source)) atoms.push(a);
+    barStarts.push(atoms.length);
+    barDegreesList.push(bar.chords.map((c) => c.degree));
+    for (const chord of bar.chords) {
+      for (const a of atomsFromSource(chord.source)) atoms.push(a);
+    }
   }
-  return { atoms, degrees, boundaries };
+  return { atoms, barStarts, barDegreesList };
 }
 
 function unflattenLine(flat: FlatLine): Line {
   const bars: Bar[] = [];
-  for (let i = 0; i < flat.boundaries.length; i++) {
-    const start = flat.boundaries[i];
-    const end = i + 1 < flat.boundaries.length ? flat.boundaries[i + 1] : flat.atoms.length;
-    bars.push({ degree: flat.degrees[i], source: sourceFromAtoms(flat.atoms.slice(start, end)) });
+  const barCount = flat.barStarts.length;
+  for (let bi = 0; bi < barCount; bi++) {
+    const start = flat.barStarts[bi];
+    const end = bi + 1 < barCount ? flat.barStarts[bi + 1] : flat.atoms.length;
+    const degrees = flat.barDegreesList[bi];
+    const starts = accentRunStarts(flat.atoms, start, end);
+
+    // Chord count should equal accent-run count. If mismatched, pad or truncate
+    // degrees; prefer keeping the leading degrees user typed.
+    const chordCount = Math.max(1, starts.length || 1);
+    const chords: Chord[] = [];
+
+    if (starts.length === 0) {
+      // No accent run — one chord containing the full segment.
+      const deg = degrees[0] ?? 1;
+      chords.push({ degree: deg, source: sourceFromRange(flat.atoms, start, end) });
+    } else {
+      for (let ci = 0; ci < chordCount; ci++) {
+        const from = starts[ci];
+        const to = ci + 1 < starts.length ? starts[ci + 1] : end;
+        const deg = degrees[ci] ?? degrees[degrees.length - 1] ?? 1;
+        chords.push({ degree: deg, source: sourceFromRange(flat.atoms, from, to) });
+      }
+      // If the first accent run doesn't start at `start`, prepend that lyric
+      // prefix onto the first chord so we don't drop it.
+      if (starts[0] > start) {
+        const prefix = sourceFromRange(flat.atoms, start, starts[0]);
+        chords[0] = { ...chords[0], source: prefix + chords[0].source };
+      }
+    }
+    bars.push({ chords });
   }
   return { bars };
 }
 
 export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
   const { t } = useTranslation();
-  // popover state: {path to bar, anchor}
-  const [degreePicker, setDegreePicker] = useState<{ sectionIdx: number; lineIdx: number; barIdx: number } | null>(
-    null,
-  );
+  const [degreePicker, setDegreePicker] = useState<{
+    sectionIdx: number;
+    lineIdx: number;
+    barIdx: number;
+    chordIdx: number;
+  } | null>(null);
 
   const updateMeta = useCallback(
     (patch: Partial<Pick<SongSheet, 'title' | 'key' | 'strum'>>) => {
@@ -124,20 +169,17 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
     [sheet, onChange],
   );
 
+  const makeEmptyBar = (d: number): Bar => ({ chords: [{ degree: d, source: '' }] });
+
   const addSection = useCallback(() => {
-    const sections = [
-      ...sheet.sections,
-      { name: '', lines: [{ bars: [1, 1, 1, 1].map((d) => ({ degree: d, source: '' })) }] } satisfies Section,
-    ];
+    const sections: Section[] = [...sheet.sections, { name: '', lines: [{ bars: [1, 1, 1, 1].map(makeEmptyBar) }] }];
     onChange({ ...sheet, sections });
   }, [sheet, onChange]);
 
   const addLine = useCallback(
     (sectionIdx: number) => {
       const sections = sheet.sections.map((s, si) =>
-        si !== sectionIdx
-          ? s
-          : { ...s, lines: [...s.lines, { bars: [1, 1, 1, 1].map((d) => ({ degree: d, source: '' })) }] },
+        si !== sectionIdx ? s : { ...s, lines: [...s.lines, { bars: [1, 1, 1, 1].map(makeEmptyBar) }] },
       );
       onChange({ ...sheet, sections });
     },
@@ -184,7 +226,6 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
         />
       </div>
 
-      {/* Sections */}
       {sheet.sections.map((section, si) => (
         <div key={si} className="border border-surface0 rounded-lg p-3 bg-base/40">
           <div className="flex items-center gap-2 mb-2">
@@ -213,9 +254,13 @@ export function VisualSongEditor({ sheet, onChange }: VisualSongEditorProps) {
               line={line}
               onChange={(next) => updateLine(si, li, next)}
               onDelete={() => deleteLine(si, li)}
-              onOpenDegreePicker={(barIdx) => setDegreePicker({ sectionIdx: si, lineIdx: li, barIdx })}
+              onOpenDegreePicker={(barIdx, chordIdx) =>
+                setDegreePicker({ sectionIdx: si, lineIdx: li, barIdx, chordIdx })
+              }
               degreePickerOpen={
-                degreePicker?.sectionIdx === si && degreePicker?.lineIdx === li ? degreePicker.barIdx : null
+                degreePicker?.sectionIdx === si && degreePicker?.lineIdx === li
+                  ? { barIdx: degreePicker.barIdx, chordIdx: degreePicker.chordIdx }
+                  : null
               }
               closeDegreePicker={() => setDegreePicker(null)}
             />
@@ -238,8 +283,8 @@ interface LineEditorProps {
   line: Line;
   onChange: (next: Line) => void;
   onDelete: () => void;
-  onOpenDegreePicker: (barIdx: number) => void;
-  degreePickerOpen: number | null;
+  onOpenDegreePicker: (barIdx: number, chordIdx: number) => void;
+  degreePickerOpen: { barIdx: number; chordIdx: number } | null;
   closeDegreePicker: () => void;
 }
 
@@ -257,8 +302,11 @@ function LineEditor({
   const commit = useCallback((next: FlatLine) => onChange(unflattenLine(next)), [onChange]);
 
   const setDegree = useCallback(
-    (barIdx: number, degree: number) => {
-      commit({ ...flat, degrees: flat.degrees.map((d, i) => (i === barIdx ? degree : d)) });
+    (barIdx: number, chordIdx: number, degree: number) => {
+      const barDegreesList = flat.barDegreesList.map((list, bi) =>
+        bi !== barIdx ? list : list.map((d, ci) => (ci !== chordIdx ? d : degree)),
+      );
+      commit({ ...flat, barDegreesList });
       closeDegreePicker();
     },
     [flat, commit, closeDegreePicker],
@@ -267,60 +315,63 @@ function LineEditor({
   const toggleAccentAtAtom = useCallback(
     (atomIdx: number) => {
       const atoms = flat.atoms.map((a, i) => (i === atomIdx ? { ...a, accent: !a.accent } : a));
-      commit({ ...flat, atoms });
-    },
-    [flat, commit],
-  );
-
-  const moveBoundary = useCallback(
-    (barIdx: number, newAtomIdx: number) => {
-      // Can't move the first boundary (always 0) or past previous/next boundary.
-      if (barIdx <= 0) return;
-      const lower = flat.boundaries[barIdx - 1] + 1; // at least 1 atom in prev bar
-      const upper = barIdx + 1 < flat.boundaries.length ? flat.boundaries[barIdx + 1] - 1 : flat.atoms.length;
-      const clamped = Math.max(lower, Math.min(upper, newAtomIdx));
-      commit({ ...flat, boundaries: flat.boundaries.map((b, i) => (i === barIdx ? clamped : b)) });
+      // Accent runs changed → chord count in the owning bar needs to be re-synced.
+      // Find which bar this atom belongs to.
+      let targetBar = 0;
+      for (let bi = 0; bi < flat.barStarts.length; bi++) {
+        if (atomIdx >= flat.barStarts[bi]) targetBar = bi;
+        else break;
+      }
+      const start = flat.barStarts[targetBar];
+      const end = targetBar + 1 < flat.barStarts.length ? flat.barStarts[targetBar + 1] : atoms.length;
+      const runs = accentRunStarts(atoms, start, end);
+      const desiredChords = Math.max(1, runs.length || 1);
+      const cur = flat.barDegreesList[targetBar];
+      const nextList = cur.slice(0, desiredChords);
+      while (nextList.length < desiredChords) nextList.push(cur[cur.length - 1] ?? 1);
+      const barDegreesList = flat.barDegreesList.map((list, bi) => (bi !== targetBar ? list : nextList));
+      commit({ ...flat, atoms, barDegreesList });
     },
     [flat, commit],
   );
 
   const addBar = useCallback(() => {
-    // Append an empty bar at the end, degree defaults to the last bar's degree (or 1).
-    const lastDeg = flat.degrees[flat.degrees.length - 1] ?? 1;
+    const lastBarDegs = flat.barDegreesList[flat.barDegreesList.length - 1];
+    const newDeg = lastBarDegs?.[lastBarDegs.length - 1] ?? 1;
     commit({
       ...flat,
-      degrees: [...flat.degrees, lastDeg],
-      boundaries: [...flat.boundaries, flat.atoms.length],
+      barStarts: [...flat.barStarts, flat.atoms.length],
+      barDegreesList: [...flat.barDegreesList, [newDeg]],
     });
   }, [flat, commit]);
 
   const removeBar = useCallback(() => {
-    if (flat.degrees.length <= 1) return;
-    // Drop the last bar and its atoms (everything from its boundary to the end).
-    const lastStart = flat.boundaries[flat.boundaries.length - 1];
+    if (flat.barStarts.length <= 1) return;
+    const lastStart = flat.barStarts[flat.barStarts.length - 1];
     commit({
       atoms: flat.atoms.slice(0, lastStart),
-      degrees: flat.degrees.slice(0, -1),
-      boundaries: flat.boundaries.slice(0, -1),
+      barStarts: flat.barStarts.slice(0, -1),
+      barDegreesList: flat.barDegreesList.slice(0, -1),
     });
   }, [flat, commit]);
 
-  const editSourceText = useCallback(
+  const editBarText = useCallback(
     (barIdx: number, text: string) => {
-      // Rebuild atoms for this bar from scratch text (no accent markers — user is typing plain text).
-      const start = flat.boundaries[barIdx];
-      const end = barIdx + 1 < flat.boundaries.length ? flat.boundaries[barIdx + 1] : flat.atoms.length;
+      const start = flat.barStarts[barIdx];
+      const end = barIdx + 1 < flat.barStarts.length ? flat.barStarts[barIdx + 1] : flat.atoms.length;
       const newAtoms = Array.from(text).map((ch) => ({ ch, accent: false }));
       const nextAtoms = [...flat.atoms.slice(0, start), ...newAtoms, ...flat.atoms.slice(end)];
-      // Shift downstream boundaries by delta
       const delta = newAtoms.length - (end - start);
-      const boundaries = flat.boundaries.map((b, i) => (i <= barIdx ? b : b + delta));
-      commit({ ...flat, atoms: nextAtoms, boundaries });
+      const barStarts = flat.barStarts.map((b, i) => (i <= barIdx ? b : b + delta));
+      // Accents cleared in this bar → 1 chord only (keep first degree).
+      const cur = flat.barDegreesList[barIdx];
+      const barDegreesList = flat.barDegreesList.map((list, bi) => (bi !== barIdx ? list : [cur[0] ?? 1]));
+      commit({ atoms: nextAtoms, barStarts, barDegreesList });
     },
     [flat, commit],
   );
 
-  const n = flat.degrees.length;
+  const barCount = flat.barStarts.length;
 
   return (
     <div className="relative flex items-start gap-2 mb-2">
@@ -335,7 +386,7 @@ function LineEditor({
         <div className="flex items-center gap-1 mb-1 justify-end">
           <button
             onClick={removeBar}
-            disabled={n <= 1}
+            disabled={barCount <= 1}
             className="text-[10px] px-1.5 py-0.5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-red disabled:opacity-30 disabled:cursor-not-allowed"
             title={t('songEditorRemoveBar')}
           >
@@ -349,41 +400,54 @@ function LineEditor({
             {t('songEditorAddBar')}
           </button>
         </div>
-        <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
-          {flat.degrees.map((degree, bi) => {
-            const color = `var(--color-deg-${degree})`;
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${barCount}, minmax(0, 1fr))` }}>
+          {flat.barDegreesList.map((degrees, bi) => {
+            const start = flat.barStarts[bi];
+            const end = bi + 1 < flat.barStarts.length ? flat.barStarts[bi + 1] : flat.atoms.length;
             return (
-              <div key={`h-${bi}`} className="relative">
-                <button
-                  onClick={() => onOpenDegreePicker(bi)}
-                  className="w-full text-left text-xs font-mono px-1 py-0.5 rounded cursor-pointer"
-                  style={{
-                    background: `color-mix(in srgb, ${color} 20%, transparent)`,
-                    color,
-                    fontWeight: 500,
-                  }}
-                >
-                  {DEGREE_LABEL[degree]}
-                </button>
-                {degreePickerOpen === bi && (
-                  <DegreePopover current={degree} onPick={(d) => setDegree(bi, d)} onCancel={closeDegreePicker} />
-                )}
+              <div
+                key={bi}
+                className="grid gap-0.5"
+                style={{ gridTemplateColumns: `repeat(${degrees.length}, minmax(0, 1fr))` }}
+              >
+                {/* Chord chips (one per chord in this bar) */}
+                {degrees.map((degree, ci) => {
+                  const color = `var(--color-deg-${degree})`;
+                  const isOpen = degreePickerOpen?.barIdx === bi && degreePickerOpen?.chordIdx === ci;
+                  return (
+                    <div key={`h-${ci}`} className="relative">
+                      <button
+                        onClick={() => onOpenDegreePicker(bi, ci)}
+                        className="w-full text-left text-xs font-mono px-1 py-0.5 rounded cursor-pointer"
+                        style={{
+                          background: `color-mix(in srgb, ${color} 20%, transparent)`,
+                          color,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {DEGREE_LABEL[degree]}
+                      </button>
+                      {isOpen && (
+                        <DegreePopover
+                          current={degree}
+                          onPick={(d) => setDegree(bi, ci, d)}
+                          onCancel={closeDegreePicker}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Bar body: atoms spanning all chords in this bar.
+                    Accent toggles split chords automatically. */}
+                <div style={{ gridColumn: `span ${degrees.length}` }}>
+                  <BarBody
+                    atoms={flat.atoms.slice(start, end)}
+                    atomOffset={start}
+                    onToggleAccent={toggleAccentAtAtom}
+                    onReplaceText={(txt) => editBarText(bi, txt)}
+                  />
+                </div>
               </div>
-            );
-          })}
-          {flat.degrees.map((degree, bi) => {
-            const start = flat.boundaries[bi];
-            const end = bi + 1 < flat.boundaries.length ? flat.boundaries[bi + 1] : flat.atoms.length;
-            return (
-              <BarBody
-                key={`l-${bi}`}
-                degree={degree}
-                atoms={flat.atoms.slice(start, end)}
-                atomOffset={start}
-                onToggleAccent={toggleAccentAtAtom}
-                onReplaceText={(txt) => editSourceText(bi, txt)}
-                leftDivider={bi > 0 ? () => (newIdx: number) => moveBoundary(bi, newIdx + start) : null}
-              />
             );
           })}
         </div>
@@ -393,17 +457,14 @@ function LineEditor({
 }
 
 interface BarBodyProps {
-  degree: number;
   atoms: CharAtom[];
   atomOffset: number;
   onToggleAccent: (globalIdx: number) => void;
   onReplaceText: (text: string) => void;
-  leftDivider: (() => (newAtomIdx: number) => void) | null;
 }
 
-function BarBody({ degree, atoms, atomOffset, onToggleAccent, onReplaceText, leftDivider }: BarBodyProps) {
+function BarBody({ atoms, atomOffset, onToggleAccent, onReplaceText }: BarBodyProps) {
   const { t } = useTranslation();
-  const color = `var(--color-deg-${degree})`;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
 
@@ -427,47 +488,40 @@ function BarBody({ degree, atoms, atomOffset, onToggleAccent, onReplaceText, lef
           if (e.key === 'Enter') commitEdit();
           if (e.key === 'Escape') setEditing(false);
         }}
-        className="text-sm bg-base border border-blue rounded px-1 outline-none text-txt"
+        className="text-sm bg-base border border-blue rounded px-1 outline-none text-txt w-full"
       />
     );
   }
 
   return (
-    <div className="text-sm relative group" onDoubleClick={startEditing} title="double-click to edit">
-      {leftDivider && (
-        <button
-          className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-blue/50 z-10"
-          title="drag to move bar boundary (left/right arrow after focus)"
-          onKeyDown={(e) => {
-            const move = leftDivider();
-            if (e.key === 'ArrowLeft') move(-1);
-            if (e.key === 'ArrowRight') move(+1);
-          }}
-        />
-      )}
+    <div className="text-sm relative" onDoubleClick={startEditing} title="double-click to edit">
       {atoms.length === 0 ? (
         <span className="text-overlay0 italic opacity-50">{t('songEditorEmptyBarHint')}</span>
       ) : (
-        atoms.map((a, i) => (
-          <span
-            key={i}
-            onClick={() => onToggleAccent(atomOffset + i)}
-            className="cursor-pointer select-none"
-            style={
-              a.accent
-                ? {
-                    background: `color-mix(in srgb, ${color} 30%, transparent)`,
-                    color,
-                    fontWeight: 700,
-                    padding: '0 1px',
-                    borderRadius: 2,
-                  }
-                : {}
-            }
-          >
-            {a.ch === ' ' ? ' ' : a.ch}
-          </span>
-        ))
+        atoms.map((a, i) => {
+          const degCandidate = 1; // color isn't known at atom level; use a neutral accent style
+          void degCandidate;
+          return (
+            <span
+              key={i}
+              onClick={() => onToggleAccent(atomOffset + i)}
+              className="cursor-pointer select-none"
+              style={
+                a.accent
+                  ? {
+                      background: `color-mix(in srgb, var(--blue) 30%, transparent)`,
+                      color: 'var(--blue)',
+                      fontWeight: 700,
+                      padding: '0 1px',
+                      borderRadius: 2,
+                    }
+                  : {}
+              }
+            >
+              {a.ch === ' ' ? ' ' : a.ch}
+            </span>
+          );
+        })
       )}
     </div>
   );

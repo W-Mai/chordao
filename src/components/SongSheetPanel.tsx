@@ -25,7 +25,6 @@ interface AccentSlice {
 function sliceAroundAccent(chars: Array<{ ch: string; accent: boolean }>): AccentSlice {
   const firstAccent = chars.findIndex((c) => c.accent);
   if (firstAccent < 0) {
-    // No accent marker — treat everything as pre, empty accent/post.
     return { pre: chars.map((c) => c.ch).join(''), accent: '', post: '' };
   }
   let lastAccent = firstAccent;
@@ -47,20 +46,23 @@ function sliceAroundAccent(chars: Array<{ ch: string; accent: boolean }>): Accen
 }
 
 /**
- * For each bar index in a section, find the max visual width of the
- * pre-accent segment across all lines. Lines with shorter pre-accent
- * get padded from the left so that accent chars line up vertically.
+ * For each [bar][chord] position in a section, find the max visual width of
+ * the chord's pre-accent segment across all lines. Each chord gets padded
+ * from the left so accent chars line up vertically across lines.
+ * Returns a map keyed by `${bi}:${ci}` → max width.
  */
-function computeSectionAlignment(section: Section): { prePadMax: number[] } {
-  if (section.lines.length === 0) return { prePadMax: [] };
-  const barCount = Math.max(...section.lines.map((l) => l.bars.length));
-  const prePadMax: number[] = Array(barCount).fill(0);
+function computeSectionAlignment(section: Section): { prePadMax: Record<string, number> } {
+  const prePadMax: Record<string, number> = {};
+  if (section.lines.length === 0) return { prePadMax };
   for (const line of section.lines) {
     line.bars.forEach((bar, bi) => {
-      const { chars } = parseBarSource(bar.source);
-      const { pre } = sliceAroundAccent(chars);
-      const w = visualWidth(pre);
-      if (w > prePadMax[bi]) prePadMax[bi] = w;
+      bar.chords.forEach((chord, ci) => {
+        const { chars } = parseBarSource(chord.source);
+        const { pre } = sliceAroundAccent(chars);
+        const w = visualWidth(pre);
+        const key = `${bi}:${ci}`;
+        if (!prePadMax[key] || w > prePadMax[key]) prePadMax[key] = w;
+      });
     });
   }
   return { prePadMax };
@@ -83,7 +85,7 @@ function absoluteChordName(key: NoteName, degree: number): string {
 interface SongOption {
   id: string;
   title: string;
-  group?: string; // e.g. 'builtin' | 'user'
+  group?: string;
 }
 
 interface SongSheetPanelProps {
@@ -139,7 +141,6 @@ export function SongSheetPanel({
 }: SongSheetPanelProps) {
   const { t } = useTranslation();
 
-  // Resolve a degree to its optimal voicing's key (used for cross-view highlighting)
   const keyOfDegree = (degree: number): string | null => {
     const v = optimal.find((o) => o.degree === degree);
     return v ? voicingKey(v) : null;
@@ -222,72 +223,80 @@ export function SongSheetPanel({
                 return (
                   <div
                     key={li}
-                    className="grid gap-0.5 mb-2 leading-relaxed"
+                    className="grid gap-1 mb-2 leading-relaxed"
                     style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}
                   >
-                    {/* Chord header row */}
-                    {bars.map((bar, bi) => {
-                      const vKey = keyOfDegree(bar.degree);
-                      const isActive = vKey != null && vKey === activeChordKey;
-                      const color = `var(--color-deg-${bar.degree})`;
-                      return (
-                        <button
-                          key={`h-${bi}`}
-                          onClick={() => vKey && handleClickChord(vKey)}
-                          onDoubleClick={() => vKey && handleDblClickChord(vKey)}
-                          onPointerEnter={() => vKey && handleHoverChord(vKey)}
-                          onPointerLeave={() => handleHoverChord(null)}
-                          className="text-left text-xs font-mono px-1 py-0.5 rounded cursor-pointer"
-                          style={{
-                            background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
-                            color: isActive ? 'var(--crust)' : color,
-                            fontWeight: isActive ? 700 : 500,
-                            transition: 'all var(--transition)',
-                          }}
-                        >
-                          {label(bar.degree)}
-                        </button>
-                      );
-                    })}
-                    {/* Lyrics row */}
-                    {bars.map((bar, bi) => {
-                      const { chars } = parseBarSource(bar.source);
-                      const slice = sliceAroundAccent(chars);
-                      const padW = Math.max(0, (prePadMax[bi] ?? 0) - visualWidth(slice.pre));
-                      const padStr = HALF_SPACE.repeat(padW);
-                      const color = `var(--color-deg-${bar.degree})`;
-                      const vKey = keyOfDegree(bar.degree);
-                      return (
-                        <div
-                          key={`l-${bi}`}
-                          onClick={() => vKey && handleClickChord(vKey)}
-                          onPointerEnter={() => vKey && handleHoverChord(vKey)}
-                          onPointerLeave={() => handleHoverChord(null)}
-                          className="text-base cursor-pointer select-none whitespace-pre"
-                          style={{ transition: 'all var(--transition)' }}
-                        >
-                          {padStr && <span style={{ color: 'var(--text)', opacity: 0.55 }}>{padStr}</span>}
-                          {chars.map((c, ci) => (
-                            <span
-                              key={ci}
-                              style={
-                                c.accent
-                                  ? {
-                                      background: `color-mix(in srgb, ${color} 30%, transparent)`,
-                                      color,
-                                      fontWeight: 700,
-                                      padding: '0 1px',
-                                      borderRadius: 2,
-                                    }
-                                  : { color: 'var(--text)', opacity: 0.55 }
-                              }
+                    {bars.map((bar, bi) => (
+                      <div
+                        key={bi}
+                        className="grid gap-0.5"
+                        style={{ gridTemplateColumns: `repeat(${bar.chords.length}, minmax(0, 1fr))` }}
+                      >
+                        {/* Chord header chips */}
+                        {bar.chords.map((chord, ci) => {
+                          const vKey = keyOfDegree(chord.degree);
+                          const isActive = vKey != null && vKey === activeChordKey;
+                          const color = `var(--color-deg-${chord.degree})`;
+                          return (
+                            <button
+                              key={`h-${ci}`}
+                              onClick={() => vKey && handleClickChord(vKey)}
+                              onDoubleClick={() => vKey && handleDblClickChord(vKey)}
+                              onPointerEnter={() => vKey && handleHoverChord(vKey)}
+                              onPointerLeave={() => handleHoverChord(null)}
+                              className="text-left text-xs font-mono px-1 py-0.5 rounded cursor-pointer"
+                              style={{
+                                background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
+                                color: isActive ? 'var(--crust)' : color,
+                                fontWeight: isActive ? 700 : 500,
+                                transition: 'all var(--transition)',
+                              }}
                             >
-                              {c.ch === ' ' ? ' ' : c.ch}
-                            </span>
-                          ))}
-                        </div>
-                      );
-                    })}
+                              {label(chord.degree)}
+                            </button>
+                          );
+                        })}
+                        {/* Lyrics cells, one per chord */}
+                        {bar.chords.map((chord, ci) => {
+                          const { chars } = parseBarSource(chord.source);
+                          const slice = sliceAroundAccent(chars);
+                          const padW = Math.max(0, (prePadMax[`${bi}:${ci}`] ?? 0) - visualWidth(slice.pre));
+                          const padStr = HALF_SPACE.repeat(padW);
+                          const color = `var(--color-deg-${chord.degree})`;
+                          const vKey = keyOfDegree(chord.degree);
+                          return (
+                            <div
+                              key={`l-${ci}`}
+                              onClick={() => vKey && handleClickChord(vKey)}
+                              onPointerEnter={() => vKey && handleHoverChord(vKey)}
+                              onPointerLeave={() => handleHoverChord(null)}
+                              className="text-base cursor-pointer select-none whitespace-pre"
+                              style={{ transition: 'all var(--transition)' }}
+                            >
+                              {padStr && <span style={{ color: 'var(--text)', opacity: 0.55 }}>{padStr}</span>}
+                              {chars.map((c, charIdx) => (
+                                <span
+                                  key={charIdx}
+                                  style={
+                                    c.accent
+                                      ? {
+                                          background: `color-mix(in srgb, ${color} 30%, transparent)`,
+                                          color,
+                                          fontWeight: 700,
+                                          padding: '0 1px',
+                                          borderRadius: 2,
+                                        }
+                                      : { color: 'var(--text)', opacity: 0.55 }
+                                  }
+                                >
+                                  {c.ch === ' ' ? ' ' : c.ch}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 );
               })}
