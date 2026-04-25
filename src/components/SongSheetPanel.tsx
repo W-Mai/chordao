@@ -75,18 +75,46 @@ function BarCell({
     }
   });
 
-  // Group atoms into runs: either "accent block" or "plain text block".
-  type Run = { kind: 'accent' | 'text'; chordIdx: number; text: string };
-  const runs: Run[] = [];
-  for (const a of atoms) {
-    const kind: 'accent' | 'text' = a.accent ? 'accent' : 'text';
-    const last = runs[runs.length - 1];
-    if (last && last.kind === kind && last.chordIdx === a.chordIdx) {
-      last.text += a.ch;
-    } else {
-      runs.push({ kind, chordIdx: a.chordIdx, text: a.ch });
-    }
-  }
+  // Find the accent-character indices so we can split atoms into three zones:
+  //   head:    atoms from 0 .. firstAccent (inclusive) — natural flow, no stretching
+  //   middle:  atoms between first and last accent — each atom in a 1fr grid cell (even spread)
+  //   tail:    atoms after lastAccent — natural flow, no stretching
+  const accentIndices = atoms.map((a, i) => (a.accent ? i : -1)).filter((i) => i >= 0);
+  const firstAccent = accentIndices[0] ?? -1;
+  const lastAccent = accentIndices[accentIndices.length - 1] ?? -1;
+
+  const head = firstAccent >= 0 ? atoms.slice(0, firstAccent + 1) : atoms;
+  const middle = lastAccent > firstAccent ? atoms.slice(firstAccent + 1, lastAccent + 1) : [];
+  const tail = lastAccent >= 0 && lastAccent < atoms.length - 1 ? atoms.slice(lastAccent + 1) : [];
+
+  const renderAtom = (a: LyricAtom, key: string | number) => {
+    const color = `var(--color-deg-${bar.chords[a.chordIdx].degree})`;
+    return (
+      <span
+        key={key}
+        style={
+          a.accent
+            ? {
+                background: `color-mix(in srgb, ${color} 30%, transparent)`,
+                color,
+                fontWeight: 700,
+                padding: '0 1px',
+                borderRadius: 2,
+                display: 'inline-flex',
+                justifyContent: 'center',
+              }
+            : {
+                color: 'var(--text)',
+                opacity: 0.55,
+                display: 'inline-flex',
+                justifyContent: 'center',
+              }
+        }
+      >
+        {a.ch === ' ' ? ' ' : a.ch}
+      </span>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
@@ -117,47 +145,30 @@ function BarCell({
         })}
       </div>
 
-      {/* Lyrics row: one continuous strip. Accent chars are fixed-width inline
-          blocks; text in between uses flex to spread accents evenly. */}
+      {/* Lyrics row: head (natural) + middle (even grid between accents) + tail (natural).
+          Only chars *between* two accents are stretched — one grid column per char. */}
       <div className="flex items-baseline text-base select-none">
-        {runs.map((run, i) => {
-          const color = `var(--color-deg-${bar.chords[run.chordIdx].degree})`;
-          if (run.kind === 'accent') {
-            return (
-              <span
-                key={i}
-                style={{
-                  background: `color-mix(in srgb, ${color} 30%, transparent)`,
-                  color,
-                  fontWeight: 700,
-                  padding: '0 1px',
-                  borderRadius: 2,
-                  flexShrink: 0,
-                }}
-              >
-                {run.text}
-              </span>
-            );
-          }
-          // Plain text run — flex-grow so blocks between accents stretch evenly.
-          // The first and last plain blocks also grow so the whole strip fills the bar width.
-          return (
-            <span
-              key={i}
-              style={{
-                color: 'var(--text)',
-                opacity: 0.55,
-                flex: 1,
-                display: 'inline-flex',
-                justifyContent: 'center',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-              }}
-            >
-              {run.text}
-            </span>
-          );
-        })}
+        {/* Head: up to and including the first accent */}
+        {head.length > 0 && (
+          <div className="flex items-baseline" style={{ flexShrink: 0 }}>
+            {head.map((a, i) => renderAtom(a, `h-${i}`))}
+          </div>
+        )}
+        {/* Middle: one column per char, each 1fr so chars between accents spread evenly */}
+        {middle.length > 0 && (
+          <div
+            className="grid flex-1 min-w-0"
+            style={{ gridTemplateColumns: `repeat(${middle.length}, minmax(0, 1fr))` }}
+          >
+            {middle.map((a, i) => renderAtom(a, `m-${i}`))}
+          </div>
+        )}
+        {/* Tail: natural flow after the last accent */}
+        {tail.length > 0 && (
+          <div className="flex items-baseline" style={{ flexShrink: 0 }}>
+            {tail.map((a, i) => renderAtom(a, `t-${i}`))}
+          </div>
+        )}
       </div>
     </div>
   );
