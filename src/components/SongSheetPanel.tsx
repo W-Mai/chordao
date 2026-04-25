@@ -208,6 +208,7 @@ interface SongSheetPanelProps {
 function LineRow({
   bars,
   slotLayouts,
+  carryOverChord,
   label,
   activeChordKey,
   keyOfDegree,
@@ -219,6 +220,8 @@ function LineRow({
   bars: Bar[];
   /** Section-level layout: slotLayouts[bi] has { accentCols, totalCols } for bar bi */
   slotLayouts: BarSlotLayout[];
+  /** The chord carried over from the previous line of the same section (null on first line). */
+  carryOverChord: { degree: number } | null;
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -269,7 +272,10 @@ function LineRow({
       const anchorAtomIdx = firstAccentOfChord >= 0 ? firstAccentOfChord : firstOwnedIdx;
       const accentCol = barStart + (anchorAtomIdx >= 0 ? atomCols[anchorAtomIdx] : 0);
       const isFirstChordOfLine = bi === 0 && ci === 0;
-      const startCol = isFirstChordOfLine ? 0 : accentCol;
+      // If there's a chord carried over from the previous line, the line-leading
+      // region (0 → accentCol) belongs to the carry-over, so this chord starts
+      // at its own accent column. Otherwise (first line of section) it starts at 0.
+      const startCol = isFirstChordOfLine ? (carryOverChord ? accentCol : 0) : accentCol;
       chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol, accentCol });
     });
 
@@ -288,6 +294,42 @@ function LineRow({
         lineHeight: 1.2,
       }}
     >
+      {/* Carry-over band: if a chord is still active from the previous line,
+          extend its color from column 0 up to where this line's first chord starts.
+          No label — it's already shown on the previous line's chip. */}
+      {carryOverChord &&
+        chords.length > 0 &&
+        chords[0].startCol > 0 &&
+        (() => {
+          const vKey = keyOfDegree(carryOverChord.degree);
+          const isActive = vKey != null && vKey === activeChordKey;
+          const color = `var(--color-deg-${carryOverChord.degree})`;
+          return (
+            <button
+              key="carryover"
+              onClick={() => vKey && handleClickChord(vKey)}
+              onDoubleClick={() => vKey && handleDblClickChord(vKey)}
+              onPointerEnter={() => vKey && handleHoverChord(vKey)}
+              onPointerLeave={() => handleHoverChord(null)}
+              className="text-left text-xs font-mono py-0.5 cursor-pointer"
+              style={{
+                gridRow: 1,
+                gridColumn: `1 / ${chords[0].startCol + 1}`,
+                background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
+                color: isActive ? 'var(--crust)' : color,
+                border: 'none',
+                padding: 0,
+                transition: 'all var(--transition)',
+              }}
+            >
+              {/* Invisible label keeps this band's intrinsic height equal to the chord chips' */}
+              <span aria-hidden style={{ visibility: 'hidden' }}>
+                {label(carryOverChord.degree)}
+              </span>
+            </button>
+          );
+        })()}
+
       {/* Chord chips — background spans from startCol to next chord's startCol (or line end).
           The label text inside is anchored to the accent column so it sits right above
           the accent char in the lyric row. */}
@@ -548,25 +590,37 @@ export function SongSheetPanel({
         {sheet.sections.map((section, si) => {
           const slotLayouts = sectionSlotLayouts(section);
           const fs = sectionFontSize(slotLayouts);
+          // Track the last chord from the previous line so its color can carry over
+          // onto the next line's leading region.
+          let lastChord: { degree: number } | null = null;
           return (
             <div key={si} className="mb-4 font-mono">
               {section.name && (
                 <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
               )}
-              {section.lines.map((line, li) => (
-                <LineRow
-                  key={li}
-                  bars={line.bars}
-                  slotLayouts={slotLayouts}
-                  label={label}
-                  activeChordKey={activeChordKey}
-                  keyOfDegree={keyOfDegree}
-                  handleHoverChord={handleHoverChord}
-                  handleClickChord={handleClickChord}
-                  handleDblClickChord={handleDblClickChord}
-                  fontSize={fs}
-                />
-              ))}
+              {section.lines.map((line, li) => {
+                const carryOver = lastChord;
+                // Update lastChord for the next line: pick the last chord in this line's last bar.
+                const lastBar = line.bars[line.bars.length - 1];
+                if (lastBar && lastBar.chords.length > 0) {
+                  lastChord = { degree: lastBar.chords[lastBar.chords.length - 1].degree };
+                }
+                return (
+                  <LineRow
+                    key={li}
+                    bars={line.bars}
+                    slotLayouts={slotLayouts}
+                    carryOverChord={carryOver}
+                    label={label}
+                    activeChordKey={activeChordKey}
+                    keyOfDegree={keyOfDegree}
+                    handleHoverChord={handleHoverChord}
+                    handleClickChord={handleClickChord}
+                    handleDblClickChord={handleDblClickChord}
+                    fontSize={fs}
+                  />
+                );
+              })}
             </div>
           );
         })}
