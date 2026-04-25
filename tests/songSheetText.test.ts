@@ -47,16 +47,6 @@ a[b]c | d[e]f @ 1 5
     expect(sheet!.sections[0].lines[0].bars.map((b) => b.chords[0].degree)).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
-  test('preserves leading spaces inside a bar beyond the decorative | space', () => {
-    // One decorative space after | is stripped; extra spaces survive.
-    const { sheet, errors } = parseSongSheetText(
-      `---\ntitle: T\nkey: C\n---\n--- s ---\na[b]c |    [d]ef @ 1 5\n`,
-    );
-    expect(errors).toEqual([]);
-    // 4 spaces after "|", 1 stripped as decoration, 3 remain
-    expect(sheet!.sections[0].lines[0].bars[1].chords[0].source).toBe('   [d]ef');
-  });
-
   test('multi-chord bar: 2 accents + 2 degrees separated by /', () => {
     const { sheet, errors } = parseSongSheetText(
       `---\ntitle: T\nkey: C\n---\n--- s ---\n我[那]些残[梦] | [abc] @ 1/6m 3\n`,

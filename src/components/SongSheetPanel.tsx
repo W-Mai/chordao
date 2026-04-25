@@ -9,9 +9,150 @@ const CH_EM = 1.1;
 const MIN_FONT_PX = 12;
 const MAX_FONT_PX = 28;
 
-/** Count rendered chars in a bar (sum over chords, sans [] markers). */
-function barCharCount(bar: Bar): number {
-  return bar.chords.reduce((n, c) => n + parseBarSource(c.source).chars.length, 0);
+/**
+ * Flatten a bar into `{ ch, accent }` atoms, preserving chord ownership.
+ * The first accent char in each chord's source is the one the chord chip anchors to.
+ */
+interface BarAtom {
+  ch: string;
+  accent: boolean;
+  chordIdx: number;
+}
+function barAtoms(bar: Bar): BarAtom[] {
+  const out: BarAtom[] = [];
+  bar.chords.forEach((chord, ci) => {
+    for (const a of parseBarSource(chord.source).chars) {
+      out.push({ ...a, chordIdx: ci });
+    }
+  });
+  return out;
+}
+
+/**
+ * Accent pattern of a single line-level bar: index positions (within the bar)
+ * of each accent char, plus the total char count.
+ *
+ *   "我[那]些残[梦]" → { accents: [1, 4], total: 5 }
+ */
+interface BarAccentPattern {
+  accents: number[];
+  total: number;
+}
+function barAccentPattern(bar: Bar): BarAccentPattern {
+  const atoms = barAtoms(bar);
+  const accents: number[] = [];
+  atoms.forEach((a, i) => {
+    if (a.accent) accents.push(i);
+  });
+  return { accents, total: atoms.length };
+}
+
+/**
+ * For a given bar slot in a section, compute the target column of each accent
+ * so that lines with different prefix/gap lengths still land their k-th accent
+ * on the same grid column. Non-accent chars fill sequentially and may leave
+ * blank trailing columns when a line is shorter than the slot.
+ *
+ * Rules:
+ *   accentCols[0]     = max over lines of (distance from bar start to 1st accent)
+ *   accentCols[k]     = accentCols[k-1] + 1 + max over lines of gap_k
+ *       where gap_k = (idx of accent k) - (idx of accent k-1) - 1
+ *   totalCols         = max over lines of (their actual total chars, placed
+ *                       against the computed accent cols)
+ *
+ * If a line has fewer accents than the slot max (can happen if multi-chord is
+ * inconsistent across lines — uncommon), it falls back to natural placement
+ * for any accents it does have.
+ */
+interface BarSlotLayout {
+  accentCols: number[];
+  totalCols: number;
+}
+function computeBarSlotLayout(barsInSlot: Bar[]): BarSlotLayout {
+  if (barsInSlot.length === 0) return { accentCols: [], totalCols: 1 };
+  const patterns = barsInSlot.map((b) => barAccentPattern(b));
+  const numAccents = Math.max(...patterns.map((p) => p.accents.length));
+
+  const accentCols: number[] = [];
+  for (let k = 0; k < numAccents; k++) {
+    if (k === 0) {
+      // max prefix length across lines that actually have a 1st accent
+      const maxPrefix = Math.max(0, ...patterns.filter((p) => p.accents.length > 0).map((p) => p.accents[0]));
+      accentCols.push(maxPrefix);
+    } else {
+      const maxGap = Math.max(
+        0,
+        ...patterns.filter((p) => p.accents.length > k).map((p) => p.accents[k] - p.accents[k - 1] - 1),
+      );
+      accentCols.push(accentCols[k - 1] + 1 + maxGap);
+    }
+  }
+
+  // Total cols: for each line, the max column it needs given the slot accentCols.
+  // A line with accents at positions `a` and total length `T` places its tail
+  // (chars after last accent) starting from accentCols[last]+1, needing
+  // accentCols[last] + 1 + (T - lastAccentIdx - 1) columns.
+  let totalCols = 1;
+  patterns.forEach((p) => {
+    if (p.accents.length === 0) {
+      // No accents — just needs `p.total` cols starting from 0
+      if (p.total > totalCols) totalCols = p.total;
+      return;
+    }
+    const lastK = p.accents.length - 1;
+    const tail = p.total - p.accents[lastK] - 1;
+    const need = accentCols[lastK] + 1 + tail;
+    if (need > totalCols) totalCols = need;
+
+    // Also: lines whose leading prefix is shorter than accentCols[0] are OK
+    // (they'll just have empty leading cells). But a line could have accentCols[0]
+    // too large for its own prefix — that's fine, col computations below use
+    // per-line offsets.
+  });
+  return { accentCols, totalCols: Math.max(1, totalCols) };
+}
+
+/**
+ * Given a line's atoms + its slot layout, compute the absolute column of each atom.
+ * This uses the same rule as computeBarSlotLayout so accents land on accentCols.
+ */
+function placeAtomsInSlot(atoms: BarAtom[], layout: BarSlotLayout): number[] {
+  const cols: number[] = new Array(atoms.length);
+  const accentIdxInLine: number[] = [];
+  atoms.forEach((a, i) => {
+    if (a.accent) accentIdxInLine.push(i);
+  });
+
+  if (accentIdxInLine.length === 0) {
+    // No accents — start at 0 and go.
+    for (let i = 0; i < atoms.length; i++) cols[i] = i;
+    return cols;
+  }
+
+  // Place each accent on its slot column; place preceding non-accent chars
+  // backwards from the accent (so they sit right before it); place following
+  // non-accent chars forwards from the accent.
+  let cursor = 0;
+  for (let k = 0; k < accentIdxInLine.length; k++) {
+    const atomIdx = accentIdxInLine[k];
+    const targetCol = layout.accentCols[k] ?? cursor;
+    // Pre-accent chars: from cursor up to (targetCol - 1)
+    const preStart = k === 0 ? 0 : accentIdxInLine[k - 1] + 1;
+    const preCount = atomIdx - preStart;
+    const firstPreCol = targetCol - preCount;
+    for (let i = 0; i < preCount; i++) {
+      cols[preStart + i] = firstPreCol + i;
+    }
+    cols[atomIdx] = targetCol;
+    cursor = targetCol + 1;
+  }
+  // Tail chars after last accent
+  const lastAccentAtom = accentIdxInLine[accentIdxInLine.length - 1];
+  for (let i = lastAccentAtom + 1; i < atoms.length; i++) {
+    cols[i] = cursor;
+    cursor++;
+  }
+  return cols;
 }
 
 const DEGREE_INTERVAL: Record<number, number> = { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9 };
@@ -66,7 +207,7 @@ interface SongSheetPanelProps {
  */
 function LineRow({
   bars,
-  barColWidths,
+  slotLayouts,
   label,
   activeChordKey,
   keyOfDegree,
@@ -76,8 +217,8 @@ function LineRow({
   fontSize,
 }: {
   bars: Bar[];
-  /** Section-level column budget: barColWidths[bi] = columns reserved for bar bi */
-  barColWidths: number[];
+  /** Section-level layout: slotLayouts[bi] has { accentCols, totalCols } for bar bi */
+  slotLayouts: BarSlotLayout[];
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -86,15 +227,19 @@ function LineRow({
   handleDblClickChord: (k: string) => void;
   fontSize: number;
 }) {
-  // Cumulative start column for each bar inside this section's grid.
+  // Cumulative start column for each bar slot inside this section's grid.
   const barStartCols: number[] = [];
   {
     let acc = 0;
-    for (let i = 0; i < barColWidths.length; i++) {
+    for (let i = 0; i < slotLayouts.length; i++) {
       barStartCols.push(acc);
-      acc += barColWidths[i];
+      acc += slotLayouts[i].totalCols;
     }
   }
+  const totalCols = Math.max(
+    1,
+    slotLayouts.reduce((s, l) => s + l.totalCols, 0),
+  );
 
   type LyricAtom = { ch: string; accent: boolean; barIdx: number; chordIdx: number; col: number };
   const atoms: LyricAtom[] = [];
@@ -102,27 +247,36 @@ function LineRow({
   const chords: ChordRef[] = [];
 
   bars.forEach((bar, bi) => {
-    let cursor = barStartCols[bi];
+    const barAtomList = barAtoms(bar);
+    const layout = slotLayouts[bi];
+    const atomCols = placeAtomsInSlot(barAtomList, layout);
+    const barStart = barStartCols[bi];
+
+    // Accent positions in this line (atom indices, then their assigned cols).
+    const accentAtomIndices: number[] = [];
+    barAtomList.forEach((a, i) => {
+      if (a.accent) accentAtomIndices.push(i);
+    });
+
+    // Push chord refs: one per chord in this bar. Chord k anchors to the k-th
+    // accent in the line (if it has one), otherwise to the first atom it owns.
+    // Chord's chip band starts at the accent column (line-global) unless it's
+    // the very first chord of the line, in which case start at column 0.
     bar.chords.forEach((chord, ci) => {
-      const chars = parseBarSource(chord.source).chars;
-      const chordBaseCol = cursor;
-      let accentOffset = chars.findIndex((c) => c.accent);
-      if (accentOffset < 0) accentOffset = 0;
-      const accentCol = chordBaseCol + accentOffset;
+      // Find the first atom belonging to this chord
+      const firstOwnedIdx = barAtomList.findIndex((a) => a.chordIdx === ci);
+      const firstAccentOfChord = barAtomList.findIndex((a) => a.chordIdx === ci && a.accent);
+      const anchorAtomIdx = firstAccentOfChord >= 0 ? firstAccentOfChord : firstOwnedIdx;
+      const accentCol = barStart + (anchorAtomIdx >= 0 ? atomCols[anchorAtomIdx] : 0);
       const isFirstChordOfLine = bi === 0 && ci === 0;
       const startCol = isFirstChordOfLine ? 0 : accentCol;
       chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol, accentCol });
-      chars.forEach((ch, offset) => {
-        atoms.push({ ...ch, barIdx: bi, chordIdx: ci, col: chordBaseCol + offset });
-      });
-      cursor += chars.length;
+    });
+
+    barAtomList.forEach((a, i) => {
+      atoms.push({ ...a, barIdx: bi, col: barStart + atomCols[i] });
     });
   });
-
-  const totalCols = Math.max(
-    1,
-    barColWidths.reduce((s, n) => s + n, 0),
-  );
 
   return (
     <div
@@ -303,28 +457,24 @@ export function SongSheetPanel({
     return () => ro.disconnect();
   }, []);
 
-  // Per-section column budget: each bar slot gets the MAX char count over all
-  // lines in the section. This is what makes same-bar accent chars line up
-  // vertically across different lines.
-  const sectionBarCols = (section: import('../data/songSheet').Section): number[] => {
+  // Per-section slot layout: for each bar slot, compute accent column positions
+  // so same-bar accents align across lines (see computeBarSlotLayout).
+  const sectionSlotLayouts = (section: import('../data/songSheet').Section): BarSlotLayout[] => {
     if (section.lines.length === 0) return [];
     const barCount = Math.max(...section.lines.map((l) => l.bars.length));
-    const widths: number[] = Array(barCount).fill(0);
-    for (const line of section.lines) {
-      line.bars.forEach((bar, bi) => {
-        const n = Math.max(1, barCharCount(bar));
-        if (n > widths[bi]) widths[bi] = n;
-      });
+    const layouts: BarSlotLayout[] = [];
+    for (let bi = 0; bi < barCount; bi++) {
+      const barsInSlot = section.lines.map((l) => l.bars[bi]).filter(Boolean);
+      layouts.push(computeBarSlotLayout(barsInSlot));
     }
-    return widths;
+    return layouts;
   };
 
   // Font size per section: based on the total column budget so every line in
   // the section uses the same font size (and thus the same column pixel width).
-  const sectionFontSize = (section: import('../data/songSheet').Section): number => {
+  const sectionFontSize = (layouts: BarSlotLayout[]): number => {
     if (bodyWidth === 0) return 16;
-    const widths = sectionBarCols(section);
-    const totalCols = widths.reduce((s, n) => s + n, 0);
+    const totalCols = layouts.reduce((s, l) => s + l.totalCols, 0);
     if (totalCols === 0) return 16;
     const raw = bodyWidth / (totalCols * CH_EM);
     return Math.min(MAX_FONT_PX, Math.max(MIN_FONT_PX, raw));
@@ -396,8 +546,8 @@ export function SongSheetPanel({
       <div className="panel-body" ref={bodyRef}>
         {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}
         {sheet.sections.map((section, si) => {
-          const barColWidths = sectionBarCols(section);
-          const fs = sectionFontSize(section);
+          const slotLayouts = sectionSlotLayouts(section);
+          const fs = sectionFontSize(slotLayouts);
           return (
             <div key={si} className="mb-4 font-mono">
               {section.name && (
@@ -407,7 +557,7 @@ export function SongSheetPanel({
                 <LineRow
                   key={li}
                   bars={line.bars}
-                  barColWidths={barColWidths}
+                  slotLayouts={slotLayouts}
                   label={label}
                   activeChordKey={activeChordKey}
                   keyOfDegree={keyOfDegree}
