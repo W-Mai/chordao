@@ -311,14 +311,15 @@ function LineRow({
               onDoubleClick={() => vKey && handleDblClickChord(vKey)}
               onPointerEnter={() => vKey && handleHoverChord(vKey)}
               onPointerLeave={() => handleHoverChord(null)}
-              className="text-left text-xs font-mono py-0.5 cursor-pointer"
+              className="text-left font-mono cursor-pointer"
               style={{
                 gridRow: 1,
                 gridColumn: `1 / ${chords[0].startCol + 1}`,
                 background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
                 color: isActive ? 'var(--crust)' : color,
                 border: 'none',
-                padding: 0,
+                padding: '0.1em 0',
+                fontSize: '0.8em',
                 transition: 'all var(--transition)',
               }}
             >
@@ -347,7 +348,7 @@ function LineRow({
             onDoubleClick={() => vKey && handleDblClickChord(vKey)}
             onPointerEnter={() => vKey && handleHoverChord(vKey)}
             onPointerLeave={() => handleHoverChord(null)}
-            className="text-left text-xs font-mono py-0.5 cursor-pointer relative"
+            className="text-left font-mono cursor-pointer relative"
             style={{
               gridRow: 1,
               gridColumn: `${chord.startCol + 1} / ${endCol + 1}`,
@@ -359,8 +360,8 @@ function LineRow({
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
               transition: 'all var(--transition)',
-              padding: 0,
-              minHeight: '1.4em',
+              padding: '0.1em 0',
+              fontSize: '0.8em',
             }}
           >
             {/* Invisible spacer keeps the button's intrinsic height matching the label */}
