@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NOTE_DISPLAY, NOTES, type NoteName, type ChordVoicing, voicingKey } from '../data/chordData';
 import type { SongSheet, Bar } from '../data/songSheet';
@@ -55,18 +55,14 @@ interface SongSheetPanelProps {
 }
 
 /**
- * Render a single bar cell as a trapezoid:
- *
- * ```
- *   [ chip ][ chip ][ chip ]       ← row 1, chips span their chord's char range
- *     字 字 字 字 字 字 字 字        ← row 2, one grid column per char (1fr)
- * ```
- *
- * The chip's bottom edge touches the accent char's top edge (no gap, shared degree color),
- * so visually it reads as one piece — not two separated boxes.
+ * Render a single line of the sheet. A line is a single grid, one column per char
+ * across ALL bars. This lets chord chips span across bar boundaries freely — a
+ * chord's "territory" runs from its accent to the next chord's accent (even if
+ * that next chord lives in a later bar). Bar boundaries are marked with thin
+ * dividers as a separate overlay row.
  */
-function BarCell({
-  bar,
+function LineRow({
+  bars,
   label,
   activeChordKey,
   keyOfDegree,
@@ -75,7 +71,7 @@ function BarCell({
   handleDblClickChord,
   fontSize,
 }: {
-  bar: Bar;
+  bars: Bar[];
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -84,29 +80,37 @@ function BarCell({
   handleDblClickChord: (k: string) => void;
   fontSize: number;
 }) {
-  // Flatten every chord's chars into a single ordered stream, tracking which chord owns each char.
-  type LyricAtom = { ch: string; accent: boolean; chordIdx: number };
+  // Flatten the whole line into one char stream, tagging each atom with its (barIdx, chordIdx).
+  type LyricAtom = { ch: string; accent: boolean; barIdx: number; chordIdx: number };
   const atoms: LyricAtom[] = [];
-  bar.chords.forEach((chord, ci) => {
-    for (const a of parseBarSource(chord.source).chars) {
-      atoms.push({ ...a, chordIdx: ci });
-    }
-  });
+  // Also build a linear list of chords: {barIdx, chordIdx, degree, accentCol}
+  type ChordRef = { barIdx: number; chordIdx: number; degree: number; startCol: number };
+  const chords: ChordRef[] = [];
+  // barStartCols[i] = column index where bar i starts (used for bar dividers)
+  const barStartCols: number[] = [];
 
-  // For each chord, find the column where its chip should start.
-  // Prefer the chord's first accent char; fall back to first owned char.
-  const chordStartCol: number[] = bar.chords.map((_, ci) => {
-    const firstAccent = atoms.findIndex((a) => a.chordIdx === ci && a.accent);
-    if (firstAccent >= 0) return firstAccent;
-    const firstOwned = atoms.findIndex((a) => a.chordIdx === ci);
-    return firstOwned >= 0 ? firstOwned : 0;
+  bars.forEach((bar, bi) => {
+    barStartCols.push(atoms.length);
+    bar.chords.forEach((chord, ci) => {
+      const chars = parseBarSource(chord.source).chars;
+      // Column where this chord's band begins:
+      //   - First chord in line → column 0 (picks up any leading non-accent chars)
+      //   - Otherwise → its own first accent column (fall back to its first char)
+      const baseCol = atoms.length;
+      let accentOffset = chars.findIndex((c) => c.accent);
+      if (accentOffset < 0) accentOffset = 0;
+      const isFirstChordOfLine = bi === 0 && ci === 0;
+      const startCol = isFirstChordOfLine ? 0 : baseCol + accentOffset;
+      chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol });
+      for (const ch of chars) atoms.push({ ...ch, barIdx: bi, chordIdx: ci });
+    });
   });
 
   const cols = Math.max(1, atoms.length);
 
   return (
     <div
-      className="grid min-w-0"
+      className="grid min-w-0 mb-2 leading-relaxed"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
         gridTemplateRows: 'auto auto',
@@ -114,10 +118,10 @@ function BarCell({
         lineHeight: 1.2,
       }}
     >
-      {/* Chord chips — each spans from its start column to just before the next chord's start */}
-      {bar.chords.map((chord, ci) => {
-        const startCol = chordStartCol[ci];
-        const endCol = ci + 1 < bar.chords.length ? chordStartCol[ci + 1] : cols;
+      {/* Chord chips — each spans from its startCol up to the next chord's startCol
+          (or the end of the line). Spans may cross bar boundaries. */}
+      {chords.map((chord, ci) => {
+        const endCol = ci + 1 < chords.length ? chords[ci + 1].startCol : cols;
         const vKey = keyOfDegree(chord.degree);
         const isActive = vKey != null && vKey === activeChordKey;
         const color = `var(--color-deg-${chord.degree})`;
@@ -131,7 +135,7 @@ function BarCell({
             className="text-left text-xs font-mono px-1 py-0.5 cursor-pointer"
             style={{
               gridRow: 1,
-              gridColumn: `${startCol + 1} / ${endCol + 1}`,
+              gridColumn: `${chord.startCol + 1} / ${endCol + 1}`,
               background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
               color: isActive ? 'var(--crust)' : color,
               fontWeight: isActive ? 700 : 500,
@@ -147,12 +151,11 @@ function BarCell({
         );
       })}
 
-      {/* Lyric chars — one grid column each. Accent chars share the degree color
-          as a continuous band that visually connects to the chip above. */}
+      {/* Lyric chars — one grid column each. Accent cells share the degree color. */}
       {atoms.map((a, i) => {
-        const color = `var(--color-deg-${bar.chords[a.chordIdx].degree})`;
-        const isLastInChord = i + 1 >= atoms.length || atoms[i + 1].chordIdx !== a.chordIdx;
-        const isFirstInChord = i === 0 || atoms[i - 1].chordIdx !== a.chordIdx;
+        const color = `var(--color-deg-${bars[a.barIdx].chords[a.chordIdx].degree})`;
+        const vKey = keyOfDegree(bars[a.barIdx].chords[a.chordIdx].degree);
+        const isActive = vKey != null && vKey === activeChordKey;
         if (a.accent) {
           return (
             <span
@@ -160,13 +163,12 @@ function BarCell({
               style={{
                 gridRow: 2,
                 gridColumn: `${i + 1}`,
-                background: `color-mix(in srgb, ${color} 30%, transparent)`,
-                color,
+                background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
+                color: isActive ? 'var(--crust)' : color,
                 fontWeight: 700,
                 display: 'inline-flex',
                 justifyContent: 'center',
-                borderBottomLeftRadius: isFirstInChord ? 2 : 0,
-                borderBottomRightRadius: isLastInChord ? 2 : 0,
+                transition: 'all var(--transition)',
               }}
             >
               {a.ch === ' ' ? ' ' : a.ch}
@@ -189,6 +191,19 @@ function BarCell({
           </span>
         );
       })}
+
+      {/* Bar dividers: thin vertical line at the start of each bar except the first. */}
+      {barStartCols.slice(1).map((col, i) => (
+        <div
+          key={`div-${i}`}
+          style={{
+            gridRow: '1 / span 2',
+            gridColumn: `${col + 1}`,
+            borderLeft: '1px dashed var(--surface0)',
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -247,57 +262,14 @@ export function SongSheetPanel({
     return () => ro.disconnect();
   }, []);
 
-  // For each section × bar index, find the line that has the most chars — that's
-  // the "hardest" cell for this bar slot. Font size per bar follows this max so
-  // accent positions align vertically across lines in the same section.
-  const sectionBarMaxChars = useMemo(() => {
-    return sheet.sections.map((section) => {
-      const maxPerBar: number[] = [];
-      for (const line of section.lines) {
-        line.bars.forEach((bar, bi) => {
-          const n = barCharCount(bar);
-          if (n > (maxPerBar[bi] ?? 0)) maxPerBar[bi] = n;
-        });
-      }
-      return maxPerBar;
-    });
-  }, [sheet]);
-
-  // Base font size: the biggest the sheet could tolerate if every bar had the
-  // largest "max chars" we saw anywhere. Each bar's actual size gets scaled
-  // relative to its section×bar-slot worst line.
-  const baseFontSize = useMemo(() => {
+  // Font size per line: make each line fill the panel width.
+  // n = total chars in the line (summed across all bars).
+  const lineFontSize = (line: import('../data/songSheet').Line): number => {
     if (bodyWidth === 0) return 16;
-    const barsPerLine = Math.max(1, sheet.sections[0]?.lines[0]?.bars.length ?? 4);
-    const globalMax = sectionBarMaxChars.reduce((m, row) => {
-      const rowMax = row.reduce((mm, n) => Math.max(mm, n || 0), 0);
-      return Math.max(m, rowMax);
-    }, 1);
-    // Available width per bar (minus a little for gaps)
-    const perBar = Math.max(40, bodyWidth / barsPerLine - 8);
-    const raw = perBar / (globalMax * CH_EM);
+    const n = line.bars.reduce((sum, bar) => sum + barCharCount(bar), 0);
+    if (n === 0) return 16;
+    const raw = bodyWidth / (n * CH_EM);
     return Math.min(MAX_FONT_PX, Math.max(MIN_FONT_PX, raw));
-  }, [bodyWidth, sheet, sectionBarMaxChars]);
-
-  // Font size for a given section × bar index. If that slot's worst line is the
-  // one driving baseFontSize, we get baseFontSize. Otherwise we scale up — but
-  // CAP at the base so we don't accidentally go bigger than the sheet's baseline.
-  // (A per-bar cap keeps accent positions aligned across lines inside a section.)
-  const fontSizeForBar = (sectionIdx: number, barIdx: number, thisBarChars: number): number => {
-    const slotMax = sectionBarMaxChars[sectionIdx]?.[barIdx] ?? thisBarChars;
-    // The slot's worst line would render at baseFontSize; other lines match to stay aligned.
-    // Scale up only if this bar is *shorter* than the slot max would be the norm.
-    // Actually we want the accents to stay on the same column, so ALL lines in this slot
-    // must use the SAME font size — that of the slot's worst line.
-    void thisBarChars;
-    // Slot font size = base × (globalMax / slotMax). If the slot is less crowded than the
-    // globalMax, we can scale up proportionally. Clamp to [MIN, MAX].
-    const globalMax = sectionBarMaxChars.reduce((m, row) => {
-      const rowMax = row.reduce((mm, n) => Math.max(mm, n || 0), 0);
-      return Math.max(m, rowMax);
-    }, 1);
-    const slotScaled = baseFontSize * (globalMax / Math.max(1, slotMax));
-    return Math.min(MAX_FONT_PX, Math.max(MIN_FONT_PX, slotScaled));
   };
 
   // Silence unused-import warnings when the hook isn't tree-shaken out
@@ -370,30 +342,19 @@ export function SongSheetPanel({
             {section.name && (
               <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
             )}
-            {section.lines.map((line, li) => {
-              const bars = line.bars;
-              return (
-                <div
-                  key={li}
-                  className="grid gap-1 mb-2 leading-relaxed"
-                  style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}
-                >
-                  {bars.map((bar, bi) => (
-                    <BarCell
-                      key={bi}
-                      bar={bar}
-                      label={label}
-                      activeChordKey={activeChordKey}
-                      keyOfDegree={keyOfDegree}
-                      handleHoverChord={handleHoverChord}
-                      handleClickChord={handleClickChord}
-                      handleDblClickChord={handleDblClickChord}
-                      fontSize={fontSizeForBar(si, bi, barCharCount(bar))}
-                    />
-                  ))}
-                </div>
-              );
-            })}
+            {section.lines.map((line, li) => (
+              <LineRow
+                key={li}
+                bars={line.bars}
+                label={label}
+                activeChordKey={activeChordKey}
+                keyOfDegree={keyOfDegree}
+                handleHoverChord={handleHoverChord}
+                handleClickChord={handleClickChord}
+                handleDblClickChord={handleDblClickChord}
+                fontSize={lineFontSize(line)}
+              />
+            ))}
           </div>
         ))}
       </div>
