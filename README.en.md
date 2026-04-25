@@ -78,6 +78,7 @@ Chordao finds the **optimal combination** of shapes that minimizes hand movement
 ### Song Sheets (see [Song Sheets](#-song-sheets))
 - Lyric + bar-aligned chord charts; degree-colored accents; built-in songs live as `.md` files in `songs/`
 - WYSIWYG editor (click character → accent, click chip → degree), localStorage archive, lz-string URL sharing
+- Playback: ▶/⏸/⏹, sheet-level BPM, time signature (3/4, 6/8, …), per-section rhythm override; click any chip to set the play cursor and start bar-aligned
 
 ### Progressions & Audio
 - **Built-in progressions** — Pop Canon, Blues, C-Pop Ballad, Jazz ii-V-I, etc., with animated path visualization
@@ -141,18 +142,29 @@ Song sheets live in the repo's root `songs/` directory as plain `.md` files. To 
 ```md
 ---
 title: My Song
-key: D#
-strum: ↑ ↑↓↑↓↑↓
+key: C
+strum: pop
+bpm: 144
+time: 4/4
 ---
 
---- verse 1 ---
+--- verse | strum:pop ---
 lyric[l]ine one | more[l]yrics | and[s]o on | fill[4]bars @ 1 3m 6m 4
+
+--- chorus | strum:whole ---
+the[d]arkest night | the[l]oneliest walk | the[b]rightest stars @ 1 3m 6m
 ```
 
-- YAML-ish frontmatter holds `title` / `key` / `strum`
-- `--- section name ---` begins a section
-- `|` separates bars; `@ 1 3m 6m 4` lists one degree per bar
+- YAML frontmatter: `title` / `key` / `strum` / `bpm` / `time` (`time` and `bpm` optional; time signature defaults to 4/4)
+- `--- section name | strum:pop ---` starts a section; the `strum:xxx` suffix is optional and overrides rhythm for that section
+- `|` separates bars; `@ 1 3m 6m 4` lists one degree per bar; multiple chords in one bar are split with `/` (e.g. `@ 1/4` means first half 1, second half 4)
 - `[X]` marks X as the accent character (shown in the degree's color)
+
+### Playback
+
+- **▶/⏸/⏹** — Playback follows per-section strum + sheet BPM + time signature; the current chord lights up on the chart and the right-side views (Shape Grid / Fretboard / Chord Diagrams) sync
+- **Click any chip** — Pins the play cursor there; **▶** starts from the **beginning of that chord's bar** (bar-aligned); **⏸** keeps the cursor, next ▶ resumes from the exact pause point; **⏹** clears the cursor and resets to the start
+- **Section-focused progression** — Hovering a section (or playback being inside it) switches the right-side ShapeGrid's connecting lines and synced dot to that section's chord progression
 
 ### Visual editor
 

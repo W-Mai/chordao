@@ -4,6 +4,22 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.26.2]
+
+### Added
+- **Song playback** — ▶/⏸/⏹ controls in the song panel. Playback walks the sheet step by step, highlights the exact chord on the chart, and drives the right-side views (Shape Grid / Fretboard / Chord Diagrams) via the same active-chord highlight used elsewhere.
+- **Sheet-level BPM** — `bpm:` in frontmatter; editor has a BPM field (leave empty to inherit the global BPM slider).
+- **Per-section rhythm override** — `--- section | strum:pop ---` in text format; editor has a dropdown on each section header. Falls back to the sheet-level `strum`, then the global rhythm.
+- **Time signature** — `time: N/M` frontmatter (e.g. `3/4`, `6/8`); editor has a dropdown. Rhythm patterns are 4/4-designed and linearly scale to the sheet's time signature. Split-chord bars (N chords in one bar) each play their proportional window of the pattern.
+- **Click chip → cursor** — clicking any chord chip sets the playback cursor to that exact position. ▶ with a cursor starts from that chord's **bar** (bar-aligned); after ⏸, the next ▶ resumes from the exact cursor; ⏹ clears the cursor and resets to step 0.
+- **Per-section progression chip row** — under each section header, a compact chip list of that section's consecutive-dedup'd chord sequence. Follows the degree↔absolute name toggle; clicking highlights the corresponding voicing.
+- **Section-focused progression lines** — hovering a section (or playback being inside it) overrides the top-bar progression for the right-side panels' connecting lines; ShapeGrid's free-looping dot turns into a synced progress dot following playback.
+- **Selecting a song snaps the app's key** to the sheet's key; manual key changes afterwards are sticky until the next song selection.
+
+### Fixed
+- **Last chord of a song got cut off** — final step now waits for its audio to finish before the audio graph is torn down.
+- **Playback was lighting up every same-degree chord on the chart** — song panel now reads a dedicated playback cursor; right-side views still follow the same-degree highlight rule.
+
 ## [2026.4.26.1]
 
 ### Added
