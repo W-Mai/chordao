@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* ── Pixeloid Mono (self-hosted under public/fonts/). Used by chord chips. ── */
+@font-face {
+  font-family: "Pixeloid Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/PixeloidMono.ttf") format("truetype");
+}
+
 /* ── Theme variable bridge ── */
 @theme {
   --color-crust: var(--crust);

@@ -311,7 +311,7 @@ function LineRow({
               onDoubleClick={() => vKey && handleDblClickChord(vKey)}
               onPointerEnter={() => vKey && handleHoverChord(vKey)}
               onPointerLeave={() => handleHoverChord(null)}
-              className="text-left font-mono cursor-pointer"
+              className="text-left cursor-pointer"
               style={{
                 gridRow: 1,
                 gridColumn: `1 / ${chords[0].startCol + 1}`,
@@ -319,7 +319,8 @@ function LineRow({
                 color: isActive ? 'var(--crust)' : color,
                 border: 'none',
                 padding: '0.1em 0',
-                fontSize: '0.8em',
+                fontFamily: '"Pixeloid Mono", ui-monospace, monospace',
+                fontSize: '0.9em',
                 transition: 'all var(--transition)',
               }}
             >
@@ -348,7 +349,7 @@ function LineRow({
             onDoubleClick={() => vKey && handleDblClickChord(vKey)}
             onPointerEnter={() => vKey && handleHoverChord(vKey)}
             onPointerLeave={() => handleHoverChord(null)}
-            className="text-left font-mono cursor-pointer relative"
+            className="text-left cursor-pointer relative"
             style={{
               gridRow: 1,
               gridColumn: `${chord.startCol + 1} / ${endCol + 1}`,
@@ -361,7 +362,8 @@ function LineRow({
               borderBottomRightRadius: 0,
               transition: 'all var(--transition)',
               padding: '0.1em 0',
-              fontSize: '0.8em',
+              fontFamily: '"Pixeloid Mono", ui-monospace, monospace',
+              fontSize: '0.9em',
             }}
           >
             {/* Invisible spacer keeps the button's intrinsic height matching the label */}
