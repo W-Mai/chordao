@@ -106,7 +106,21 @@ export function parseSongSheetText(text: string): ParseResult {
     const barsPart = trimmed.slice(0, atIdx).trim();
     const degPart = trimmed.slice(atIdx + 1).trim();
 
-    const barSources = barsPart.split('|').map((s) => s.trim());
+    // Split bars but only strip up to ONE decorative space adjacent to each `|`.
+    // This keeps intentional leading spaces (e.g. "|    [完]美坠落" → "   [完]美坠落")
+    // that the author uses to visually push an accent to the right.
+    const barSources = barsPart.split('|').map((s, idx, arr) => {
+      let out = s;
+      // Left: strip one space unless this is the very first piece (line start —
+      // treat leading spaces as decoration by trimming whitespace entirely there).
+      if (idx === 0) out = out.replace(/^\s+/, '');
+      else if (out.startsWith(' ')) out = out.slice(1);
+      // Right: strip one trailing space unless this is the last piece (then
+      // trim trailing whitespace — it's always decoration before `@`).
+      if (idx === arr.length - 1) out = out.replace(/\s+$/, '');
+      else if (out.endsWith(' ')) out = out.slice(0, -1);
+      return out;
+    });
     const degGroups = degPart.split(/\s+/).filter(Boolean); // one group per bar, chords inside split by '/'
 
     if (barSources.length !== degGroups.length) {
