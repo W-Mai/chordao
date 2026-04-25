@@ -195,12 +195,15 @@ interface SongSheetPanelProps {
   onExpand?: () => void;
   isPlaying?: boolean;
   onTogglePlay?: () => void;
+  onStopPlay?: () => void;
   playCursor?: {
     sectionIdx: number;
     lineIdx: number;
     barIdx: number;
     chordIdx: number;
   } | null;
+  onSectionHover?: (sectionIdx: number | null) => void;
+  onChipClick?: (cursor: { sectionIdx: number; lineIdx: number; barIdx: number; chordIdx: number }) => void;
 }
 
 /**
@@ -215,6 +218,8 @@ interface SongSheetPanelProps {
  */
 function LineRow({
   bars,
+  sectionIdx,
+  lineIdx,
   slotLayouts,
   carryOverChord,
   carryOverPlaying,
@@ -226,9 +231,12 @@ function LineRow({
   handleHoverChord,
   handleClickChord,
   handleDblClickChord,
+  onChipClick,
   fontSize,
 }: {
   bars: Bar[];
+  sectionIdx: number;
+  lineIdx: number;
   /** Section-level layout: slotLayouts[bi] has { accentCols, totalCols } for bar bi */
   slotLayouts: BarSlotLayout[];
   /** The chord carried over from the previous line of the same section (null on first line). */
@@ -245,6 +253,7 @@ function LineRow({
   handleHoverChord: (k: string | null) => void;
   handleClickChord: (k: string) => void;
   handleDblClickChord: (k: string) => void;
+  onChipClick?: (cursor: { sectionIdx: number; lineIdx: number; barIdx: number; chordIdx: number }) => void;
   fontSize: number;
 }) {
   // Cumulative start column for each bar slot inside this section's grid.
@@ -366,7 +375,10 @@ function LineRow({
         return (
           <button
             key={`chip-${ci}`}
-            onClick={() => vKey && handleClickChord(vKey)}
+            onClick={() => {
+              onChipClick?.({ sectionIdx, lineIdx, barIdx: chord.barIdx, chordIdx: chord.chordIdx });
+              if (vKey) handleClickChord(vKey);
+            }}
             onDoubleClick={() => vKey && handleDblClickChord(vKey)}
             onPointerEnter={() => vKey && handleHoverChord(vKey)}
             onPointerLeave={() => handleHoverChord(null)}
@@ -503,7 +515,10 @@ export function SongSheetPanel({
   onExpand,
   isPlaying,
   onTogglePlay,
+  onStopPlay,
   playCursor,
+  onSectionHover,
+  onChipClick,
 }: SongSheetPanelProps) {
   const { t } = useTranslation();
 
@@ -577,13 +592,23 @@ export function SongSheetPanel({
         {onTogglePlay && (
           <button
             onClick={onTogglePlay}
-            className={`text-[11px] w-6 h-5 rounded cursor-pointer mr-1 flex items-center justify-center ${
+            className={`text-[11px] w-6 h-5 rounded cursor-pointer flex items-center justify-center ${
               isPlaying ? 'bg-green/20 text-green' : 'bg-surface0 text-overlay1 hover:text-green'
             }`}
             style={{ transition: 'all var(--transition)' }}
             title={t('songPlayTitle')}
           >
             {isPlaying ? '⏸' : '▶'}
+          </button>
+        )}
+        {onStopPlay && (
+          <button
+            onClick={onStopPlay}
+            className="text-[11px] w-6 h-5 rounded cursor-pointer mr-1 flex items-center justify-center bg-surface0 text-overlay1 hover:text-red"
+            style={{ transition: 'all var(--transition)' }}
+            title={t('songStopTitle')}
+          >
+            {'⏹'}
           </button>
         )}
         <button
@@ -635,7 +660,12 @@ export function SongSheetPanel({
           // onto the next line's leading region.
           let lastChord: { degree: number } | null = null;
           return (
-            <div key={si} className="mb-4 font-mono">
+            <div
+              key={si}
+              className="mb-4 font-mono"
+              onPointerEnter={() => onSectionHover?.(si)}
+              onPointerLeave={() => onSectionHover?.(null)}
+            >
               {section.name && (
                 <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
               )}
@@ -707,6 +737,8 @@ export function SongSheetPanel({
                   <LineRow
                     key={li}
                     bars={line.bars}
+                    sectionIdx={si}
+                    lineIdx={li}
                     slotLayouts={slotLayouts}
                     carryOverChord={carryOver}
                     carryOverPlaying={carryOverPlaying}
@@ -718,6 +750,7 @@ export function SongSheetPanel({
                     handleHoverChord={handleHoverChord}
                     handleClickChord={handleClickChord}
                     handleDblClickChord={handleDblClickChord}
+                    onChipClick={onChipClick}
                     fontSize={fs}
                   />
                 );

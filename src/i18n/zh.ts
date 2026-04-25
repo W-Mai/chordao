@@ -105,6 +105,7 @@ export default {
   songModeAbs: '和弦名',
   songOpenPanelTitle: '打开歌片',
   songPlayTitle: '播放 / 暂停',
+  songStopTitle: '停止（重置到开头）',
   songSelectTitle: '选择歌片',
   songUser: '自定义',
   songEditorTitle: '歌片编辑器',

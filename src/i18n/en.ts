@@ -109,6 +109,7 @@ export default {
   songModeAbs: 'C/Em/Am',
   songOpenPanelTitle: 'Open song sheet',
   songPlayTitle: 'Play / pause song',
+  songStopTitle: 'Stop (reset to start)',
   songSelectTitle: 'Select a song',
   songUser: 'user',
   songEditorTitle: 'Song editor',

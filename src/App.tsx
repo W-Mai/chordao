@@ -221,6 +221,11 @@ function App() {
     if (activeProg === 'custom' && customDegrees.length >= 2) return { name: 'custom', degrees: customDegrees };
     return activeProg ? (PROGRESSIONS.find((p) => p.name === activeProg) ?? null) : null;
   }, [activeProg, customDegrees]);
+
+  // Song-section focus overrides the top-bar progression for the right-side
+  // panels only; top-bar chip state is untouched.
+  const [hoveredSectionIdx, setHoveredSectionIdx] = useState<number | null>(null);
+
   const allCombos = useMemo(
     () => findAllCombinations(grouped, activeProgObj?.degrees, positionPrefer),
     [grouped, activeProgObj, positionPrefer],
@@ -330,20 +335,33 @@ function App() {
   }, []);
 
   const [songPlaying, setSongPlaying] = useState(false);
-  const [songCursor, setSongCursor] = useState<{
+  type SongCursor = {
     sectionIdx: number;
     lineIdx: number;
     barIdx: number;
     chordIdx: number;
-  } | null>(null);
+  };
+  const [songCursor, setSongCursor] = useState<SongCursor | null>(null);
   const songTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stopSongPlay = useCallback(() => {
+  // Cursor read via ref inside the playback effect so cursor updates don't
+  // re-subscribe the effect.
+  const songCursorRef = useRef<SongCursor | null>(null);
+  useEffect(() => {
+    songCursorRef.current = songCursor;
+  }, [songCursor]);
+  const resumeAtCursorRef = useRef(false);
+  const pauseSongPlay = useCallback(() => {
     setSongPlaying(false);
     if (songTimerRef.current) clearTimeout(songTimerRef.current);
     songTimerRef.current = null;
+    resumeAtCursorRef.current = true;
+  }, []);
+  const stopSongPlay = useCallback(() => {
+    pauseSongPlay();
     setSongCursor(null);
     setLockedChord(null);
-  }, []);
+    resumeAtCursorRef.current = false;
+  }, [pauseSongPlay]);
   const toggleSongPlay = useCallback(() => {
     setSongPlaying((v) => !v);
   }, []);
@@ -451,6 +469,34 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSongId, userSongsRev, findSong]);
 
+  const focusedSectionIdx = hoveredSectionIdx ?? songCursor?.sectionIdx ?? null;
+  const sectionProgDegrees = useMemo((): number[] | null => {
+    if (!currentSong || focusedSectionIdx == null) return null;
+    const section = currentSong.sections[focusedSectionIdx];
+    if (!section) return null;
+    const seq: number[] = [];
+    for (const line of section.lines) {
+      for (const bar of line.bars) {
+        for (const c of bar.chords) {
+          if (seq.length === 0 || seq[seq.length - 1] !== c.degree) seq.push(c.degree);
+        }
+      }
+    }
+    return seq.length >= 2 ? seq : null;
+  }, [currentSong, focusedSectionIdx]);
+  const effectiveProgDegrees = sectionProgDegrees ?? activeProgObj?.degrees;
+
+  const songActiveStep = useMemo(() => {
+    if (!songPlaying || !currentSong || !songCursor || !sectionProgDegrees) return undefined;
+    if (songCursor.sectionIdx !== focusedSectionIdx) return undefined;
+    const section = currentSong.sections[songCursor.sectionIdx];
+    const chord = section?.lines[songCursor.lineIdx]?.bars[songCursor.barIdx]?.chords[songCursor.chordIdx];
+    if (!chord) return undefined;
+    const idx = sectionProgDegrees.indexOf(chord.degree);
+    return idx >= 0 ? idx : undefined;
+  }, [songPlaying, currentSong, songCursor, sectionProgDegrees, focusedSectionIdx]);
+  const effectiveActiveStep = songActiveStep ?? (playing ? playStep : undefined);
+
   const songSteps = useMemo(() => (currentSong ? flattenForPlayback(currentSong) : []), [currentSong]);
 
   const effectiveBpm = currentSong?.bpm ?? bpm;
@@ -460,7 +506,21 @@ function App() {
     if (!songPlaying || songSteps.length === 0) return;
     const beatDur = 60 / effectiveBpm;
     const beatsPerBar = songTimeSig.beats;
+    // Start step: resume → exact cursor; fresh ▶ with cursor → bar-aligned; else 0.
     let step = 0;
+    const cursor = songCursorRef.current;
+    if (cursor) {
+      const resumeExact = resumeAtCursorRef.current;
+      const idxAt = songSteps.findIndex(
+        (s) =>
+          s.sectionIdx === cursor.sectionIdx &&
+          s.lineIdx === cursor.lineIdx &&
+          s.barIdx === cursor.barIdx &&
+          (resumeExact ? s.chordIdx === cursor.chordIdx : s.chordIdx === 0),
+      );
+      if (idxAt >= 0) step = idxAt;
+    }
+    resumeAtCursorRef.current = false;
     const tick = () => {
       const s = songSteps[step];
       const v = optimal.find((o) => o.degree === s.degree);
@@ -1072,7 +1132,10 @@ function App() {
                 onClosePanel={handleCloseSongPanel}
                 isPlaying={songPlaying}
                 onTogglePlay={toggleSongPlay}
+                onStopPlay={stopSongPlay}
                 playCursor={songCursor}
+                onSectionHover={setHoveredSectionIdx}
+                onChipClick={(c) => setSongCursor(c)}
               />
             </div>
           )}
@@ -1090,9 +1153,9 @@ function App() {
               handleHoverChord={handleHoverChord}
               handleClickChord={handleClickChord}
               handleDblClickChord={handleDblClickChord}
-              progressionDegrees={activeProgObj?.degrees}
+              progressionDegrees={effectiveProgDegrees}
               animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
-              activeStep={playing ? playStep : undefined}
+              activeStep={effectiveActiveStep}
               onExpand={openGrid}
             />
 
@@ -1181,9 +1244,9 @@ function App() {
           handleHoverChord={handleHoverChord}
           handleClickChord={handleClickChord}
           handleDblClickChord={handleDblClickChord}
-          progressionDegrees={activeProgObj?.degrees}
+          progressionDegrees={effectiveProgDegrees}
           animationDuration={playing && activeProgObj ? (activeProgObj.degrees.length * 60 * 4) / bpm : undefined}
-          activeStep={playing ? playStep : undefined}
+          activeStep={effectiveActiveStep}
         />
       </FullscreenOverlay>
       <FullscreenOverlay active={fretFS} onClose={closeFullscreen}>
