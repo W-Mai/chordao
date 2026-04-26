@@ -77,7 +77,7 @@ Chordao finds the **optimal combination** of shapes that minimizes hand movement
 
 ### Song Sheets (see [Song Sheets](#-song-sheets))
 - Lyric + bar-aligned chord charts; degree-colored accents; built-in songs live as `.md` files in `songs/`
-- WYSIWYG editor (click character → accent, click chip → degree), localStorage archive, lz-string URL sharing
+- WYSIWYG editor (click character → accent, click chip → degree), localStorage archive, link + image sharing
 - Playback: ▶/⏸/⏹, sheet-level BPM, time signature (3/4, 6/8, …), per-section rhythm override; click any chip to set the play cursor and start bar-aligned
 
 ### Progressions & Audio
@@ -173,7 +173,9 @@ Click **New** / **Edit** in the panel header to open the editor. It's fully WYSI
 ### User songs & sharing
 
 - User-authored songs live in `localStorage` under the `user:<slug>` id prefix
-- The editor's **Share link** button bakes the current sheet into the URL hash (lz-string compressed) — opening that URL on another browser imports the sheet into its localStorage automatically
+- The ↗ button in the song panel header opens a share menu:
+  - **🔗 Copy link** — bakes the current sheet into the URL hash (deflate-raw + base64url); another browser opening it auto-imports the sheet to localStorage
+  - **📷 Export image** — generates a full-layout PNG (key badge, title, meta, sheet body, attribution footer), matching the main-app export style
 
 ## 🎮 Practice Game
 

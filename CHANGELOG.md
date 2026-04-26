@@ -4,6 +4,15 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.26.3]
+
+### Added
+- **Sheet share dropdown** — ↗ button in the song panel header opens a menu with **🔗 copy link** and **📷 export image**. Copy-link bakes the current sheet into a `#sheet=<…>` URL; export image builds a full-layout PNG (key badge, title, meta, sheet body, attribution footer) with the same small chordao + benign.host QR codes the main-app export uses.
+- **Sheet share compression** — swapped from lz-string to native `deflate-raw` + base64url (~14% smaller payload for `huoche`; no backward compatibility with old `sheet=` links).
+
+### Fixed
+- **Chord chip color band now reflects bar time** — every bar in a section shares the same column width (max of that section's bar widths), and a chord that's the first in its bar starts its color band at the bar boundary. Result: a spacer bar like `| |` gets its own full-bar color block, and `@ 1 1 3m 3m` visually shows each chord owning an equal-width bar instead of leaking across bar boundaries. Font-size auto-fit stays section-scoped, so different sections can still have different widths.
+
 ## [2026.4.26.2]
 
 ### Added
