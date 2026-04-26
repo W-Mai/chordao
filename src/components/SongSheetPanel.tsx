@@ -69,9 +69,13 @@ function barAccentPattern(bar: Bar): BarAccentPattern {
 interface BarSlotLayout {
   accentCols: number[];
   totalCols: number;
+  /** Fallback accent column inside the bar for chords that have no real [X]
+   * accent (empty/spacer bar, or a no-accent chord). Aligned across the
+   * section so every chord's color band spans one bar of time. */
+  virtualAccentCol: number;
 }
 function computeBarSlotLayout(barsInSlot: Bar[]): BarSlotLayout {
-  if (barsInSlot.length === 0) return { accentCols: [], totalCols: 1 };
+  if (barsInSlot.length === 0) return { accentCols: [], totalCols: 1, virtualAccentCol: 0 };
   const patterns = barsInSlot.map((b) => barAccentPattern(b));
   const numAccents = Math.max(...patterns.map((p) => p.accents.length));
 
@@ -111,7 +115,7 @@ function computeBarSlotLayout(barsInSlot: Bar[]): BarSlotLayout {
     // too large for its own prefix — that's fine, col computations below use
     // per-line offsets.
   });
-  return { accentCols, totalCols: Math.max(1, totalCols) };
+  return { accentCols, totalCols: Math.max(1, totalCols), virtualAccentCol: accentCols[0] ?? 0 };
 }
 
 /**
@@ -294,24 +298,16 @@ function LineRow({
     // Chord's chip band starts at the accent column (line-global) unless it's
     // the very first chord of the line, in which case start at column 0.
     bar.chords.forEach((chord, ci) => {
-      // Find the first atom belonging to this chord
-      const firstOwnedIdx = barAtomList.findIndex((a) => a.chordIdx === ci);
       const firstAccentOfChord = barAtomList.findIndex((a) => a.chordIdx === ci && a.accent);
-      const anchorAtomIdx = firstAccentOfChord >= 0 ? firstAccentOfChord : firstOwnedIdx;
-      const accentCol = barStart + (anchorAtomIdx >= 0 ? atomCols[anchorAtomIdx] : 0);
-      // Color-band start rule:
-      //   - first-chord-of-line: 0 (or accentCol if a carry-over band takes the prefix)
-      //   - first chord IN its bar (but not of the line): the bar's start column —
-      //     so a chord that owns a whole bar gets a full-bar band even when its
-      //     lyric sits mid-bar; and a bar with no accent (spacer bar) gets its
-      //     band laid out from that bar's start.
-      //   - same-bar split chord (ci > 0 in this bar): its accent column
+      // If the chord has a real [X] accent, anchor there. Otherwise fall back
+      // to the section-wide virtual accent column so the color band still
+      // lands at the same relative spot inside the bar — this keeps the
+      // accent→next-accent distance equal to one bar of time, even for spacer
+      // bars that carry a chord with no accent character.
+      const accentCol =
+        firstAccentOfChord >= 0 ? barStart + atomCols[firstAccentOfChord] : barStart + layout.virtualAccentCol;
       const isFirstChordOfLine = bi === 0 && ci === 0;
-      const isFirstChordOfBar = ci === 0;
-      let startCol: number;
-      if (isFirstChordOfLine) startCol = carryOverChord ? accentCol : 0;
-      else if (isFirstChordOfBar) startCol = barStart;
-      else startCol = accentCol;
+      const startCol = isFirstChordOfLine ? (carryOverChord ? accentCol : 0) : accentCol;
       chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol, accentCol });
     });
 
@@ -745,8 +741,22 @@ export function SongSheetPanel({
       const barsInSlot = section.lines.map((l) => l.bars[bi]).filter(Boolean);
       layouts.push(computeBarSlotLayout(barsInSlot));
     }
+    // Section-wide alignment so each chord's color band is one bar of pixels:
+    //   - first-accent column across bars is unified (accents land in the same
+    //     relative spot in every bar, so accent→next-accent = bar width)
+    //   - totalCols unified → all bars occupy the same column count
+    //   - virtualAccentCol := that unified prefix, used for bars/chords that
+    //     have no real [X] accent to anchor to
+    const maxAccentPrefix = Math.max(0, ...layouts.map((l) => l.accentCols[0] ?? 0));
     const maxTotal = Math.max(...layouts.map((l) => l.totalCols), 1);
-    return layouts.map((l) => ({ ...l, totalCols: maxTotal }));
+    return layouts.map((l) => {
+      const nextAccentCols = [...l.accentCols];
+      if (nextAccentCols.length > 0) {
+        const shift = maxAccentPrefix - nextAccentCols[0];
+        if (shift > 0) for (let k = 0; k < nextAccentCols.length; k++) nextAccentCols[k] += shift;
+      }
+      return { accentCols: nextAccentCols, totalCols: maxTotal, virtualAccentCol: maxAccentPrefix };
+    });
   };
 
   // Font size per section: based on the total column budget so every line in
