@@ -299,11 +299,19 @@ function LineRow({
       const firstAccentOfChord = barAtomList.findIndex((a) => a.chordIdx === ci && a.accent);
       const anchorAtomIdx = firstAccentOfChord >= 0 ? firstAccentOfChord : firstOwnedIdx;
       const accentCol = barStart + (anchorAtomIdx >= 0 ? atomCols[anchorAtomIdx] : 0);
+      // Color-band start rule:
+      //   - first-chord-of-line: 0 (or accentCol if a carry-over band takes the prefix)
+      //   - first chord IN its bar (but not of the line): the bar's start column —
+      //     so a chord that owns a whole bar gets a full-bar band even when its
+      //     lyric sits mid-bar; and a bar with no accent (spacer bar) gets its
+      //     band laid out from that bar's start.
+      //   - same-bar split chord (ci > 0 in this bar): its accent column
       const isFirstChordOfLine = bi === 0 && ci === 0;
-      // If there's a chord carried over from the previous line, the line-leading
-      // region (0 → accentCol) belongs to the carry-over, so this chord starts
-      // at its own accent column. Otherwise (first line of section) it starts at 0.
-      const startCol = isFirstChordOfLine ? (carryOverChord ? accentCol : 0) : accentCol;
+      const isFirstChordOfBar = ci === 0;
+      let startCol: number;
+      if (isFirstChordOfLine) startCol = carryOverChord ? accentCol : 0;
+      else if (isFirstChordOfBar) startCol = barStart;
+      else startCol = accentCol;
       chords.push({ barIdx: bi, chordIdx: ci, degree: chord.degree, startCol, accentCol });
     });
 
@@ -725,6 +733,10 @@ export function SongSheetPanel({
 
   // Per-section slot layout: for each bar slot, compute accent column positions
   // so same-bar accents align across lines (see computeBarSlotLayout).
+  // After per-slot layout, widen every slot's totalCols to the section max so
+  // all bars in a section share the same column width — this makes chord-chip
+  // color bands reflect equal time (a spacer bar gets the same visual width as
+  // a lyric bar of its neighbor).
   const sectionSlotLayouts = (section: import('../data/songSheet').Section): BarSlotLayout[] => {
     if (section.lines.length === 0) return [];
     const barCount = Math.max(...section.lines.map((l) => l.bars.length));
@@ -733,7 +745,8 @@ export function SongSheetPanel({
       const barsInSlot = section.lines.map((l) => l.bars[bi]).filter(Boolean);
       layouts.push(computeBarSlotLayout(barsInSlot));
     }
-    return layouts;
+    const maxTotal = Math.max(...layouts.map((l) => l.totalCols), 1);
+    return layouts.map((l) => ({ ...l, totalCols: maxTotal }));
   };
 
   // Font size per section: based on the total column budget so every line in
