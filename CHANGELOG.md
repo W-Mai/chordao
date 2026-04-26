@@ -4,6 +4,17 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.27.1]
+
+### Added
+- **Mono color mode for songs** — toggle next to the degree/absolute chord-name button in the song panel. Replaces all degree colors with a single neutral gray for the chip bands, accent backgrounds, carry-over band, and section progression row; accent characters and chord names stay in the theme's dark text color. Structure (bar width, accent positions) is unchanged. Persisted per-user via localStorage.
+
+### Fixed
+- **Chord chip color band now reflects bar time consistently** — every bar in a section aligns its first `[X]` accent to the same relative column, and bars without a real accent (spacer bars or chords without a lyric char) use a section-wide virtual accent position. Result: each accent → next-accent color band spans exactly one bar of musical time, even across `|  |` spacer bars.
+
+### Content
+- **huoche.md restructured** into 前奏 / 主歌 1 / 间奏 / 主歌 2 / 间奏 / 副歌 / 尾奏 sections; every bar is one chord, with `[]` acting as an empty-accent time marker for bars without lyric characters.
+
 ## [2026.4.26.3]
 
 ### Added
