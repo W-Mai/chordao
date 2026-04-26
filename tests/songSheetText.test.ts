@@ -104,7 +104,7 @@ describe('songs/huoche.md', () => {
     expect(errors).toEqual([]);
     expect(sheet!.title).toBe('火车驶向云外,梦安魂与九霄');
     expect(sheet!.key).toBe('C');
-    expect(sheet!.sections).toHaveLength(3);
+    expect(sheet!.sections).toHaveLength(7);
 
     const text = serializeSongSheet(sheet!);
     const reparsed = parseSongSheetText(text);
