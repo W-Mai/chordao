@@ -110,6 +110,7 @@ export default {
   songOpenPanelTitle: 'Open song sheet',
   songPlayTitle: 'Play / pause song',
   songStopTitle: 'Stop (reset to start)',
+  songShareTitle: 'Copy a shareable URL with this sheet baked in',
   songSelectTitle: 'Select a song',
   songUser: 'user',
   songEditorTitle: 'Song editor',

@@ -1,8 +1,14 @@
 import qrcode from 'qrcode-generator';
 
-// Generate QR code as data URL with quiet zone, rounded rect, and optional center logo
-export function generateQR(text: string, size: number, logoUrl?: string): Promise<string> {
-  const qr = qrcode(0, 'M');
+// Generate QR code as data URL with quiet zone, rounded rect, and optional center logo.
+// `ec` defaults to 'M'; drop to 'L' for dense payloads where a logo is not used.
+export function generateQR(
+  text: string,
+  size: number,
+  logoUrl?: string,
+  ec: 'L' | 'M' | 'Q' | 'H' = 'M',
+): Promise<string> {
+  const qr = qrcode(0, ec);
   qr.addData(text);
   qr.make();
 

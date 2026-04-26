@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { NOTE_DISPLAY, NOTES, type NoteName, type ChordVoicing, voicingKey } from '../data/chordData';
 import type { SongSheet, Bar } from '../data/songSheet';
 import { parseBarSource } from '../data/songSheet';
+import { encodeSheetForUrl } from '../data/songShare';
+import { generateQR } from '../utils/qr';
 
 /** Approx per-char em factor in a monospace CJK-heavy font. Tuned empirically. */
 const CH_EM = 1.1;
@@ -530,6 +532,184 @@ export function SongSheetPanel({
   const label = (degree: number) =>
     chordNameMode === 'absolute' ? absoluteChordName(selectedKey, degree) : DEGREE_LABEL[degree];
 
+  const buildShareUrl = async (): Promise<string> => {
+    const payload = await encodeSheetForUrl(sheet);
+    const url = new URL(window.location.href);
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+    hashParams.delete('song');
+    hashParams.set('sheet', payload);
+    url.hash = hashParams.toString();
+    return url.toString();
+  };
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
+  const openShareMenu = () => {
+    setShareOpen(true);
+    requestAnimationFrame(() => requestAnimationFrame(() => setShareVisible(true)));
+  };
+  const closeShareMenu = () => {
+    setShareVisible(false);
+    setTimeout(() => setShareOpen(false), 150);
+  };
+
+  const [shareCopied, setShareCopied] = useState(false);
+  const handleCopyLink = async () => {
+    const shareUrl = await buildShareUrl();
+    await navigator.clipboard.writeText(shareUrl);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 1500);
+    closeShareMenu();
+  };
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewMounted, setPreviewMounted] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const closePreview = () => {
+    setPreviewVisible(false);
+    setTimeout(() => setPreviewMounted(false), 250);
+  };
+  const handleExportImage = async () => {
+    closeShareMenu();
+    const body = bodyRef.current;
+    if (!body) return;
+    const { default: html2canvas } = await import('html2canvas-pro');
+
+    // Build an offscreen wrapper that mirrors the main-app export layout:
+    // title/meta header row + the song body (cloned live) + attribution footer.
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-9999px';
+    wrapper.style.top = '0';
+    wrapper.style.width = `${body.clientWidth}px`;
+    wrapper.style.padding = '32px';
+    wrapper.style.background = 'var(--crust)';
+    wrapper.style.color = 'var(--text)';
+    wrapper.style.fontFamily = 'Inter, system-ui, sans-serif';
+
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.alignItems = 'center';
+    header.style.gap = '16px';
+    header.style.marginBottom = '24px';
+
+    const badge = document.createElement('div');
+    Object.assign(badge.style, {
+      minWidth: '64px',
+      height: '64px',
+      padding: '0 12px',
+      borderRadius: '16px',
+      background: 'var(--blue)',
+      color: 'var(--crust)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '22px',
+      fontWeight: 'bold',
+      flexShrink: '0',
+      boxShadow: '0 0 20px var(--blue)',
+    });
+    badge.textContent = NOTE_DISPLAY[sheet.key];
+    header.appendChild(badge);
+
+    const titleBox = document.createElement('div');
+    titleBox.style.flex = '1';
+    const titleEl = document.createElement('div');
+    Object.assign(titleEl.style, { fontSize: '22px', fontWeight: 'bold', color: 'var(--text)' });
+    titleEl.textContent = sheet.title;
+    const metaEl = document.createElement('div');
+    Object.assign(metaEl.style, { fontSize: '12px', color: 'var(--overlay1)' });
+    const metaParts: string[] = [`${t('keyOf')} ${NOTE_DISPLAY[sheet.key]}`];
+    if (sheet.bpm) metaParts.push(`${sheet.bpm} BPM`);
+    if (sheet.timeSig) metaParts.push(`${sheet.timeSig.beats}/${sheet.timeSig.unit}`);
+    metaEl.textContent = metaParts.join(' · ');
+    titleBox.appendChild(titleEl);
+    titleBox.appendChild(metaEl);
+    header.appendChild(titleBox);
+
+    // Pair of small QR codes on the right, matching the main-app export.
+    // Chordao QR points to the current URL (same scheme as ExportView).
+    const logoUrl = `${window.location.origin}${import.meta.env.BASE_URL}logo.svg`;
+    const [qrAppUrl, qrBlogUrl] = await Promise.all([
+      generateQR(window.location.href, 200, logoUrl),
+      generateQR('https://benign.host', 200),
+    ]);
+    const qrRow = document.createElement('div');
+    Object.assign(qrRow.style, { display: 'flex', gap: '12px', alignItems: 'center' });
+    const makeQrTile = (src: string, label: string) => {
+      const tile = document.createElement('div');
+      tile.style.textAlign = 'center';
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = label;
+      Object.assign(img.style, { width: '56px', height: '56px', borderRadius: '4px' });
+      const cap = document.createElement('div');
+      Object.assign(cap.style, { fontSize: '7px', color: 'var(--overlay0)', marginTop: '2px' });
+      cap.textContent = label;
+      tile.appendChild(img);
+      tile.appendChild(cap);
+      return tile;
+    };
+    qrRow.appendChild(makeQrTile(qrAppUrl, t('appName')));
+    qrRow.appendChild(makeQrTile(qrBlogUrl, 'benign.host'));
+    header.appendChild(qrRow);
+    wrapper.appendChild(header);
+
+    const bodyPanel = document.createElement('div');
+    Object.assign(bodyPanel.style, {
+      border: '1px solid var(--panel-border)',
+      borderRadius: 'var(--ui-radius)',
+      background: 'var(--panel-bg)',
+      overflow: 'hidden',
+      padding: '12px',
+    });
+    bodyPanel.appendChild(body.cloneNode(true));
+    wrapper.appendChild(bodyPanel);
+
+    const footer = document.createElement('div');
+    Object.assign(footer.style, {
+      marginTop: '12px',
+      paddingTop: '12px',
+      borderTop: '1px solid var(--surface0)',
+      fontSize: '10px',
+      color: 'var(--overlay0)',
+      textAlign: 'center',
+    });
+    footer.textContent = `${t('generatedBy')} · ${t('exportAttribution')}`;
+    wrapper.appendChild(footer);
+
+    document.body.appendChild(wrapper);
+    try {
+      // Wait for any <img> (QR data URLs) inside the wrapper to decode so
+      // html2canvas captures them instead of blank boxes.
+      await Promise.all(
+        Array.from(wrapper.querySelectorAll('img')).map((img) =>
+          img.complete ? Promise.resolve() : img.decode().catch(() => undefined),
+        ),
+      );
+      const crust = getComputedStyle(document.documentElement).getPropertyValue('--crust').trim() || '#11111b';
+      const canvas = await html2canvas(wrapper, { backgroundColor: crust, scale: 2 });
+      setPreviewUrl(canvas.toDataURL('image/png'));
+      setPreviewMounted(true);
+      requestAnimationFrame(() => requestAnimationFrame(() => setPreviewVisible(true)));
+    } finally {
+      wrapper.remove();
+    }
+  };
+  const downloadPreview = () => {
+    if (!previewUrl) return;
+    const a = document.createElement('a');
+    a.href = previewUrl;
+    a.download = `chordao-${sheet.title.replace(/[^\w一-龥-]+/g, '_')}.png`;
+    a.click();
+  };
+  const copyPreview = async () => {
+    if (!previewUrl) return;
+    const res = await fetch(previewUrl);
+    const blob = await res.blob();
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+  };
+
   // Measure the body's width so we can auto-size the font to fill a line.
   const bodyRef = useRef<HTMLDivElement>(null);
   const [bodyWidth, setBodyWidth] = useState(0);
@@ -570,195 +750,284 @@ export function SongSheetPanel({
   void useEffect;
 
   return (
-    <section className="panel mb-2 md:mb-6 w-full">
-      <div className="panel-header">
-        <span className="panel-title flex items-center gap-1 flex-1 min-w-0">
-          <span>{'🎼'}</span>
-          <select
-            value={currentSongId}
-            onChange={(e) => onSelectSong(e.target.value)}
-            className="bg-transparent text-txt text-[13px] font-semibold cursor-pointer outline-none border-0 max-w-full truncate hover:text-blue"
-            style={{ transition: 'color var(--transition)' }}
-            title={t('songSelectTitle')}
-          >
-            {songOptions.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.title}
-                {opt.group === 'user' ? ` (${t('songUser')})` : ''}
-              </option>
-            ))}
-          </select>
-        </span>
-        {onTogglePlay && (
-          <button
-            onClick={onTogglePlay}
-            className={`text-[11px] w-6 h-5 rounded cursor-pointer flex items-center justify-center ${
-              isPlaying ? 'bg-green/20 text-green' : 'bg-surface0 text-overlay1 hover:text-green'
-            }`}
-            style={{ transition: 'all var(--transition)' }}
-            title={t('songPlayTitle')}
-          >
-            {isPlaying ? '⏸' : '▶'}
-          </button>
-        )}
-        {onStopPlay && (
-          <button
-            onClick={onStopPlay}
-            className="text-[11px] w-6 h-5 rounded cursor-pointer mr-1 flex items-center justify-center bg-surface0 text-overlay1 hover:text-red"
-            style={{ transition: 'all var(--transition)' }}
-            title={t('songStopTitle')}
-          >
-            {'⏹'}
-          </button>
-        )}
-        <button
-          onClick={toggleChordNameMode}
-          className="text-[10px] px-2 h-5 rounded-full cursor-pointer bg-surface0 text-overlay1 mr-1 flex items-center"
-          style={{ transition: 'all var(--transition)' }}
-          title={t('songChordNameToggle')}
-        >
-          {chordNameMode === 'degree' ? t('songModeDegree') : t('songModeAbs')}
-        </button>
-        {onNewSong && (
-          <button
-            onClick={onNewSong}
-            className="text-[10px] px-2 h-5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue mr-1"
-            style={{ transition: 'all var(--transition)' }}
-            title={t('songEditorOpenNew')}
-          >
-            {t('songEditorOpenNew')}
-          </button>
-        )}
-        {onEditSong && (
-          <button
-            onClick={onEditSong}
-            className="text-[10px] px-2 h-5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue mr-1"
-            style={{ transition: 'all var(--transition)' }}
-            title={t('songEditorOpenEdit')}
-          >
-            {t('songEditorOpenEdit')}
-          </button>
-        )}
-        {onExpand && <ExpandBtn onClick={onExpand} title={t('expand')} />}
-        {onClosePanel && (
-          <button
-            onClick={onClosePanel}
-            className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-red hover:border-red cursor-pointer ml-1"
-            style={{ transition: 'all var(--transition)' }}
-            title={t('close')}
-          >
-            {'✕'}
-          </button>
-        )}
-      </div>
-      <div className="panel-body" ref={bodyRef}>
-        {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}
-        {sheet.sections.map((section, si) => {
-          const slotLayouts = sectionSlotLayouts(section);
-          const fs = sectionFontSize(slotLayouts);
-          // Track the last chord from the previous line so its color can carry over
-          // onto the next line's leading region.
-          let lastChord: { degree: number } | null = null;
-          return (
-            <div
-              key={si}
-              className="mb-4 font-mono"
-              onPointerEnter={() => onSectionHover?.(si)}
-              onPointerLeave={() => onSectionHover?.(null)}
+    <>
+      <section className="panel mb-2 md:mb-6 w-full">
+        <div className="panel-header">
+          <span className="panel-title flex items-center gap-1 flex-1 min-w-0">
+            <span>{'🎼'}</span>
+            <select
+              value={currentSongId}
+              onChange={(e) => onSelectSong(e.target.value)}
+              className="bg-transparent text-txt text-[13px] font-semibold cursor-pointer outline-none border-0 max-w-full truncate hover:text-blue"
+              style={{ transition: 'color var(--transition)' }}
+              title={t('songSelectTitle')}
             >
-              {section.name && (
-                <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
-              )}
-              {(() => {
-                // Consecutive-dedup'd degree sequence for this section.
-                const seq: number[] = [];
-                for (const line of section.lines) {
-                  for (const bar of line.bars) {
-                    for (const c of bar.chords) {
-                      if (seq.length === 0 || seq[seq.length - 1] !== c.degree) seq.push(c.degree);
+              {songOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.title}
+                  {opt.group === 'user' ? ` (${t('songUser')})` : ''}
+                </option>
+              ))}
+            </select>
+          </span>
+          {onTogglePlay && (
+            <button
+              onClick={onTogglePlay}
+              className={`text-[11px] w-6 h-5 rounded cursor-pointer flex items-center justify-center ${
+                isPlaying ? 'bg-green/20 text-green' : 'bg-surface0 text-overlay1 hover:text-green'
+              }`}
+              style={{ transition: 'all var(--transition)' }}
+              title={t('songPlayTitle')}
+            >
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+          )}
+          {onStopPlay && (
+            <button
+              onClick={onStopPlay}
+              className="text-[11px] w-6 h-5 rounded cursor-pointer flex items-center justify-center bg-surface0 text-overlay1 hover:text-red"
+              style={{ transition: 'all var(--transition)' }}
+              title={t('songStopTitle')}
+            >
+              {'⏹'}
+            </button>
+          )}
+          <div className="relative mr-1">
+            <button
+              onClick={() => (shareOpen ? closeShareMenu() : openShareMenu())}
+              className="text-[11px] h-5 w-6 rounded cursor-pointer flex items-center justify-center bg-surface0 text-overlay1 hover:text-blue"
+              style={{ transition: 'all var(--transition)' }}
+              title={t('songShareTitle')}
+            >
+              {'↗'}
+            </button>
+            {shareOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={closeShareMenu} />
+                <div
+                  className="absolute right-0 top-7 bg-mantle border border-surface0 rounded-xl shadow-xl p-3 flex flex-col gap-2 z-50 min-w-48"
+                  style={{
+                    opacity: shareVisible ? 1 : 0,
+                    transform: shareVisible ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.95)',
+                    transition: 'opacity 0.15s ease, transform 0.15s ease',
+                  }}
+                >
+                  <button
+                    onClick={handleCopyLink}
+                    className="text-[11px] px-3 py-1.5 rounded-lg bg-surface0 text-txt hover:bg-surface1 cursor-pointer text-left"
+                    style={{ transition: 'all var(--transition)' }}
+                  >
+                    {'🔗 '}
+                    {shareCopied ? t('songEditorCopied') : t('copyLink')}
+                  </button>
+                  <button
+                    onClick={handleExportImage}
+                    className="text-[11px] px-3 py-1.5 rounded-lg bg-surface0 text-txt hover:bg-surface1 cursor-pointer text-left"
+                    style={{ transition: 'all var(--transition)' }}
+                  >
+                    {'📷 '}
+                    {t('export')}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={toggleChordNameMode}
+            className="text-[10px] px-2 h-5 rounded-full cursor-pointer bg-surface0 text-overlay1 mr-1 flex items-center"
+            style={{ transition: 'all var(--transition)' }}
+            title={t('songChordNameToggle')}
+          >
+            {chordNameMode === 'degree' ? t('songModeDegree') : t('songModeAbs')}
+          </button>
+          {onNewSong && (
+            <button
+              onClick={onNewSong}
+              className="text-[10px] px-2 h-5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue mr-1"
+              style={{ transition: 'all var(--transition)' }}
+              title={t('songEditorOpenNew')}
+            >
+              {t('songEditorOpenNew')}
+            </button>
+          )}
+          {onEditSong && (
+            <button
+              onClick={onEditSong}
+              className="text-[10px] px-2 h-5 rounded cursor-pointer bg-surface0 text-overlay1 hover:text-blue mr-1"
+              style={{ transition: 'all var(--transition)' }}
+              title={t('songEditorOpenEdit')}
+            >
+              {t('songEditorOpenEdit')}
+            </button>
+          )}
+          {onExpand && <ExpandBtn onClick={onExpand} title={t('expand')} />}
+          {onClosePanel && (
+            <button
+              onClick={onClosePanel}
+              className="text-xs px-2 py-1 rounded border border-surface0 text-overlay1 hover:text-red hover:border-red cursor-pointer ml-1"
+              style={{ transition: 'all var(--transition)' }}
+              title={t('close')}
+            >
+              {'✕'}
+            </button>
+          )}
+        </div>
+        <div className="panel-body" ref={bodyRef}>
+          {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}
+          {sheet.sections.map((section, si) => {
+            const slotLayouts = sectionSlotLayouts(section);
+            const fs = sectionFontSize(slotLayouts);
+            // Track the last chord from the previous line so its color can carry over
+            // onto the next line's leading region.
+            let lastChord: { degree: number } | null = null;
+            return (
+              <div
+                key={si}
+                className="mb-4 font-mono"
+                onPointerEnter={() => onSectionHover?.(si)}
+                onPointerLeave={() => onSectionHover?.(null)}
+              >
+                {section.name && (
+                  <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
+                )}
+                {(() => {
+                  // Consecutive-dedup'd degree sequence for this section.
+                  const seq: number[] = [];
+                  for (const line of section.lines) {
+                    for (const bar of line.bars) {
+                      for (const c of bar.chords) {
+                        if (seq.length === 0 || seq[seq.length - 1] !== c.degree) seq.push(c.degree);
+                      }
                     }
                   }
-                }
-                if (seq.length === 0) return null;
-                return (
-                  <div className="flex flex-wrap items-center gap-1 mb-2">
-                    {seq.map((deg, i) => {
-                      const vKey = keyOfDegree(deg);
-                      const isActive = vKey != null && vKey === activeChordKey;
-                      const color = `var(--color-deg-${deg})`;
-                      return (
-                        <span key={`prog-${i}`} className="flex items-center gap-1">
-                          {i > 0 && <span className="text-overlay0 text-[10px]">{'›'}</span>}
-                          <button
-                            onClick={() => vKey && handleClickChord(vKey)}
-                            onPointerEnter={() => vKey && handleHoverChord(vKey)}
-                            onPointerLeave={() => handleHoverChord(null)}
-                            className="px-1.5 py-0.5 rounded text-[11px] cursor-pointer"
-                            style={{
-                              background: isActive ? color : `color-mix(in srgb, ${color} 18%, transparent)`,
-                              color: isActive ? 'var(--crust)' : color,
-                              fontWeight: isActive ? 700 : 500,
-                              transition: 'all var(--transition)',
-                            }}
-                          >
-                            {label(deg)}
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-              {section.lines.map((line, li) => {
-                const carryOver = lastChord;
-                // Update lastChord for the next line: pick the last chord in this line's last bar.
-                const lastBar = line.bars[line.bars.length - 1];
-                if (lastBar && lastBar.chords.length > 0) {
-                  lastChord = { degree: lastBar.chords[lastBar.chords.length - 1].degree };
-                }
-                const playingChord =
-                  playCursor && playCursor.sectionIdx === si && playCursor.lineIdx === li
-                    ? { barIdx: playCursor.barIdx, chordIdx: playCursor.chordIdx }
-                    : null;
-                // Carry-over is "playing" only when the cursor is on the previous line's
-                // last chord (i.e. the one we're painting into this line's leading region).
-                const prevLine = li > 0 ? section.lines[li - 1] : null;
-                const prevLastBarIdx = prevLine ? prevLine.bars.length - 1 : -1;
-                const prevLastChordIdx =
-                  prevLine && prevLastBarIdx >= 0 ? prevLine.bars[prevLastBarIdx].chords.length - 1 : -1;
-                const carryOverPlaying =
-                  carryOver != null &&
-                  playCursor != null &&
-                  playCursor.sectionIdx === si &&
-                  playCursor.lineIdx === li - 1 &&
-                  playCursor.barIdx === prevLastBarIdx &&
-                  playCursor.chordIdx === prevLastChordIdx;
-                return (
-                  <LineRow
-                    key={li}
-                    bars={line.bars}
-                    sectionIdx={si}
-                    lineIdx={li}
-                    slotLayouts={slotLayouts}
-                    carryOverChord={carryOver}
-                    carryOverPlaying={carryOverPlaying}
-                    playingChord={playingChord}
-                    isPlaybackActive={playCursor != null}
-                    label={label}
-                    activeChordKey={activeChordKey}
-                    keyOfDegree={keyOfDegree}
-                    handleHoverChord={handleHoverChord}
-                    handleClickChord={handleClickChord}
-                    handleDblClickChord={handleDblClickChord}
-                    onChipClick={onChipClick}
-                    fontSize={fs}
-                  />
-                );
-              })}
+                  if (seq.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap items-center gap-1 mb-2">
+                      {seq.map((deg, i) => {
+                        const vKey = keyOfDegree(deg);
+                        const isActive = vKey != null && vKey === activeChordKey;
+                        const color = `var(--color-deg-${deg})`;
+                        return (
+                          <span key={`prog-${i}`} className="flex items-center gap-1">
+                            {i > 0 && <span className="text-overlay0 text-[10px]">{'›'}</span>}
+                            <button
+                              onClick={() => vKey && handleClickChord(vKey)}
+                              onPointerEnter={() => vKey && handleHoverChord(vKey)}
+                              onPointerLeave={() => handleHoverChord(null)}
+                              className="px-1.5 py-0.5 rounded text-[11px] cursor-pointer"
+                              style={{
+                                background: isActive ? color : `color-mix(in srgb, ${color} 18%, transparent)`,
+                                color: isActive ? 'var(--crust)' : color,
+                                fontWeight: isActive ? 700 : 500,
+                                transition: 'all var(--transition)',
+                              }}
+                            >
+                              {label(deg)}
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+                {section.lines.map((line, li) => {
+                  const carryOver = lastChord;
+                  // Update lastChord for the next line: pick the last chord in this line's last bar.
+                  const lastBar = line.bars[line.bars.length - 1];
+                  if (lastBar && lastBar.chords.length > 0) {
+                    lastChord = { degree: lastBar.chords[lastBar.chords.length - 1].degree };
+                  }
+                  const playingChord =
+                    playCursor && playCursor.sectionIdx === si && playCursor.lineIdx === li
+                      ? { barIdx: playCursor.barIdx, chordIdx: playCursor.chordIdx }
+                      : null;
+                  // Carry-over is "playing" only when the cursor is on the previous line's
+                  // last chord (i.e. the one we're painting into this line's leading region).
+                  const prevLine = li > 0 ? section.lines[li - 1] : null;
+                  const prevLastBarIdx = prevLine ? prevLine.bars.length - 1 : -1;
+                  const prevLastChordIdx =
+                    prevLine && prevLastBarIdx >= 0 ? prevLine.bars[prevLastBarIdx].chords.length - 1 : -1;
+                  const carryOverPlaying =
+                    carryOver != null &&
+                    playCursor != null &&
+                    playCursor.sectionIdx === si &&
+                    playCursor.lineIdx === li - 1 &&
+                    playCursor.barIdx === prevLastBarIdx &&
+                    playCursor.chordIdx === prevLastChordIdx;
+                  return (
+                    <LineRow
+                      key={li}
+                      bars={line.bars}
+                      sectionIdx={si}
+                      lineIdx={li}
+                      slotLayouts={slotLayouts}
+                      carryOverChord={carryOver}
+                      carryOverPlaying={carryOverPlaying}
+                      playingChord={playingChord}
+                      isPlaybackActive={playCursor != null}
+                      label={label}
+                      activeChordKey={activeChordKey}
+                      keyOfDegree={keyOfDegree}
+                      handleHoverChord={handleHoverChord}
+                      handleClickChord={handleClickChord}
+                      handleDblClickChord={handleDblClickChord}
+                      onChipClick={onChipClick}
+                      fontSize={fs}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+      {previewMounted && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-crust/90 backdrop-blur-sm"
+          style={{ opacity: previewVisible ? 1 : 0, transition: 'opacity 0.25s ease' }}
+          onClick={closePreview}
+        >
+          <div
+            className="flex flex-col items-center gap-4 max-w-[90vw] max-h-[90vh]"
+            style={{
+              opacity: previewVisible ? 1 : 0,
+              transform: previewVisible ? 'scale(1)' : 'scale(0.92)',
+              transition: 'opacity 0.25s ease, transform 0.25s ease',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewUrl!}
+              alt={t('export')}
+              className="max-w-full max-h-[70vh] rounded-xl border border-surface0 shadow-2xl"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={copyPreview}
+                className="px-4 py-2 rounded-lg bg-blue text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
+                style={{ transition: 'all var(--transition)' }}
+              >
+                📋 {t('copy')}
+              </button>
+              <button
+                onClick={downloadPreview}
+                className="px-4 py-2 rounded-lg bg-green text-crust font-semibold text-sm cursor-pointer hover:opacity-90"
+                style={{ transition: 'all var(--transition)' }}
+              >
+                💾 {t('download')}
+              </button>
+              <button
+                onClick={closePreview}
+                className="px-4 py-2 rounded-lg bg-surface0 text-subtext1 font-semibold text-sm cursor-pointer hover:bg-surface1"
+                style={{ transition: 'all var(--transition)' }}
+              >
+                {'✕ '}
+                {t('close')}
+              </button>
             </div>
-          );
-        })}
-      </div>
-    </section>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

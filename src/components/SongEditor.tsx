@@ -80,7 +80,7 @@ export function SongEditor({ open, initialSheet, isExistingUserSong, onSave, onD
 
   const handleShare = useCallback(async () => {
     if (!canSave) return;
-    const payload = encodeSheetForUrl(sheet);
+    const payload = await encodeSheetForUrl(sheet);
     const url = new URL(window.location.href);
     const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
     hashParams.delete('song');

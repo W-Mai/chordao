@@ -425,32 +425,32 @@ function App() {
     return listUserSongs();
   }, [userSongsRev]);
 
-  // Import a sheet= URL payload once at mount (if present), then select it
-  const sheetPayloadImport = useMemo<SongSheet | null>(
-    () => (initial.sheetPayload ? decodeSheetFromUrl(initial.sheetPayload) : null),
-    // initial is captured once at mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-  useEffect(() => {
-    if (sheetPayloadImport) {
-      saveUserSong(sheetPayloadImport);
-      bumpUserSongs();
-    }
-  }, [sheetPayloadImport, bumpUserSongs]);
-
   const findSong = useCallback((id: string): SongSheet | undefined => findBuiltinSong(id) ?? getUserSong(id), []);
 
   // `null` = song panel hidden. The user must choose a song explicitly (via
   // the 🎼 header button or a shared sheet= URL) before the panel appears.
   const [selectedSongId, setSelectedSongId] = useState<string | null>(() => {
-    if (sheetPayloadImport) return sheetPayloadImport.id;
     const fromUrl = initial.song;
     if (fromUrl && (findBuiltinSong(fromUrl) || (isUserSongId(fromUrl) && getUserSong(fromUrl)))) return fromUrl;
-    // Don't auto-restore from localStorage — closing the panel is sticky until
-    // the user opens it again, otherwise the default-hidden contract is broken.
     return null;
   });
+
+  // sheet= URL payload import (async because decoder uses DecompressionStream).
+  // Runs once at mount; on success, saves to user archive and selects it.
+  useEffect(() => {
+    if (!initial.sheetPayload) return;
+    let cancelled = false;
+    decodeSheetFromUrl(initial.sheetPayload).then((sheet) => {
+      if (cancelled || !sheet) return;
+      saveUserSong(sheet);
+      bumpUserSongs();
+      setSelectedSongId(sheet.id);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // On mount: if the initial song is set and the URL didn't pin a key,
   // snap selectedKey to that song's key. URL key= wins (user explicitly asked).
