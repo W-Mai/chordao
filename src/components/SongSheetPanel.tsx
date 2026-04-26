@@ -192,6 +192,8 @@ interface SongSheetPanelProps {
   handleDblClickChord: (k: string) => void;
   chordNameMode: 'degree' | 'absolute';
   toggleChordNameMode: () => void;
+  chordColorMode: 'degree' | 'mono';
+  toggleChordColorMode: () => void;
   songOptions: SongOption[];
   currentSongId: string;
   onSelectSong: (id: string) => void;
@@ -231,6 +233,7 @@ function LineRow({
   carryOverPlaying,
   playingChord,
   isPlaybackActive,
+  mono,
   label,
   activeChordKey,
   keyOfDegree,
@@ -253,6 +256,8 @@ function LineRow({
   playingChord: { barIdx: number; chordIdx: number } | null;
   /** True while song playback is running anywhere (cursor is visible somewhere). */
   isPlaybackActive: boolean;
+  /** If true, render all degree-color slots with a single neutral gray. */
+  mono: boolean;
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -337,7 +342,7 @@ function LineRow({
           const isActive = isPlaybackActive
             ? carryOverPlaying
             : carryOverPlaying || (vKey != null && vKey === activeChordKey);
-          const color = `var(--color-deg-${carryOverChord.degree})`;
+          const color = mono ? 'var(--overlay1)' : `var(--color-deg-${carryOverChord.degree})`;
           return (
             <button
               key="carryover"
@@ -375,7 +380,8 @@ function LineRow({
         const isPlayingThis =
           playingChord != null && playingChord.barIdx === chord.barIdx && playingChord.chordIdx === chord.chordIdx;
         const isActive = isPlaybackActive ? isPlayingThis : isPlayingThis || (vKey != null && vKey === activeChordKey);
-        const color = `var(--color-deg-${chord.degree})`;
+        const color = mono ? 'var(--overlay1)' : `var(--color-deg-${chord.degree})`;
+        const textColor = mono ? 'var(--text)' : color;
         const bandWidth = endCol - chord.startCol;
         const accentOffsetPct = bandWidth > 0 ? ((chord.accentCol - chord.startCol) / bandWidth) * 100 : 0;
         return (
@@ -393,7 +399,7 @@ function LineRow({
               gridRow: 1,
               gridColumn: `${chord.startCol + 1} / ${endCol + 1}`,
               background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
-              color: isActive ? 'var(--crust)' : color,
+              color: isActive ? 'var(--crust)' : textColor,
               fontWeight: isActive ? 700 : 500,
               borderTopLeftRadius: 4,
               borderTopRightRadius: 4,
@@ -432,7 +438,8 @@ function LineRow({
       {/* Lyric chars — each placed by its absolute column so empty trailing cells
           (when a bar has fewer chars than its section-wide budget) just stay blank. */}
       {atoms.map((a, i) => {
-        const color = `var(--color-deg-${bars[a.barIdx].chords[a.chordIdx].degree})`;
+        const color = mono ? 'var(--overlay1)' : `var(--color-deg-${bars[a.barIdx].chords[a.chordIdx].degree})`;
+        const textColor = mono ? 'var(--text)' : color;
         const vKey = keyOfDegree(bars[a.barIdx].chords[a.chordIdx].degree);
         const isPlayingThis =
           playingChord != null && playingChord.barIdx === a.barIdx && playingChord.chordIdx === a.chordIdx;
@@ -445,7 +452,7 @@ function LineRow({
                 gridRow: 2,
                 gridColumn: `${a.col + 1}`,
                 background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
-                color: isActive ? 'var(--crust)' : color,
+                color: isActive ? 'var(--crust)' : textColor,
                 fontWeight: 700,
                 display: 'inline-flex',
                 justifyContent: 'center',
@@ -512,6 +519,8 @@ export function SongSheetPanel({
   handleDblClickChord,
   chordNameMode,
   toggleChordNameMode,
+  chordColorMode,
+  toggleChordColorMode,
   songOptions,
   currentSongId,
   onSelectSong,
@@ -863,6 +872,14 @@ export function SongSheetPanel({
           >
             {chordNameMode === 'degree' ? t('songModeDegree') : t('songModeAbs')}
           </button>
+          <button
+            onClick={toggleChordColorMode}
+            className="text-[10px] px-2 h-5 rounded-full cursor-pointer bg-surface0 text-overlay1 mr-1 flex items-center"
+            style={{ transition: 'all var(--transition)' }}
+            title={t('songChordColorToggle')}
+          >
+            {chordColorMode === 'degree' ? t('songColorModeColor') : t('songColorModeMono')}
+          </button>
           {onNewSong && (
             <button
               onClick={onNewSong}
@@ -929,7 +946,7 @@ export function SongSheetPanel({
                       {seq.map((deg, i) => {
                         const vKey = keyOfDegree(deg);
                         const isActive = vKey != null && vKey === activeChordKey;
-                        const color = `var(--color-deg-${deg})`;
+                        const color = chordColorMode === 'mono' ? 'var(--overlay1)' : `var(--color-deg-${deg})`;
                         return (
                           <span key={`prog-${i}`} className="flex items-center gap-1">
                             {i > 0 && <span className="text-overlay0 text-[10px]">{'›'}</span>}
@@ -940,7 +957,7 @@ export function SongSheetPanel({
                               className="px-1.5 py-0.5 rounded text-[11px] cursor-pointer"
                               style={{
                                 background: isActive ? color : `color-mix(in srgb, ${color} 18%, transparent)`,
-                                color: isActive ? 'var(--crust)' : color,
+                                color: isActive ? 'var(--crust)' : chordColorMode === 'mono' ? 'var(--text)' : color,
                                 fontWeight: isActive ? 700 : 500,
                                 transition: 'all var(--transition)',
                               }}
@@ -988,6 +1005,7 @@ export function SongSheetPanel({
                       carryOverPlaying={carryOverPlaying}
                       playingChord={playingChord}
                       isPlaybackActive={playCursor != null}
+                      mono={chordColorMode === 'mono'}
                       label={label}
                       activeChordKey={activeChordKey}
                       keyOfDegree={keyOfDegree}

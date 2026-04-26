@@ -416,6 +416,17 @@ function App() {
     });
   }, []);
 
+  const [songChordColor, setSongChordColor] = useState<'degree' | 'mono'>(
+    () => (localStorage.getItem('chordao:songChordColor') as 'degree' | 'mono') || 'degree',
+  );
+  const toggleSongChordColor = useCallback(() => {
+    setSongChordColor((v) => {
+      const next = v === 'degree' ? 'mono' : 'degree';
+      localStorage.setItem('chordao:songChordColor', next);
+      return next;
+    });
+  }, []);
+
   // User-song archive (stored in localStorage, re-fetched when it changes)
   const [userSongsRev, setUserSongsRev] = useState(0);
   const bumpUserSongs = useCallback(() => setUserSongsRev((r) => r + 1), []);
@@ -1124,6 +1135,8 @@ function App() {
                 handleDblClickChord={handleDblClickChord}
                 chordNameMode={chordNameMode}
                 toggleChordNameMode={toggleChordNameMode}
+                chordColorMode={songChordColor}
+                toggleChordColorMode={toggleSongChordColor}
                 songOptions={songOptions}
                 currentSongId={selectedSongId ?? ''}
                 onSelectSong={handleSelectSong}
