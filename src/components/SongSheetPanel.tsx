@@ -930,115 +930,147 @@ export function SongSheetPanel({
             </button>
           )}
         </div>
-        <div className="panel-body" ref={bodyRef}>
-          {sheet.strum && <div className="font-mono text-sm mb-3 text-subtext0">{sheet.strum}</div>}
-          {sheet.sections.map((section, si) => {
-            const slotLayouts = sectionSlotLayouts(section);
-            const fs = sectionFontSize(slotLayouts);
-            // Track the last chord from the previous line so its color can carry over
-            // onto the next line's leading region.
-            let lastChord: { degree: number } | null = null;
-            return (
-              <div
-                key={si}
-                className="mb-4 font-mono"
-                onPointerEnter={() => onSectionHover?.(si)}
-                onPointerLeave={() => onSectionHover?.(null)}
-              >
-                {section.name && (
-                  <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
-                )}
-                {(() => {
-                  // Consecutive-dedup'd degree sequence for this section.
-                  const seq: number[] = [];
-                  for (const line of section.lines) {
-                    for (const bar of line.bars) {
-                      for (const c of bar.chords) {
-                        if (seq.length === 0 || seq[seq.length - 1] !== c.degree) seq.push(c.degree);
+        <div className="panel-body">
+          {/* Meta bar: large title + key · BPM · time · strum. Sits above the
+              sheet grid with generous horizontal padding so content doesn't
+              butt up against the panel border. */}
+          <div className="px-3 md:px-5 pt-2 md:pt-3 pb-3 md:pb-4 border-b border-surface0/60">
+            <div className="text-base md:text-lg font-semibold text-txt truncate" title={sheet.title}>
+              {sheet.title}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] md:text-xs text-overlay1 font-mono">
+              <span>{NOTE_DISPLAY[sheet.key]}</span>
+              {sheet.bpm && (
+                <>
+                  <span className="text-surface2">·</span>
+                  <span>{sheet.bpm} BPM</span>
+                </>
+              )}
+              {sheet.timeSig && (
+                <>
+                  <span className="text-surface2">·</span>
+                  <span>
+                    {sheet.timeSig.beats}/{sheet.timeSig.unit}
+                  </span>
+                </>
+              )}
+              {sheet.strum && (
+                <>
+                  <span className="text-surface2">·</span>
+                  <span>{sheet.strum}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="px-3 md:px-5 py-3 md:py-4" ref={bodyRef}>
+            {sheet.sections.map((section, si) => {
+              const slotLayouts = sectionSlotLayouts(section);
+              const fs = sectionFontSize(slotLayouts);
+              // Track the last chord from the previous line so its color can carry over
+              // onto the next line's leading region.
+              let lastChord: { degree: number } | null = null;
+              return (
+                <div
+                  key={si}
+                  className="mb-4 font-mono"
+                  onPointerEnter={() => onSectionHover?.(si)}
+                  onPointerLeave={() => onSectionHover?.(null)}
+                >
+                  {section.name && (
+                    <div className="text-[10px] uppercase tracking-wide text-overlay0 mb-1">[{section.name}]</div>
+                  )}
+                  {(() => {
+                    // Consecutive-dedup'd degree sequence for this section.
+                    const seq: number[] = [];
+                    for (const line of section.lines) {
+                      for (const bar of line.bars) {
+                        for (const c of bar.chords) {
+                          if (seq.length === 0 || seq[seq.length - 1] !== c.degree) seq.push(c.degree);
+                        }
                       }
                     }
-                  }
-                  if (seq.length === 0) return null;
-                  return (
-                    <div className="flex flex-wrap items-center gap-1 mb-2">
-                      {seq.map((deg, i) => {
-                        const vKey = keyOfDegree(deg);
-                        const isActive = vKey != null && vKey === activeChordKey;
-                        const color = chordColorMode === 'mono' ? 'var(--overlay1)' : `var(--color-deg-${deg})`;
-                        return (
-                          <span key={`prog-${i}`} className="flex items-center gap-1">
-                            {i > 0 && <span className="text-overlay0 text-[10px]">{'›'}</span>}
-                            <button
-                              onClick={() => vKey && handleClickChord(vKey)}
-                              onPointerEnter={() => vKey && handleHoverChord(vKey)}
-                              onPointerLeave={() => handleHoverChord(null)}
-                              className="px-1.5 py-0.5 rounded text-[11px] cursor-pointer"
-                              style={{
-                                background: isActive ? color : `color-mix(in srgb, ${color} 18%, transparent)`,
-                                color: isActive ? 'var(--crust)' : chordColorMode === 'mono' ? 'var(--text)' : color,
-                                fontWeight: isActive ? 700 : 500,
-                                transition: 'all var(--transition)',
-                              }}
-                            >
-                              {label(deg)}
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-                {section.lines.map((line, li) => {
-                  const carryOver = lastChord;
-                  // Update lastChord for the next line: pick the last chord in this line's last bar.
-                  const lastBar = line.bars[line.bars.length - 1];
-                  if (lastBar && lastBar.chords.length > 0) {
-                    lastChord = { degree: lastBar.chords[lastBar.chords.length - 1].degree };
-                  }
-                  const playingChord =
-                    playCursor && playCursor.sectionIdx === si && playCursor.lineIdx === li
-                      ? { barIdx: playCursor.barIdx, chordIdx: playCursor.chordIdx }
-                      : null;
-                  // Carry-over is "playing" only when the cursor is on the previous line's
-                  // last chord (i.e. the one we're painting into this line's leading region).
-                  const prevLine = li > 0 ? section.lines[li - 1] : null;
-                  const prevLastBarIdx = prevLine ? prevLine.bars.length - 1 : -1;
-                  const prevLastChordIdx =
-                    prevLine && prevLastBarIdx >= 0 ? prevLine.bars[prevLastBarIdx].chords.length - 1 : -1;
-                  const carryOverPlaying =
-                    carryOver != null &&
-                    playCursor != null &&
-                    playCursor.sectionIdx === si &&
-                    playCursor.lineIdx === li - 1 &&
-                    playCursor.barIdx === prevLastBarIdx &&
-                    playCursor.chordIdx === prevLastChordIdx;
-                  return (
-                    <LineRow
-                      key={li}
-                      bars={line.bars}
-                      sectionIdx={si}
-                      lineIdx={li}
-                      slotLayouts={slotLayouts}
-                      carryOverChord={carryOver}
-                      carryOverPlaying={carryOverPlaying}
-                      playingChord={playingChord}
-                      isPlaybackActive={playCursor != null}
-                      mono={chordColorMode === 'mono'}
-                      dedupeLabels={dedupeLabels}
-                      label={label}
-                      activeChordKey={activeChordKey}
-                      keyOfDegree={keyOfDegree}
-                      handleHoverChord={handleHoverChord}
-                      handleClickChord={handleClickChord}
-                      handleDblClickChord={handleDblClickChord}
-                      onChipClick={onChipClick}
-                      fontSize={fs}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
+                    if (seq.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-1 mb-2">
+                        {seq.map((deg, i) => {
+                          const vKey = keyOfDegree(deg);
+                          const isActive = vKey != null && vKey === activeChordKey;
+                          const color = chordColorMode === 'mono' ? 'var(--overlay1)' : `var(--color-deg-${deg})`;
+                          return (
+                            <span key={`prog-${i}`} className="flex items-center gap-1">
+                              {i > 0 && <span className="text-overlay0 text-[10px]">{'›'}</span>}
+                              <button
+                                onClick={() => vKey && handleClickChord(vKey)}
+                                onPointerEnter={() => vKey && handleHoverChord(vKey)}
+                                onPointerLeave={() => handleHoverChord(null)}
+                                className="px-1.5 py-0.5 rounded text-[11px] cursor-pointer"
+                                style={{
+                                  background: isActive ? color : `color-mix(in srgb, ${color} 18%, transparent)`,
+                                  color: isActive ? 'var(--crust)' : chordColorMode === 'mono' ? 'var(--text)' : color,
+                                  fontWeight: isActive ? 700 : 500,
+                                  transition: 'all var(--transition)',
+                                }}
+                              >
+                                {label(deg)}
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                  {section.lines.map((line, li) => {
+                    const carryOver = lastChord;
+                    // Update lastChord for the next line: pick the last chord in this line's last bar.
+                    const lastBar = line.bars[line.bars.length - 1];
+                    if (lastBar && lastBar.chords.length > 0) {
+                      lastChord = { degree: lastBar.chords[lastBar.chords.length - 1].degree };
+                    }
+                    const playingChord =
+                      playCursor && playCursor.sectionIdx === si && playCursor.lineIdx === li
+                        ? { barIdx: playCursor.barIdx, chordIdx: playCursor.chordIdx }
+                        : null;
+                    // Carry-over is "playing" only when the cursor is on the previous line's
+                    // last chord (i.e. the one we're painting into this line's leading region).
+                    const prevLine = li > 0 ? section.lines[li - 1] : null;
+                    const prevLastBarIdx = prevLine ? prevLine.bars.length - 1 : -1;
+                    const prevLastChordIdx =
+                      prevLine && prevLastBarIdx >= 0 ? prevLine.bars[prevLastBarIdx].chords.length - 1 : -1;
+                    const carryOverPlaying =
+                      carryOver != null &&
+                      playCursor != null &&
+                      playCursor.sectionIdx === si &&
+                      playCursor.lineIdx === li - 1 &&
+                      playCursor.barIdx === prevLastBarIdx &&
+                      playCursor.chordIdx === prevLastChordIdx;
+                    return (
+                      <LineRow
+                        key={li}
+                        bars={line.bars}
+                        sectionIdx={si}
+                        lineIdx={li}
+                        slotLayouts={slotLayouts}
+                        carryOverChord={carryOver}
+                        carryOverPlaying={carryOverPlaying}
+                        playingChord={playingChord}
+                        isPlaybackActive={playCursor != null}
+                        mono={chordColorMode === 'mono'}
+                        dedupeLabels={dedupeLabels}
+                        label={label}
+                        activeChordKey={activeChordKey}
+                        keyOfDegree={keyOfDegree}
+                        handleHoverChord={handleHoverChord}
+                        handleClickChord={handleClickChord}
+                        handleDblClickChord={handleDblClickChord}
+                        onChipClick={onChipClick}
+                        fontSize={fs}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
       {previewMounted && (
