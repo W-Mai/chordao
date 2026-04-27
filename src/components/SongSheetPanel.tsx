@@ -5,6 +5,7 @@ import type { SongSheet, Bar } from '../data/songSheet';
 import { parseBarSource } from '../data/songSheet';
 import { encodeSheetForUrl } from '../data/songShare';
 import { generateQR } from '../utils/qr';
+import { RHYTHM_PATTERNS } from '../utils/audio';
 
 /** Approx per-char em factor in a monospace CJK-heavy font. Tuned empirically. */
 const CH_EM = 1.1;
@@ -179,6 +180,42 @@ interface SongOption {
   id: string;
   title: string;
   group?: string;
+}
+
+/**
+ * Compact strum pattern visualization. Takes a RHYTHM_PATTERNS `name` and
+ * renders a row of arrow/direction glyphs per beat, opacity = vol.
+ * Unknown names render the raw string as a fallback.
+ */
+function StrumViz({ name }: { name: string }) {
+  const pat = RHYTHM_PATTERNS.find((r) => r.name === name);
+  if (!pat) return <span>{name}</span>;
+  // Beats 0..3; drop each strum into its integer beat bucket.
+  const buckets: { beat: number; dir: 'down' | 'up' | 'arp'; vol: number; sub: number }[][] = [[], [], [], []];
+  for (const s of pat.strums) {
+    const bi = Math.min(3, Math.max(0, Math.floor(s.beat)));
+    buckets[bi].push({ beat: s.beat, dir: s.dir, vol: s.vol, sub: s.beat - bi });
+  }
+  const glyph = (d: 'down' | 'up' | 'arp') => (d === 'down' ? '↑' : d === 'up' ? '↓' : '⟳');
+  return (
+    <span className="inline-flex items-center gap-2 text-xl leading-none" title={name}>
+      {buckets.map((bucket, bi) => (
+        <span key={bi} className="inline-flex items-center gap-0.5">
+          {bucket.length === 0 ? (
+            <span className="text-surface2">·</span>
+          ) : (
+            bucket
+              .sort((a, b) => a.sub - b.sub)
+              .map((s, si) => (
+                <span key={si} style={{ opacity: 0.4 + s.vol * 0.6, fontWeight: s.vol >= 0.9 ? 800 : 600 }}>
+                  {glyph(s.dir)}
+                </span>
+              ))
+          )}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 interface SongSheetPanelProps {
@@ -646,6 +683,51 @@ export function SongSheetPanel({
     metaEl.textContent = metaParts.join(' · ');
     titleBox.appendChild(titleEl);
     titleBox.appendChild(metaEl);
+    // Rhythm pattern row (arrow glyphs per beat). Built in plain DOM for
+    // html2canvas; same semantics as <StrumViz>.
+    if (sheet.strum) {
+      const pat = RHYTHM_PATTERNS.find((r) => r.name === sheet.strum);
+      if (pat) {
+        const strumEl = document.createElement('div');
+        Object.assign(strumEl.style, {
+          marginTop: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '20px',
+          color: 'var(--text)',
+          lineHeight: '1',
+        });
+        const buckets: { dir: 'down' | 'up' | 'arp'; vol: number; sub: number }[][] = [[], [], [], []];
+        for (const s of pat.strums) {
+          const bi = Math.min(3, Math.max(0, Math.floor(s.beat)));
+          buckets[bi].push({ dir: s.dir, vol: s.vol, sub: s.beat - bi });
+        }
+        const glyph = (d: 'down' | 'up' | 'arp') => (d === 'down' ? '↑' : d === 'up' ? '↓' : '⟳');
+        for (const bucket of buckets) {
+          const g = document.createElement('span');
+          Object.assign(g.style, { display: 'inline-flex', alignItems: 'center', gap: '2px' });
+          if (bucket.length === 0) {
+            const dot = document.createElement('span');
+            dot.textContent = '·';
+            dot.style.color = 'var(--surface2)';
+            g.appendChild(dot);
+          } else {
+            bucket
+              .sort((a, b) => a.sub - b.sub)
+              .forEach((s) => {
+                const gly = document.createElement('span');
+                gly.textContent = glyph(s.dir);
+                gly.style.opacity = String(0.4 + s.vol * 0.6);
+                gly.style.fontWeight = s.vol >= 0.9 ? '800' : '600';
+                g.appendChild(gly);
+              });
+          }
+          strumEl.appendChild(g);
+        }
+        titleBox.appendChild(strumEl);
+      }
+    }
     header.appendChild(titleBox);
 
     // Pair of small QR codes on the right, matching the main-app export.
@@ -954,13 +1036,12 @@ export function SongSheetPanel({
                   </span>
                 </>
               )}
-              {sheet.strum && (
-                <>
-                  <span className="text-surface2">·</span>
-                  <span>{sheet.strum}</span>
-                </>
-              )}
             </div>
+            {sheet.strum && (
+              <div className="mt-2 text-txt">
+                <StrumViz name={sheet.strum} />
+              </div>
+            )}
           </div>
           <div className="px-3 md:px-5 py-3 md:py-4" ref={bodyRef}>
             {sheet.sections.map((section, si) => {
