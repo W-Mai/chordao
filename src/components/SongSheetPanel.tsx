@@ -476,7 +476,7 @@ function LineRow({
               gridRow: 2,
               gridColumn: `${a.col + 1}`,
               color: 'var(--text)',
-              opacity: 0.55,
+              opacity: 0.85,
               display: 'inline-flex',
               justifyContent: 'center',
             }}
