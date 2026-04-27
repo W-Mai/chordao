@@ -4,6 +4,18 @@ All notable changes to Chordao will be documented in this file.
 
 Format: [CalVer](https://calver.org/) — `YYYY.M.D`
 
+## [2026.4.27.2]
+
+### Added
+- **Rhythm pattern visualization** — the song panel meta and exported images now render the strum pattern as arrow glyphs grouped per beat (↑ for down-strokes, ↓ for up-strokes, ⟳ for arpeggios), with opacity reflecting each stroke's volume. Replaces the plain pattern name (e.g. `pop`).
+- **Toggle to hide consecutive same-degree chord labels** — next to the degree/color toggles. When on, labels like `1 1 3m 3m` collapse to `1 3m` (color bands unchanged); useful when the bar-level time markup has the same chord repeated.
+- **Sheet meta bar** — the panel body now opens with a large title and a meta row (key · BPM · time-sig), separated from the sheet grid by a subtle divider.
+
+### Changed
+- **Chord chip bands** are now square (previously top-rounded).
+- **Non-accent lyric readability** improved (opacity 0.55 → 0.85).
+- Song panel body now has generous horizontal padding so the sheet grid doesn't butt up against the panel border.
+
 ## [2026.4.27.1]
 
 ### Added

@@ -80,6 +80,7 @@ Chordao finds the **optimal combination** of shapes that minimizes hand movement
 - WYSIWYG editor (click character → accent, click chip → degree), localStorage archive, link + image sharing
 - Playback: ▶/⏸/⏹, sheet-level BPM, time signature (3/4, 6/8, …), per-section rhythm override; click any chip to set the play cursor and start bar-aligned
 - Color ↔ Mono toggle: collapse all degree colors to a neutral gray for print-friendly / lower-visual-load viewing
+- Rhythm pattern visualization: strum pattern shown as arrow glyphs per beat (↑↓⟳), opacity = volume; consecutive same-chord labels can be collapsed to a single one
 
 ### Progressions & Audio
 - **Built-in progressions** — Pop Canon, Blues, C-Pop Ballad, Jazz ii-V-I, etc., with animated path visualization
