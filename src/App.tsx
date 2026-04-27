@@ -427,6 +427,16 @@ function App() {
     });
   }, []);
 
+  const [songDedupeLabels, setSongDedupeLabels] = useState<boolean>(
+    () => localStorage.getItem('chordao:songDedupeLabels') === 'true',
+  );
+  const toggleSongDedupeLabels = useCallback(() => {
+    setSongDedupeLabels((v) => {
+      localStorage.setItem('chordao:songDedupeLabels', String(!v));
+      return !v;
+    });
+  }, []);
+
   // User-song archive (stored in localStorage, re-fetched when it changes)
   const [userSongsRev, setUserSongsRev] = useState(0);
   const bumpUserSongs = useCallback(() => setUserSongsRev((r) => r + 1), []);
@@ -1137,6 +1147,8 @@ function App() {
                 toggleChordNameMode={toggleChordNameMode}
                 chordColorMode={songChordColor}
                 toggleChordColorMode={toggleSongChordColor}
+                dedupeLabels={songDedupeLabels}
+                toggleDedupeLabels={toggleSongDedupeLabels}
                 songOptions={songOptions}
                 currentSongId={selectedSongId ?? ''}
                 onSelectSong={handleSelectSong}

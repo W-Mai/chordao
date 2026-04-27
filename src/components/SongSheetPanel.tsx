@@ -194,6 +194,8 @@ interface SongSheetPanelProps {
   toggleChordNameMode: () => void;
   chordColorMode: 'degree' | 'mono';
   toggleChordColorMode: () => void;
+  dedupeLabels: boolean;
+  toggleDedupeLabels: () => void;
   songOptions: SongOption[];
   currentSongId: string;
   onSelectSong: (id: string) => void;
@@ -234,6 +236,7 @@ function LineRow({
   playingChord,
   isPlaybackActive,
   mono,
+  dedupeLabels,
   label,
   activeChordKey,
   keyOfDegree,
@@ -258,6 +261,8 @@ function LineRow({
   isPlaybackActive: boolean;
   /** If true, render all degree-color slots with a single neutral gray. */
   mono: boolean;
+  /** If true, consecutive same-degree chords only show the first one's label. */
+  dedupeLabels: boolean;
   label: (degree: number) => string;
   activeChordKey: string | null;
   keyOfDegree: (degree: number) => string | null;
@@ -384,6 +389,7 @@ function LineRow({
         const textColor = mono ? 'var(--text)' : color;
         const bandWidth = endCol - chord.startCol;
         const accentOffsetPct = bandWidth > 0 ? ((chord.accentCol - chord.startCol) / bandWidth) * 100 : 0;
+        const hideLabel = dedupeLabels && ci > 0 && chords[ci - 1].degree === chord.degree;
         return (
           <button
             key={`chip-${ci}`}
@@ -401,10 +407,7 @@ function LineRow({
               background: isActive ? color : `color-mix(in srgb, ${color} 20%, transparent)`,
               color: isActive ? 'var(--crust)' : textColor,
               fontWeight: isActive ? 700 : 500,
-              borderTopLeftRadius: 4,
-              borderTopRightRadius: 4,
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
+              borderRadius: 0,
               transition: 'all var(--transition)',
               padding: '0.1em 0',
               fontFamily: '"Pixeloid Mono", ui-monospace, monospace',
@@ -415,22 +418,25 @@ function LineRow({
             <span aria-hidden style={{ visibility: 'hidden' }}>
               {label(chord.degree)}
             </span>
-            {/* Visible label, anchored to the accent column inside the band */}
-            <span
-              style={{
-                position: 'absolute',
-                left: `${accentOffsetPct}%`,
-                top: 0,
-                bottom: 0,
-                paddingLeft: 2,
-                paddingRight: 2,
-                display: 'flex',
-                alignItems: 'center',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {label(chord.degree)}
-            </span>
+            {/* Visible label, anchored to the accent column inside the band.
+                Hidden for consecutive same-degree repeats when dedupeLabels is on. */}
+            {!hideLabel && (
+              <span
+                style={{
+                  position: 'absolute',
+                  left: `${accentOffsetPct}%`,
+                  top: 0,
+                  bottom: 0,
+                  paddingLeft: 2,
+                  paddingRight: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {label(chord.degree)}
+              </span>
+            )}
           </button>
         );
       })}
@@ -521,6 +527,8 @@ export function SongSheetPanel({
   toggleChordNameMode,
   chordColorMode,
   toggleChordColorMode,
+  dedupeLabels,
+  toggleDedupeLabels,
   songOptions,
   currentSongId,
   onSelectSong,
@@ -880,6 +888,16 @@ export function SongSheetPanel({
           >
             {chordColorMode === 'degree' ? t('songColorModeColor') : t('songColorModeMono')}
           </button>
+          <button
+            onClick={toggleDedupeLabels}
+            className={`text-[10px] px-2 h-5 rounded-full cursor-pointer mr-1 flex items-center ${
+              dedupeLabels ? 'bg-blue/20 text-blue' : 'bg-surface0 text-overlay1'
+            }`}
+            style={{ transition: 'all var(--transition)' }}
+            title={t('songDedupeLabelsToggle')}
+          >
+            {dedupeLabels ? t('songDedupeLabelsOn') : t('songDedupeLabelsOff')}
+          </button>
           {onNewSong && (
             <button
               onClick={onNewSong}
@@ -1006,6 +1024,7 @@ export function SongSheetPanel({
                       playingChord={playingChord}
                       isPlaybackActive={playCursor != null}
                       mono={chordColorMode === 'mono'}
+                      dedupeLabels={dedupeLabels}
                       label={label}
                       activeChordKey={activeChordKey}
                       keyOfDegree={keyOfDegree}
